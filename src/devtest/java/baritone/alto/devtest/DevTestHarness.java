@@ -129,7 +129,7 @@ public final class DevTestHarness {
                 mc.options.pauseOnLostFocus = false;
                 report.add("title screen reached, mods loaded=" + ModList.get().size()
                         + " after " + (System.nanoTime() - startNanos) / 1_000_000_000L + " s");
-                String name = "alto_devtest_" + System.currentTimeMillis();
+                String name = "alto_test_" + System.currentTimeMillis();
                 GameType type = "creative".equals(System.getProperty("alto.devtest.gamemode")) ? GameType.CREATIVE : GameType.SURVIVAL;
                 GameRules rules = new GameRules();
                 rules.getRule(GameRules.RULE_DAYLIGHT).set(false, null);

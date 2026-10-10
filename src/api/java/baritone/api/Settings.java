@@ -1591,6 +1591,218 @@ public final class Settings {
      */
     public final Setting<Boolean> allowWalkOnMagmaBlocks = new Setting<>(false);
 
+    // =================================================================================================================
+    // ALTO FORK SETTINGS (begin)
+    // Everything below belongs to the Alto fork: container/GUI automation, crafting, smelting, storage, Create/EMI
+    // support and scripting. Kept in ONE block at the end so upstream merges stay easy. Every new setting starts with
+    // "alto" except alwaysUseCraftingStation, whose name the project brief fixed. User docs: docs/alto/SETTINGS.md.
+    // Fully qualified Minecraft names are used on purpose so the upstream import list stays untouched.
+    // =================================================================================================================
+
+    /**
+     * Master switch for everything the Alto fork adds. When false, Baritone behaves like upstream Baritone:
+     * no container clicks, no crafting, no builder supply runs.
+     */
+    public final Setting<Boolean> altoEnabled = new Setting<>(true);
+
+    /**
+     * Container and GUI layer: opening blocks (chests, furnaces, crafting tables...), reading and clicking their slots.
+     * Everything that moves items through a menu needs this.
+     */
+    public final Setting<Boolean> altoContainers = new Setting<>(true);
+
+    /**
+     * Pacing: maximum container clicks per second (pick up, shift-click, swap...). Conservative default.
+     */
+    public final Setting<Double> altoClicksPerSecond = new Setting<>(4.0);
+
+    /**
+     * Pacing: maximum recipe-book placements per second (one placement = one packet that fills a crafting grid).
+     */
+    public final Setting<Double> altoRecipePlacementsPerSecond = new Setting<>(2.0);
+
+    /**
+     * Pacing: maximum "use item on block" actions per second done by Alto (opening, placing stations, setting filters).
+     */
+    public final Setting<Double> altoBlockUsesPerSecond = new Setting<>(4.0);
+
+    /**
+     * Pacing: maximum container openings per second (also keeps retry loops slow; upstream asks for less than 10/s).
+     */
+    public final Setting<Double> altoContainerOpensPerSecond = new Setting<>(1.0);
+
+    /**
+     * Minimum ticks to wait after a click before trusting the menu state (the server corrects wrong predictions
+     * within one round trip; the real wait also grows with your ping).
+     */
+    public final Setting<Integer> altoClickConfirmTicks = new Setting<>(3);
+
+    /**
+     * Ticks to wait for a container to open (and its contents to arrive) before retrying.
+     */
+    public final Setting<Integer> altoOpenTimeoutTicks = new Setting<>(60);
+
+    /**
+     * How many times an action (opening, clicking, placing) is retried, with doubling waits, before the task fails.
+     */
+    public final Setting<Integer> altoMaxRetries = new Setting<>(4);
+
+    /**
+     * Slow every Alto action down while the server lags (low TPS or high ping), and wait longer for answers.
+     */
+    public final Setting<Boolean> altoLagBackoff = new Setting<>(true);
+
+    /**
+     * Server ticks per second below which the server counts as lagging (normal is 20).
+     */
+    public final Setting<Double> altoLagTpsThreshold = new Setting<>(15.0);
+
+    /**
+     * Ping in milliseconds above which the connection counts as lagging.
+     */
+    public final Setting<Integer> altoLagPingThreshold = new Setting<>(400);
+
+    /**
+     * Show a one-time reminder per server address to check that server's rules about automation.
+     */
+    public final Setting<Boolean> altoServerNotice = new Setting<>(true);
+
+    /**
+     * Show the screens Alto works in (inventory, crafting table, chest...) so you can watch. When false, Alto still
+     * uses the same menus and packets but does not open the player inventory screen for 2x2 crafting.
+     */
+    public final Setting<Boolean> altoShowScreens = new Setting<>(true);
+
+    /**
+     * Fill crafting grids with the recipe book (one packet, like clicking a recipe) when the recipe is unlocked and
+     * no reserved item could be used by it. Otherwise items are placed slot by slot.
+     */
+    public final Setting<Boolean> altoUseRecipeBook = new Setting<>(true);
+
+    /**
+     * Crafting: let Alto craft items (2x2 inventory grid and crafting tables).
+     */
+    public final Setting<Boolean> altoCrafting = new Setting<>(true);
+
+    /**
+     * Always use a crafting table, even for recipes that fit the 2x2 inventory grid (like planks or sticks).
+     * Default false: 2x2 recipes are crafted in the inventory and only 3x3 recipes use a table. If no table exists,
+     * the very first table is still made in the inventory grid (otherwise nothing could start).
+     */
+    public final Setting<Boolean> alwaysUseCraftingStation = new Setting<>(false);
+
+    /**
+     * Planner: use known storage (chests, barrels...) as a source of items.
+     */
+    public final Setting<Boolean> altoPlannerUseStorage = new Setting<>(true);
+
+    /**
+     * Planner: storage within this many blocks is always preferred over crafting; farther storage only if cheaper.
+     */
+    public final Setting<Integer> altoPlannerStorageRadius = new Setting<>(48);
+
+    /**
+     * Planner: allow mining as a last resort to get missing materials (logs, cobblestone, ores...).
+     */
+    public final Setting<Boolean> altoPlannerAllowGather = new Setting<>(true);
+
+    /**
+     * Planner: how deep recipe chains may go (logs -> planks -> sticks counts as 2).
+     */
+    public final Setting<Integer> altoPlannerMaxDepth = new Setting<>(12);
+
+    /**
+     * Items the planner never uses as an ingredient or fuel unless they are exactly what you asked for.
+     */
+    public final Setting<List<Item>> altoNeverConsume = new Setting<>(new ArrayList<>(Arrays.asList(
+            net.minecraft.world.item.Items.DIAMOND,
+            net.minecraft.world.item.Items.DIAMOND_BLOCK,
+            net.minecraft.world.item.Items.NETHERITE_INGOT,
+            net.minecraft.world.item.Items.NETHERITE_SCRAP,
+            net.minecraft.world.item.Items.NETHERITE_BLOCK,
+            net.minecraft.world.item.Items.EMERALD,
+            net.minecraft.world.item.Items.EMERALD_BLOCK,
+            net.minecraft.world.item.Items.GOLDEN_APPLE,
+            net.minecraft.world.item.Items.ENCHANTED_GOLDEN_APPLE,
+            net.minecraft.world.item.Items.NETHER_STAR,
+            net.minecraft.world.item.Items.ELYTRA,
+            net.minecraft.world.item.Items.TOTEM_OF_UNDYING,
+            net.minecraft.world.item.Items.SHULKER_SHELL,
+            net.minecraft.world.item.Items.ENCHANTED_BOOK,
+            net.minecraft.world.item.Items.HEART_OF_THE_SEA,
+            net.minecraft.world.item.Items.ECHO_SHARD
+    )));
+
+    /**
+     * Fuels Alto may burn in furnaces, in order of preference. No valuable items by default. Items reserved for the
+     * current job (for example the planks a build needs) are never burned.
+     */
+    public final Setting<List<Item>> altoAllowedFuels = new Setting<>(new ArrayList<>(Arrays.asList(
+            net.minecraft.world.item.Items.COAL,
+            net.minecraft.world.item.Items.CHARCOAL,
+            net.minecraft.world.item.Items.COAL_BLOCK,
+            net.minecraft.world.item.Items.DRIED_KELP_BLOCK,
+            net.minecraft.world.item.Items.STICK,
+            net.minecraft.world.item.Items.OAK_PLANKS,
+            net.minecraft.world.item.Items.SPRUCE_PLANKS,
+            net.minecraft.world.item.Items.BIRCH_PLANKS,
+            net.minecraft.world.item.Items.JUNGLE_PLANKS,
+            net.minecraft.world.item.Items.ACACIA_PLANKS,
+            net.minecraft.world.item.Items.DARK_OAK_PLANKS,
+            net.minecraft.world.item.Items.MANGROVE_PLANKS,
+            net.minecraft.world.item.Items.CHERRY_PLANKS,
+            net.minecraft.world.item.Items.BAMBOO_PLANKS
+    )));
+
+    /**
+     * Stations: find, place and pick up crafting tables and furnaces as needed.
+     */
+    public final Setting<Boolean> altoStations = new Setting<>(true);
+
+    /**
+     * Stations: use crafting tables / furnaces that already exist in the world.
+     */
+    public final Setting<Boolean> altoReuseStations = new Setting<>(true);
+
+    /**
+     * Stations: place a station from the inventory (or craft one) when none is near.
+     */
+    public final Setting<Boolean> altoPlaceStations = new Setting<>(true);
+
+    /**
+     * Stations: after use, empty, break and collect stations that Alto placed itself (never other stations).
+     */
+    public final Setting<Boolean> altoPickUpStations = new Setting<>(true);
+
+    /**
+     * Stations: how far (blocks) to look for an existing station before placing one.
+     */
+    public final Setting<Integer> altoStationSearchRadius = new Setting<>(48);
+
+    /**
+     * Builder integration: when #build / #sel fill / a schematic runs out of a block, craft, smelt or fetch it and
+     * then continue the build (instead of pausing with "Unable to do it").
+     */
+    public final Setting<Boolean> altoBuilderSupply = new Setting<>(true);
+
+    /**
+     * Builder integration: at most this many of one item per supply run (more runs follow when needed).
+     */
+    public final Setting<Integer> altoBuilderSupplyBatch = new Setting<>(128);
+
+    /**
+     * Allow #selftest to change the world (it builds test setups around you). Only works in singleplayer, and only
+     * in worlds whose name starts with "alto_test" unless you add "confirm" to the command.
+     */
+    public final Setting<Boolean> altoSelfTest = new Setting<>(true);
+
+    /**
+     * Log every Alto click and decision to the game log (not to chat). For troubleshooting.
+     */
+    public final Setting<Boolean> altoDebug = new Setting<>(false);
+
+    // ALTO FORK SETTINGS (end)
+
     /**
      * A map of lowercase setting field names to their respective setting
      */

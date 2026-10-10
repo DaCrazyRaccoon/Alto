@@ -1,0 +1,161 @@
+/*
+ * This file is part of Baritone.
+ *
+ * Baritone is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Baritone is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with Baritone.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+package baritone.alto.container;
+
+import baritone.alto.core.ItemKey;
+import org.junit.jupiter.api.Test;
+
+import java.util.Set;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+class MenuGoalsTest {
+
+    private static final ItemKey LOG = ItemKey.of("oak_log");
+    private static final ItemKey COBBLE = ItemKey.of("cobblestone");
+    private static final Set<SlotRole> STORAGE = MenuGoals.roles(SlotRole.STORAGE);
+
+    @Test
+    void takeMovesWholeStacksAndStopsWhenEnough() {
+        MenuSim sim = MenuSim.chest().put(0, "oak_log", 64).put(1, "oak_log", 64).put(2, "oak_log", 10);
+        MenuGoal.Decision d = sim.run(MenuGoals.take(LOG::equals, "oak_log", 70, STORAGE, false), 20);
+        assertInstanceOf(MenuGoal.Done.class, d);
+        int got = sim.view().count(LOG, MenuView.PLAYER_STORAGE);
+        assertTrue(got >= 70 && got <= 74 + 64, "got " + got);
+        // first the 64 stack (<= remaining), then the 10 stack (smallest overshoot)
+        assertEquals(74, got);
+        assertEquals(2, sim.clicks);
+    }
+
+    @Test
+    void exactTakeSplitsTheLastStack() {
+        MenuSim sim = MenuSim.chest().put(0, "oak_log", 64);
+        MenuGoal.Decision d = sim.run(MenuGoals.take(LOG::equals, "oak_log", 5, STORAGE, true), 30);
+        assertInstanceOf(MenuGoal.Done.class, d);
+        assertEquals(5, sim.view().count(LOG, MenuView.PLAYER_STORAGE));
+        assertEquals(59, sim.view().count(LOG, STORAGE));
+        assertFalse(sim.view().carrying());
+    }
+
+    @Test
+    void takeReportsWhenTheContainerRunsOut() {
+        MenuSim sim = MenuSim.chest().put(3, "oak_log", 4);
+        MenuGoal.Decision d = sim.run(MenuGoals.take(LOG::equals, "oak_log", 20, STORAGE, false), 10);
+        MenuGoal.Done done = assertInstanceOf(MenuGoal.Done.class, d);
+        assertTrue(done.summary().contains("no more"), done.summary());
+        assertEquals(4, sim.view().count(LOG, MenuView.PLAYER_STORAGE));
+    }
+
+    @Test
+    void takeFailsWhenTheInventoryIsFull() {
+        MenuSim sim = MenuSim.chest().put(0, "oak_log", 64);
+        for (int i = 27; i < 63; i++) {
+            sim.put(i, "dirt", 64);
+        }
+        MenuGoal.Decision d = sim.run(MenuGoals.take(LOG::equals, "oak_log", 10, STORAGE, false), 5);
+        assertEquals("inventory full", assertInstanceOf(MenuGoal.Fail.class, d).reason());
+    }
+
+    @Test
+    void storeRespectsTheKeepPredicateAndPrefersMainInventory() {
+        MenuSim sim = MenuSim.chest().put(27, "cobblestone", 64).put(28, "diamond_pickaxe", 1).put(54, "cobblestone", 32);
+        MenuGoal goal = MenuGoals.store(k -> !k.id().contains("pickaxe"), "everything but tools", -1, STORAGE);
+        MenuGoal.Decision d = sim.run(goal, 10);
+        assertInstanceOf(MenuGoal.Done.class, d);
+        assertEquals(96, sim.view().count(COBBLE, STORAGE));
+        assertEquals(1, sim.view().count(ItemKey.of("diamond_pickaxe"), MenuView.PLAYER_STORAGE));
+    }
+
+    @Test
+    void storeStopsCleanlyWhenTheChestIsFull() {
+        MenuSim sim = MenuSim.chest();
+        for (int i = 0; i < 27; i++) {
+            sim.put(i, "dirt", 64);
+        }
+        sim.put(30, "cobblestone", 64);
+        MenuGoal.Decision d = sim.run(MenuGoals.store(COBBLE::equals, "cobblestone", -1, STORAGE), 5);
+        assertTrue(assertInstanceOf(MenuGoal.Done.class, d).summary().contains("container full"));
+        assertEquals(0, sim.clicks);
+    }
+
+    @Test
+    void fillSlotPlacesExactCounts() {
+        MenuSim sim = MenuSim.craftingTable().put(10, "oak_log", 64);
+        MenuGoal.Decision d = sim.run(MenuGoals.fillSlot(1, LOG, 3, false), 20);
+        assertInstanceOf(MenuGoal.Done.class, d);
+        assertEquals(3, sim.view().slot(1).count());
+        assertEquals(61, sim.view().count(LOG, MenuView.PLAYER_STORAGE));
+        assertFalse(sim.view().carrying());
+    }
+
+    @Test
+    void fillSlotPlacesWholeSmallStacksInOneClick() {
+        MenuSim sim = MenuSim.craftingTable().put(10, "oak_log", 5);
+        sim.run(MenuGoals.fillSlot(1, LOG, 5, false), 20);
+        assertEquals(5, sim.view().slot(1).count());
+        assertEquals(2, sim.clicks); // pick up + put down
+    }
+
+    @Test
+    void fillSlotRefusesForeignItems() {
+        MenuSim sim = MenuSim.craftingTable().put(1, "dirt", 1).put(10, "oak_log", 5);
+        assertInstanceOf(MenuGoal.Fail.class, sim.run(MenuGoals.fillSlot(1, LOG, 2, false), 5));
+    }
+
+    @Test
+    void takeOutputChecksTheResultItem() {
+        MenuSim sim = MenuSim.craftingTable().put(0, "spruce_planks", 4);
+        MenuGoal.Decision d = sim.run(MenuGoals.takeOutput(0, ItemKey.of("oak_planks"), 4), 5);
+        assertTrue(assertInstanceOf(MenuGoal.Fail.class, d).reason().contains("Polymorph"));
+    }
+
+    @Test
+    void clearEmptiesTheGrid() {
+        MenuSim sim = MenuSim.craftingTable().put(1, "oak_log", 3).put(5, "stick", 2);
+        sim.run(MenuGoals.clear(MenuGoals.roles(SlotRole.CRAFT_GRID), "crafting grid"), 5);
+        assertTrue(sim.view().withRole(SlotRole.CRAFT_GRID).stream().allMatch(SlotView::isEmpty));
+        assertEquals(3, sim.view().count(LOG, MenuView.PLAYER_STORAGE));
+    }
+
+    @Test
+    void goalsRecoverFromAnExternalChange() {
+        // A mod (or lag correction) moves items between decisions: the goal just re-decides.
+        MenuSim sim = MenuSim.chest().put(0, "oak_log", 64).put(1, "oak_log", 64);
+        MenuGoal goal = MenuGoals.take(LOG::equals, "oak_log", 100, STORAGE, false);
+        MenuGoal.ClickNext first = assertInstanceOf(MenuGoal.ClickNext.class, goal.decide(sim.view()));
+        sim.apply(first.click());
+        sim.put(1, "oak_log", 0); // someone else emptied slot 1
+        MenuGoal.Decision d = sim.run(goal, 10);
+        assertInstanceOf(MenuGoal.Done.class, d);
+        assertEquals(64, sim.view().count(LOG, MenuView.PLAYER_STORAGE));
+    }
+
+    @Test
+    void carriedItemsAreNeverDroppedOrLost() {
+        MenuSim sim = MenuSim.chest().put(0, "oak_log", 10);
+        sim.apply(Click.left(0, "test: pick up"));
+        assertTrue(sim.view().carrying());
+        MenuGoal.Decision d = sim.run(MenuGoals.store(COBBLE::equals, "cobblestone", -1, STORAGE), 5);
+        assertInstanceOf(MenuGoal.Done.class, d);
+        assertFalse(sim.view().carrying());
+        assertEquals(10, sim.view().count(LOG, MenuView.PLAYER_STORAGE));
+    }
+}

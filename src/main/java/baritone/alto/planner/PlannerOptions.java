@@ -17,6 +17,10 @@
 
 package baritone.alto.planner;
 
+import baritone.alto.core.ItemKey;
+
+import java.util.Set;
+
 /**
  * Planner switches and cost knobs. Filled from Baritone settings by {@code AltoSettingsBridge}; tests set fields
  * directly. Mutable on purpose (plain configuration object), copy with {@link #copy()} before changing a shared one.
@@ -50,6 +54,9 @@ public final class PlannerOptions {
     /** How many alternatives of a tag ingredient are compared in detail. */
     public int maxAlternatives = 12;
 
+    /** Items never used as an ingredient or fuel (only obtained when they are the target itself). */
+    public Set<ItemKey> neverConsume = Set.of();
+
     /** Time estimates. */
     public int ticksPerClick = 5;
     public double walkBlocksPerTick = 0.2;
@@ -73,6 +80,7 @@ public final class PlannerOptions {
         o.maxAlternatives = maxAlternatives;
         o.ticksPerClick = ticksPerClick;
         o.walkBlocksPerTick = walkBlocksPerTick;
+        o.neverConsume = neverConsume;
         return o;
     }
 

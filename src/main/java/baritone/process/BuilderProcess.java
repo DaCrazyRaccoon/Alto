@@ -102,6 +102,8 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
     private int layer;
     private int numRepeats;
     private List<BlockState> approxPlaceable;
+    // ALTO FORK: last "missing materials" map from assemble(), read by baritone.alto.supply.BuilderSupply
+    private Map<BlockState, Integer> altoLastMissing = new HashMap<>();
     public int stopAtHeight = 0;
 
     public BuilderProcess(Baritone baritone) {
@@ -612,6 +614,10 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
                     layer++;
                     return onTick(calcFailed, isSafeToCancel, recursions + 1);
                 }
+                // ALTO FORK: let Alto craft/smelt/fetch the missing blocks and continue (baritone.alto.supply.BuilderSupply)
+                if (baritone.getAlto().builderSupply().onMissing(this, altoLastMissing)) {
+                    return new PathingCommand(null, PathingCommandType.REQUEST_PAUSE);
+                }
                 logDirect("Unable to do it. Pausing. resume to resume, cancel to cancel");
                 paused = true;
                 return new PathingCommand(null, PathingCommandType.REQUEST_PAUSE);
@@ -746,6 +752,7 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
             }
         });
         incorrectPositions.removeAll(outOfBounds);
+        altoLastMissing = missing; // ALTO FORK
         List<Goal> toBreak = new ArrayList<>();
         breakable.forEach(pos -> toBreak.add(breakGoal(pos, bcc)));
         List<Goal> toPlace = new ArrayList<>();
@@ -979,6 +986,23 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
                     SettingsUtil.maybeCensor(z)
             );
         }
+    }
+
+    // ALTO FORK: build area and identity for baritone.alto.supply.BuilderSupply (stations are never placed inside it)
+    public boolean altoInBuildArea(BlockPos pos) {
+        ISchematic sch = schematic;
+        Vec3i o = origin;
+        if (sch == null || o == null) {
+            return false;
+        }
+        int x = pos.getX() - o.getX();
+        int y = pos.getY() - o.getY();
+        int z = pos.getZ() - o.getZ();
+        return x >= -1 && y >= -1 && z >= -1 && x <= sch.widthX() && y <= sch.heightY() && z <= sch.lengthZ();
+    }
+
+    public String altoBuildName() {
+        return name + "@" + origin;
     }
 
     @Override

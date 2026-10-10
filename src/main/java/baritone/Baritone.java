@@ -90,6 +90,8 @@ public class Baritone implements IBaritone {
 
     public BlockStateInterface bsi;
 
+    private final baritone.alto.Alto alto; // ALTO FORK
+
     Baritone(Minecraft mc) {
         this.mc = mc;
         this.gameEventHandler = new GameEventHandler(this);
@@ -129,6 +131,13 @@ public class Baritone implements IBaritone {
         this.worldProvider = new WorldProvider(this);
         this.selectionManager = new SelectionManager(this);
         this.commandManager = new CommandManager(this);
+
+        this.alto = baritone.alto.Alto.create(this); // ALTO FORK: everything the Alto fork adds (baritone.alto)
+    }
+
+    // ALTO FORK
+    public baritone.alto.Alto getAlto() {
+        return this.alto;
     }
 
     public void registerBehavior(IBehavior behavior) {

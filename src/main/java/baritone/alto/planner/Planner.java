@@ -91,6 +91,11 @@ public final class Planner {
             return;
         }
         s.nodes[0]++;
+        if (depth > 0 && opt.neverConsume.contains(item)) {
+            s.warnings.add(item.shortName() + " is on the never-consume list (setting altoNeverConsume)");
+            markMissing(s, item, n);
+            return;
+        }
         n -= s.takeInventory(item, n);
         if (n == 0) {
             return;
@@ -238,6 +243,9 @@ public final class Planner {
                 ItemKey bestFuelItem = null;
                 int bestFuelCount = 0;
                 for (Map.Entry<ItemKey, Integer> f : c.world.fuels.entrySet()) {
+                    if (opt.neverConsume.contains(f.getKey())) {
+                        continue;
+                    }
                     int units = (burnNeeded + f.getValue() - 1) / f.getValue();
                     State t = c.copy();
                     int missingBefore = t.missing.total();
@@ -277,6 +285,11 @@ public final class Planner {
             return;
         }
         List<ItemKey> options = new ArrayList<>(ing.options());
+        options.removeIf(opt.neverConsume::contains);
+        if (options.isEmpty()) {
+            satisfy(c, ing.options().get(0), need, depth, stack, forceGrid); // reports the never-consume item as missing
+            return;
+        }
         options.sort(Comparator.comparingInt((ItemKey o) -> -c.inventoryCount(o)));
         for (ItemKey o : options) {
             need -= c.takeInventory(o, need);
