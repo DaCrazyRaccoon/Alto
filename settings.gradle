@@ -15,33 +15,20 @@
  * along with Baritone.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+// ALTO FORK: upstream builds every loader with the "unimined" Gradle plugin from
+// maven.wagyourtail.xyz. This fork targets NeoForge 1.21.1 only and builds with
+// NeoForge's official ModDevGradle plugin instead (see docs/alto/DEVELOPER.md, "Build").
+// The fabric/, forge/ and tweaker/ folders are kept unchanged for easier upstream merges
+// but are not part of this build.
 pluginManagement {
     repositories {
-        mavenLocal()
-        maven {
-            name = 'WagYourMaven'
-            url = 'https://maven.wagyourtail.xyz/snapshots'
-        }
-        maven {
-            name = 'ForgeMaven'
-            url = 'https://maven.minecraftforge.net/'
-        }
-        maven {
-            name = 'FabricMaven'
-            url = 'https://maven.fabricmc.net/'
-        }
-        mavenCentral()
-        gradlePluginPortal() {
-            content {
-                excludeGroup "org.apache.logging.log4j"
-            }
-        }
+        gradlePluginPortal()
+        maven { url = 'https://maven.neoforged.net/releases' }
     }
 }
 
-rootProject.name = 'baritone'
-
-include("tweaker")
-for (platform in available_loaders.split(",")) {
-       include(platform)
+plugins {
+    id 'org.gradle.toolchains.foojay-resolver-convention' version '1.0.0'
 }
+
+rootProject.name = 'baritone'

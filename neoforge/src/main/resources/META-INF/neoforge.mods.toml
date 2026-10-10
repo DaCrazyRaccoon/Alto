@@ -17,7 +17,7 @@ modId="baritoe" #mandatory
 # The version number of the mod - there's a few well known ${} variables useable here or just hardcode it
 version="${version}" #mandatory
  # A display name for the mod
-displayName="Baritone" #mandatory
+displayName="Baritone (Alto fork)" #mandatory
 # A URL for the "homepage" for this mod, displayed in the mod UI
 displayURL="https://github.com/cabaletta/baritone" #optional
 # A file name (in the root of the mod JAR) containing a logo for display
@@ -29,12 +29,40 @@ authors="leijurv, Brady" #optional
 # The description text for the mod (multi line!) (#mandatory)
 description='''
 A Minecraft pathfinder bot.
+Alto fork: container/GUI automation, crafting, smelting, storage, Create and EMI support, scripting.
+This is a modified version of Baritone (LGPL-3.0). Source: see the LICENSE note in the jar.
 '''
 
 [[dependencies.baritoe]]
 modId="minecraft"
 type="required"
 # This version range declares a minimum of the current minecraft version up to but not including the next major version
-versionRange="[1.21,1.21.1]"
+versionRange="[1.21.1]"
 ordering="NONE"
 side="BOTH"
+
+# ALTO FORK: NeoForge reads mixin configs from here (upstream's unimined build put them in the manifest).
+[[mixins]]
+config="mixins.baritone.json"
+
+[[dependencies.baritoe]]
+modId="neoforge"
+type="required"
+versionRange="[21.1.0,)"
+ordering="NONE"
+side="CLIENT"
+
+# Optional integrations (soft dependencies). Baritone works without them.
+[[dependencies.baritoe]]
+modId="create"
+type="optional"
+versionRange="[6.0.10,6.1)"
+ordering="NONE"
+side="CLIENT"
+
+[[dependencies.baritoe]]
+modId="emi"
+type="optional"
+versionRange="[1.1,)"
+ordering="NONE"
+side="CLIENT"

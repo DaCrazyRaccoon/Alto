@@ -15,148 +15,136 @@
  * along with Baritone.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-allprojects {
-    apply plugin: 'java'
-    apply plugin: "xyz.wagyourtail.unimined"
-    apply plugin: "maven-publish"
+// ALTO FORK build (NeoForge 1.21.1 only, ModDevGradle). See settings.gradle for why this
+// replaces upstream's unimined build. The Java sources keep upstream's layout:
+//   src/api/java, src/main/java, src/launch/java      upstream common code (+ Alto packages)
+//   neoforge/src/main/java                             NeoForge entry point + Alto platform glue
+//   src/schematica_api/java                            compile-only stubs (never shipped)
+//   src/test/java                                      unit tests (JUnit 4 upstream + JUnit 5 Alto)
 
-    base {
-        archivesName = rootProject.archives_base_name
-    }
-
-    def vers = ""
-    try {
-        vers = 'git describe --always --tags --first-parent --dirty'.execute().text.trim()
-    } catch (Exception e) {
-        println "Version detection failed: " + e
-    }
-    if (!vers.startsWith("v")) {
-        println "using version number: " + rootProject.mod_version
-        version = rootProject.mod_version
-    } else {
-        version = vers.substring(1)
-        println "Detected version " + version
-    }
-    group = rootProject.maven_group
-
-    java {
-        sourceCompatibility = JavaVersion.toVersion(project.java_version)
-        toolchain {
-            languageVersion.set(JavaLanguageVersion.of(sourceCompatibility.majorVersion.toInteger()))
-        }
-    }
-
-    repositories {
-        maven {
-            name = 'spongepowered-repo'
-            url = 'https://repo.spongepowered.org/repository/maven-public/'
-        }
-        maven {
-            name = 'fabric-maven'
-            url = 'https://maven.fabricmc.net/'
-        }
-        maven {
-            name = 'impactdevelopment-repo'
-            url = 'https://impactdevelopment.github.io/maven/'
-        }
-        maven {
-            name = "ldtteam"
-            url = "https://maven.parchmentmc.net/"
-        }
-        // for the newer version of launchwrapper
-        maven {
-            name = "multimc-maven"
-            url = "https://files.multimc.org/maven/"
-            metadataSources {
-                artifact()
-            }
-        }
-        mavenCentral()
-        maven {
-            name = 'babbaj-repo'
-            url = 'https://babbaj.github.io/maven/'
-        }
-    }
-
-    dependencies {
-        compileOnly "org.spongepowered:mixin:${project.mixin_version}"
-        compileOnly "org.ow2.asm:asm:${project.asm_version}"
-
-        implementation "dev.babbaj:nether-pathfinder:${project.nether_pathfinder_version}"
-
-        implementation 'com.google.code.findbugs:jsr305:3.0.2'
-    }
-
-    unimined.minecraft(sourceSets.main, true) {
-        version rootProject.minecraft_version
-
-        mappings {
-            intermediary()
-            mojmap()
-            parchment("1.20.6", "2024.05.01")
-
-            devFallbackNamespace "official"
-        }
-    }
-
-    tasks.withType(JavaCompile).configureEach {
-        it.options.encoding = "UTF-8"
-
-        def targetVersion = project.java_version.toInteger()
-        if (JavaVersion.current().isJava9Compatible()) {
-            it.options.release = targetVersion
-        }
-    }
+plugins {
+    id 'java-library'
+    id 'net.neoforged.moddev' version '2.0.148'
 }
 
-unimined.minecraft {
-    runs.off = true
-    defaultRemapJar = false
-}
+version = "${baritone_version}-alto.${alto_version}"
+group = maven_group
 
 base {
-    archivesName = archivesName.get() + "-common"
+    archivesName = archives_base_name
 }
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(java_version as int)
 
 sourceSets {
-    api {
-        compileClasspath += main.compileClasspath
-        runtimeClasspath += main.runtimeClasspath
+    schematica_api {
+        java.srcDirs = ['src/schematica_api/java']
     }
     main {
-        compileClasspath += api.output
-        runtimeClasspath += api.output
+        java.srcDirs = ['src/api/java', 'src/main/java', 'src/launch/java', 'neoforge/src/main/java']
+        resources.srcDirs = ['src/api/resources', 'src/main/resources', 'neoforge/src/main/resources']
+        // src/launch/resources only holds upstream's unimined manifest + the mixin config; the
+        // mixin config is added below, the manifest is replaced by our jar manifest.
+        resources.srcDir 'src/launch/resources'
+        resources.exclude 'META-INF/MANIFEST.MF'
+        compileClasspath += schematica_api.output
     }
     test {
-        compileClasspath += main.compileClasspath + main.runtimeClasspath + main.output
-        runtimeClasspath += main.compileClasspath + main.runtimeClasspath + main.output
-    }
-    launch {
-        compileClasspath += main.compileClasspath + main.runtimeClasspath + main.output
-        runtimeClasspath += main.compileClasspath + main.runtimeClasspath + main.output
-    }
-    schematica_api {
-        compileClasspath += main.compileClasspath
-        runtimeClasspath += main.runtimeClasspath
-    }
-    main {
-        compileClasspath += schematica_api.output
-        runtimeClasspath += schematica_api.output
+        java.srcDirs = ['src/test/java']
+        resources.srcDirs = ['src/test/resources']
     }
 }
 
+configurations {
+    // Libraries copied into our jar (upstream shades nether-pathfinder the same way).
+    shade
+    implementation.extendsFrom shade
+}
+
+repositories {
+    maven {
+        name = 'babbaj-repo'
+        url = 'https://babbaj.github.io/maven/'
+        content { includeGroup 'dev.babbaj' }
+    }
+    mavenCentral()
+}
+
+neoForge {
+    version = project.neo_version
+
+    parchment {
+        mappingsVersion = project.parchment_mappings_version
+        minecraftVersion = project.parchment_minecraft_version
+    }
+
+    mods {
+        baritoe {
+            sourceSet(sourceSets.main)
+        }
+    }
+
+    unitTest {
+        enable()
+        testedMod = mods.baritoe
+    }
+
+    runs {
+        client {
+            client()
+            gameDirectory = project.file('run')
+        }
+    }
+}
+
+// The schematica/litematica stubs need Minecraft on their compile classpath.
+neoForge.addModdingDependenciesTo(sourceSets.schematica_api)
+
 dependencies {
+    shade "dev.babbaj:nether-pathfinder:${nether_pathfinder_version}"
+    additionalRuntimeClasspath "dev.babbaj:nether-pathfinder:${nether_pathfinder_version}"
+    compileOnly 'com.google.code.findbugs:jsr305:3.0.2'
+    testCompileOnly 'com.google.code.findbugs:jsr305:3.0.2'
+
+    testImplementation platform('org.junit:junit-bom:5.11.4')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
     testImplementation 'junit:junit:4.13.2'
+    testRuntimeOnly 'org.junit.vintage:junit-vintage-engine'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+test {
+    useJUnitPlatform()
+    testLogging {
+        events = ['failed', 'skipped']
+        exceptionFormat = 'full'
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.release = java_version as int
+}
+
+processResources {
+    def props = [version: project.version]
+    inputs.properties props
+    filesMatching('META-INF/neoforge.mods.toml') {
+        expand props
+    }
 }
 
 jar {
-    from sourceSets.main.output, sourceSets.launch.output, sourceSets.api.output
-}
-
-javadoc {
-    options.addStringOption('Xwerror', '-quiet') // makes the build fail on travis when there is a javadoc error
-    options.linkSource true
-    options.encoding "UTF-8" // allow emoji in comments :^)
-    source = sourceSets.api.allJava
-    classpath += sourceSets.api.compileClasspath
+    archiveFileName = "${archives_base_name}-neoforge-${minecraft_version}-${project.version}.jar"
+    from(configurations.shade.collect { zipTree(it) }) {
+        exclude 'META-INF/MANIFEST.MF', 'META-INF/*.SF', 'META-INF/*.RSA', 'META-INF/*.DSA'
+    }
+    from('LICENSE') { into 'META-INF' rename { 'LICENSE-baritone.txt' } }
+    manifest {
+        attributes(
+                'Implementation-Title': 'Baritone (Alto fork)',
+                'Implementation-Version': project.version,
+                'Specification-Title': 'baritoe',
+        )
+    }
 }
