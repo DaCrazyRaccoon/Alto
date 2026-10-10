@@ -1,0 +1,10 @@
+# DEV-ONLY harness mod (never shipped). Drives automated boot / world / self-test runs.
+modLoader="javafml"
+loaderVersion="[1,)"
+license="LGPL-3.0"
+
+[[mods]]
+modId="alto_devtest"
+version="0.0.0"
+displayName="Alto dev test harness"
+description='''Dev-only: boots the client, creates a throwaway world, runs #selftest, writes a report, quits.'''

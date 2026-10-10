@@ -53,6 +53,11 @@ sourceSets {
         java.srcDirs = ['src/test/java']
         resources.srcDirs = ['src/test/resources']
     }
+    // DEV-ONLY automation harness (boot/world/self-test runs). Never part of the release jar.
+    devtest {
+        java.srcDirs = ['src/devtest/java']
+        resources.srcDirs = ['src/devtest/resources']
+    }
 }
 
 configurations {
@@ -82,6 +87,9 @@ neoForge {
         baritoe {
             sourceSet(sourceSets.main)
         }
+        alto_devtest {
+            sourceSet(sourceSets.devtest)
+        }
     }
 
     unitTest {
@@ -90,15 +98,36 @@ neoForge {
     }
 
     runs {
+        // Dev client with only Baritone (no Create, no EMI): soft-dependency test.
         client {
             client()
-            gameDirectory = project.file('run')
+            gameDirectory = project.file(findProperty('alto_run_dir') ?: '../testenv/run-dev')
+            loadedMods = [mods.baritoe, mods.alto_devtest]
+        }
+        // Dev client with a COPY of the pack's mods/configs (see preparePackRun). Never the real instance.
+        packClient {
+            client()
+            gameDirectory = project.file('../testenv/run-pack')
+            loadedMods = [mods.baritoe, mods.alto_devtest]
+            jvmArguments.addAll('-Xmx8G', '-Xms2G')
+            // Pack mods run extra dev-only self-checks; the harness switches FML to production mode (see DevTestHarness).
+            systemProperty 'alto.devtest.production', 'true'
+        }
+        configureEach {
+            // Marker so scripts/alto/test-client.ps1 can find (and only ever stop) its own test clients.
+            jvmArgument "-Dalto.testclient=${name}"
+            // Harness controls, e.g. -Palto_devtest=world -Palto_devtest_commands="selftest all"
+            systemProperty 'alto.devtest', (findProperty('alto_devtest') ?: '').toString()
+            systemProperty 'alto.devtest.commands', (findProperty('alto_devtest_commands') ?: '').toString()
+            systemProperty 'alto.devtest.timeout', (findProperty('alto_devtest_timeout') ?: '900').toString()
+            systemProperty 'alto.devtest.gamemode', (findProperty('alto_devtest_gamemode') ?: 'survival').toString()
         }
     }
 }
 
-// The schematica/litematica stubs need Minecraft on their compile classpath.
+// The schematica/litematica stubs and the dev harness need Minecraft on their compile classpath.
 neoForge.addModdingDependenciesTo(sourceSets.schematica_api)
+neoForge.addModdingDependenciesTo(sourceSets.devtest)
 
 dependencies {
     shade "dev.babbaj:nether-pathfinder:${nether_pathfinder_version}"
@@ -146,5 +175,67 @@ jar {
                 'Implementation-Version': project.version,
                 'Specification-Title': 'baritoe',
         )
+    }
+}
+
+// ---------------------------------------------------------------------------------------------
+// ALTO test environment helpers (dev only). Sources are the COPY in ../testenv/pack, which was
+// copied read-only from the Prism instance; nothing here ever writes to the Prism folder.
+// ---------------------------------------------------------------------------------------------
+def seedOptions = { File dir ->
+    // Fresh game dirs open the accessibility onboarding screen and pause on focus loss;
+    // pre-seed both so automated runs are not blocked. Existing options are never overwritten.
+    def options = new File(dir, 'options.txt')
+    if (!options.exists()) {
+        dir.mkdirs()
+        options.text = ['onboardAccessibility:false', 'pauseOnLostFocus:false', 'narrator:0', ''].join(System.lineSeparator())
+    }
+}
+
+tasks.register('prepareDevRun') {
+    doLast { seedOptions(project.file(findProperty('alto_run_dir') ?: '../testenv/run-dev')) }
+}
+
+// Jars left out of DEV pack runs: Sinytra Connector cannot find the "clean" Minecraft jar inside a
+// ModDevGradle environment ("Could not determine clean minecraft artifact path"), so it and the two
+// Fabric mods it loads are excluded here. The production-style test (testenv/prod) loads all of them.
+// continuity (connected textures) hard-requires connector. The user asked to ignore the Fabric mods.
+def devPackExclude = (findProperty('alto_pack_exclude')
+        ?: 'connector-*.jar,Axiom-*.jar,IrisExtension-*.jar,continuity-*.jar').toString().split(',').collect { it.trim() }
+
+tasks.register('preparePackRun', Sync) {
+    def packDir = project.file('../testenv/pack')
+    def runDir = project.file('../testenv/run-pack')
+    from(new File(packDir, 'mods')) { into 'mods'; exclude devPackExclude }
+    from(new File(packDir, 'config')) { into 'config' }
+    from(new File(packDir, 'kubejs')) { into 'kubejs' }
+    from(new File(packDir, 'defaultconfigs')) { into 'defaultconfigs' }
+    into runDir
+    doFirst {
+        // Some mods mark files hidden (e.g. euphoria_patcher/.data.json); Windows refuses to overwrite hidden files.
+        def cfg = new File(runDir, 'config')
+        if (cfg.exists()) {
+            cfg.eachFileRecurse(groovy.io.FileType.FILES) { f ->
+                java.nio.file.Files.setAttribute(f.toPath(), 'dos:hidden', false)
+            }
+        }
+    }
+    // Keep what the game creates at runtime (worlds, logs, options, Baritone data).
+    preserve {
+        include 'saves/**', 'logs/**', 'crash-reports/**', 'options.txt', 'baritone/**', 'screenshots/**',
+                'alto-devtest-report.txt', 'mods/.connector/**', '*.json', '*.dat', '*.txt', 'local/**', 'data/**',
+                'xaero/**', 'journeymap/**', 'shaderpacks/**', 'resourcepacks/**', 'schematics/**'
+    }
+    doLast {
+        seedOptions(runDir)
+        // Make the test window impossible to confuse with the real game: retitle it in the RUN copy only.
+        def kube = new File(runDir, 'kubejs/config/client.json')
+        if (kube.exists()) {
+            kube.setText(kube.getText('UTF-8').replaceFirst('"window_title": "[^"]*"', '"window_title": "ALTO TEST CLIENT (copy of the pack)"'), 'UTF-8')
+        }
+        def fancy = new File(runDir, 'config/fancymenu/options.txt')
+        if (fancy.exists()) {
+            fancy.setText(fancy.getText('UTF-8').replaceFirst("custom_window_title = '[^']*'", "custom_window_title = 'ALTO TEST CLIENT (copy of the pack)'"), 'UTF-8')
+        }
     }
 }

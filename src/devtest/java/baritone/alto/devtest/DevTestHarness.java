@@ -1,0 +1,228 @@
+/*
+ * This file is part of Baritone.
+ *
+ * Baritone is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Baritone is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with Baritone.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+package baritone.alto.devtest;
+
+import com.mojang.logging.LogUtils;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.AccessibilityOnboardingScreen;
+import net.minecraft.client.gui.screens.TitleScreen;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.world.Difficulty;
+import net.minecraft.world.level.GameRules;
+import net.minecraft.world.level.GameType;
+import net.minecraft.world.level.LevelSettings;
+import net.minecraft.world.level.WorldDataConfiguration;
+import net.minecraft.world.level.levelgen.WorldOptions;
+import net.minecraft.world.level.levelgen.presets.WorldPresets;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.fml.ModList;
+import net.neoforged.fml.common.Mod;
+import net.neoforged.neoforge.client.event.ClientTickEvent;
+import net.neoforged.neoforge.common.NeoForge;
+import org.slf4j.Logger;
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Deque;
+import java.util.List;
+
+/**
+ * DEV-ONLY automation harness (separate source set, never part of the release jar).
+ * <p>
+ * Controlled by system properties:
+ * <ul>
+ *     <li>{@code alto.devtest=boot}: wait for the title screen, write a report, quit.</li>
+ *     <li>{@code alto.devtest=world}: create a fresh flat world, run {@code alto.devtest.commands}
+ *     (Baritone commands separated by {@code ;}, without prefix), wait until
+ *     {@code <gameDir>/baritone/alto/selftest/finished.flag} appears or the timeout passes, quit.</li>
+ *     <li>{@code alto.devtest.timeout}: seconds before giving up (default 600).</li>
+ *     <li>{@code alto.devtest.gamemode}: survival (default) or creative.</li>
+ * </ul>
+ * The report is written to {@code <gameDir>/alto-devtest-report.txt}; its last line is the verdict
+ * ({@code BOOT OK}, {@code WORLD OK}, {@code LAUNCH FAILED: ...} or {@code TIMEOUT ...}). Error screens (NeoForge's
+ * loading error screen, vanilla error/disconnect screens) end the run immediately with {@code LAUNCH FAILED}.
+ * Failures that happen before mods are constructed are caught by {@code scripts/alto/test-client.ps1}, which also
+ * reads the game log. The harness writes its PID to {@code alto-devtest.pid} so that script can stop it.
+ */
+@Mod(value = "alto_devtest", dist = Dist.CLIENT)
+public final class DevTestHarness {
+    private static final Logger LOG = LogUtils.getLogger();
+
+    private final String mode = System.getProperty("alto.devtest", "");
+    private final long startNanos = System.nanoTime();
+    private final long timeoutNanos = Long.getLong("alto.devtest.timeout", 600L) * 1_000_000_000L;
+    private final List<String> report = new ArrayList<>();
+    private final Deque<String> commands = new ArrayDeque<>();
+    private boolean worldRequested;
+    private int ticksInWorld = -1;
+    private boolean done;
+
+    public DevTestHarness() {
+        if (Boolean.getBoolean("alto.devtest.production")) {
+            simulateProduction();
+        }
+        if (mode.isEmpty()) {
+            return;
+        }
+        String cmds = System.getProperty("alto.devtest.commands", "");
+        Arrays.stream(cmds.split(";")).map(String::trim).filter(s -> !s.isEmpty()).forEach(commands::add);
+        NeoForge.EVENT_BUS.addListener(this::onClientTick);
+        LOG.info("[alto-devtest] mode={} commands={}", mode, commands);
+        try {
+            Files.writeString(Path.of("alto-devtest.pid"), Long.toString(ProcessHandle.current().pid()), StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            LOG.warn("[alto-devtest] could not write pid file", e);
+        }
+    }
+
+    private void onClientTick(ClientTickEvent.Post event) {
+        if (done) {
+            return;
+        }
+        Minecraft mc = Minecraft.getInstance();
+        if (System.nanoTime() - startNanos > timeoutNanos) {
+            finish(mc, "TIMEOUT after " + (timeoutNanos / 1_000_000_000L) + " s");
+            return;
+        }
+        String error = errorScreen(mc);
+        if (error != null) {
+            finish(mc, "LAUNCH FAILED: " + error);
+            return;
+        }
+        if (mc.screen instanceof AccessibilityOnboardingScreen) {
+            mc.options.onboardingAccessibilityFinished();
+            mc.setScreen(new TitleScreen(true));
+            return;
+        }
+        if (mode.equals("boot")) {
+            if (mc.screen instanceof TitleScreen && mc.getOverlay() == null) {
+                finish(mc, "BOOT OK: title screen reached, mods loaded=" + ModList.get().size());
+            }
+            return;
+        }
+        if (!mode.equals("world")) {
+            return;
+        }
+        if (!worldRequested) {
+            if (mc.screen instanceof TitleScreen title && mc.getOverlay() == null) {
+                worldRequested = true;
+                mc.options.pauseOnLostFocus = false;
+                report.add("title screen reached, mods loaded=" + ModList.get().size()
+                        + " after " + (System.nanoTime() - startNanos) / 1_000_000_000L + " s");
+                String name = "alto_devtest_" + System.currentTimeMillis();
+                GameType type = "creative".equals(System.getProperty("alto.devtest.gamemode")) ? GameType.CREATIVE : GameType.SURVIVAL;
+                GameRules rules = new GameRules();
+                rules.getRule(GameRules.RULE_DAYLIGHT).set(false, null);
+                rules.getRule(GameRules.RULE_DOMOBSPAWNING).set(false, null);
+                rules.getRule(GameRules.RULE_WEATHER_CYCLE).set(false, null);
+                LevelSettings settings = new LevelSettings(name, type, false, Difficulty.PEACEFUL, true, rules, WorldDataConfiguration.DEFAULT);
+                mc.createWorldOpenFlows().createFreshLevel(name, settings, new WorldOptions(1L, false, false),
+                        ra -> ra.registryOrThrow(Registries.WORLD_PRESET).getHolderOrThrow(WorldPresets.FLAT).value().createWorldDimensions(),
+                        title);
+            }
+            return;
+        }
+        if (mc.player == null || mc.level == null || mc.getSingleplayerServer() == null) {
+            return;
+        }
+        ticksInWorld++;
+        if (ticksInWorld == 0) {
+            report.add("world joined after " + (System.nanoTime() - startNanos) / 1_000_000_000L + " s");
+        }
+        if (ticksInWorld < 100 || mc.screen != null && ticksInWorld < 200) {
+            return; // let chunks load and screens settle
+        }
+        if (!commands.isEmpty()) {
+            if (ticksInWorld % 20 == 0) {
+                String cmd = commands.poll();
+                report.add("command: " + cmd);
+                try {
+                    // Reflection keeps the harness compilable on its own; Baritone is loaded in every dev run.
+                    Object provider = Class.forName("baritone.api.BaritoneAPI").getMethod("getProvider").invoke(null);
+                    Object baritone = provider.getClass().getMethod("getPrimaryBaritone").invoke(provider);
+                    Object manager = baritone.getClass().getMethod("getCommandManager").invoke(baritone);
+                    Object ok = manager.getClass().getMethod("execute", String.class).invoke(manager, cmd);
+                    report.add("  -> executed=" + ok);
+                } catch (Throwable t) {
+                    report.add("  -> FAILED: " + t);
+                    LOG.error("[alto-devtest] command failed", t);
+                }
+            }
+            return;
+        }
+        Path flag = mc.gameDirectory.toPath().resolve("baritone/alto/selftest/finished.flag");
+        boolean selftestRequested = System.getProperty("alto.devtest.commands", "").contains("selftest");
+        if (!selftestRequested ? ticksInWorld > 300 : Files.exists(flag)) {
+            finish(mc, "WORLD OK after " + (System.nanoTime() - startNanos) / 1_000_000_000L + " s");
+        }
+    }
+
+    /**
+     * Pack runs only: several pack libraries run extra self-checks when FML is not in production mode (e.g. Registrate
+     * throws "Found unused register callbacks" for an addon's harmless leftover callback, which only logs in the real
+     * game). Mod constructors run before registration, so switching the flag here makes pack mods behave as they do
+     * in Prism. DEV-ONLY: this harness is never shipped.
+     */
+    private static void simulateProduction() {
+        try {
+            java.lang.reflect.Field f = net.neoforged.fml.loading.FMLLoader.class.getDeclaredField("production");
+            f.setAccessible(true);
+            f.setBoolean(null, true);
+            LOG.info("[alto-devtest] FMLLoader.production set to true (simulating the real game for pack mods)");
+        } catch (ReflectiveOperationException | RuntimeException e) {
+            LOG.warn("[alto-devtest] could not simulate production mode", e);
+        }
+    }
+
+    /** Screens that mean the launch (or world join) failed. Matched by class name: some are NeoForge-internal. */
+    private static final java.util.Set<String> ERROR_SCREENS = java.util.Set.of(
+            "net.neoforged.neoforge.client.gui.LoadingErrorScreen",
+            "net.minecraft.client.gui.screens.ErrorScreen",
+            "net.minecraft.client.gui.screens.DisconnectedScreen",
+            "net.minecraft.client.gui.screens.DatapackLoadFailureScreen",
+            "net.minecraft.client.gui.screens.RecoverWorldDataScreen");
+
+    private static String errorScreen(Minecraft mc) {
+        if (mc.screen == null) {
+            return null;
+        }
+        String cls = mc.screen.getClass().getName();
+        if (!ERROR_SCREENS.contains(cls)) {
+            return null;
+        }
+        return cls.substring(cls.lastIndexOf('.') + 1) + " \"" + mc.screen.getTitle().getString() + "\"";
+    }
+
+    private void finish(Minecraft mc, String verdict) {
+        done = true;
+        report.add(verdict);
+        Path out = mc.gameDirectory.toPath().resolve("alto-devtest-report.txt");
+        try {
+            Files.write(out, report, StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            LOG.error("[alto-devtest] could not write report", e);
+        }
+        LOG.info("[alto-devtest] {}", verdict);
+        mc.stop();
+    }
+}
