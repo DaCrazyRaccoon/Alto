@@ -62,7 +62,9 @@ public final class StrictJson {
             }
             return root;
         } catch (IOException | IllegalStateException | NumberFormatException e) {
-            throw new SyntaxError("", "invalid JSON: " + e.getMessage());
+            String message = String.valueOf(e.getMessage())
+                    .replace("Use JsonReader.setLenient(true) to accept malformed JSON", "malformed JSON");
+            throw new SyntaxError("", "invalid JSON: " + message);
         }
     }
 
