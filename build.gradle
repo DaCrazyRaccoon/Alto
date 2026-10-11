@@ -62,6 +62,11 @@ sourceSets {
         java.srcDirs = ['src/devtest/java']
         resources.srcDirs = ['src/devtest/resources']
     }
+    // Empty: the classpath of the dedicated test server WITHOUT Alto (client-only proof, run bareServer).
+    bareServer {
+        java.srcDirs = []
+        resources.srcDirs = []
+    }
 }
 
 configurations {
@@ -121,6 +126,7 @@ neoForge {
         bareServer {
             server()
             gameDirectory = new File(testenvDir, 'run-server')
+            sourceSet = sourceSets.bareServer
             loadedMods = []
             programArgument '--nogui'
         }
@@ -174,6 +180,7 @@ tasks.named('compileJava') { dependsOn extractIntegrationNested }
 // The schematica/litematica stubs and the dev harness need Minecraft on their compile classpath.
 neoForge.addModdingDependenciesTo(sourceSets.schematica_api)
 neoForge.addModdingDependenciesTo(sourceSets.devtest)
+neoForge.addModdingDependenciesTo(sourceSets.bareServer)
 
 dependencies {
     shade "dev.babbaj:nether-pathfinder:${nether_pathfinder_version}"
