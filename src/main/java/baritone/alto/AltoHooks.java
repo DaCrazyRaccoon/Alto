@@ -231,6 +231,28 @@ public final class AltoHooks {
         return moddedSeeds;
     }
 
+    /** Drops when Baritone's loot-table lookup is unavailable: the block's own item plus Alto's gather table. */
+    public static List<net.minecraft.world.item.Item> fallbackDrops(Block block) {
+        List<net.minecraft.world.item.Item> out = new ArrayList<>();
+        if (block.asItem() != net.minecraft.world.item.Items.AIR) {
+            out.add(block.asItem());
+        }
+        try {
+            String id = net.minecraft.core.registries.BuiltInRegistries.BLOCK.getKey(block).toString();
+            baritone.alto.planner.mc.GatherTable.sources().forEach((item, src) -> {
+                if (src.blocks().contains(id)) {
+                    var it = baritone.alto.mc.McItems.item(item);
+                    if (it != net.minecraft.world.item.Items.AIR && !out.contains(it)) {
+                        out.add(it);
+                    }
+                }
+            });
+        } catch (Throwable ignored) {
+            // the gather table is optional here
+        }
+        return out;
+    }
+
     /** Farmland, including modded farmland (Farmer's Delight rich soil farmland). */
     public static boolean isFarmland(Block block) {
         return block == Blocks.FARMLAND || block instanceof FarmBlock && on() && Baritone.settings().altoCompatCrops.value;

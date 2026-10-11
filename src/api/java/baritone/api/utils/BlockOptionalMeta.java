@@ -88,6 +88,7 @@ public final class BlockOptionalMeta {
     private final ImmutableSet<Integer> stateHashes;
     private final ImmutableSet<Integer> stackHashes;
     private static Map<Block, List<Item>> drops = new HashMap<>();
+    private static boolean dropsFailureLogged; // ALTO FORK
 
     public BlockOptionalMeta(@Nonnull Block block) {
         this.block = block;
@@ -245,7 +246,14 @@ public final class BlockOptionalMeta {
                         .withParameter(LootContextParams.TOOL, new ItemStack(Items.NETHERITE_PICKAXE, 1));
                     getDrops(block, lv5).stream().map(ItemStack::getItem).forEach(items::add);
                 } catch (Throwable e) {
-                    e.printStackTrace();
+                    // ALTO FORK: in some modpacks the loot-table stub cannot load its registries, so no drop is ever
+                    // known and "#mine <count>" never stops. Fall back to the block's item and Alto's drop table,
+                    // and report the problem once instead of once per block.
+                    if (!dropsFailureLogged) {
+                        dropsFailureLogged = true;
+                        System.err.println("[Baritone/Alto] block drops unavailable (" + e + "); using the block's item and Alto's drop table");
+                    }
+                    items.addAll(baritone.alto.AltoHooks.fallbackDrops(block));
                 }
                 return items;
             }

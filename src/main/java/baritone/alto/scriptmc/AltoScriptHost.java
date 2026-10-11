@@ -343,7 +343,13 @@ public final class AltoScriptHost implements ScriptHost {
         Predicate<ItemStack> counted = st -> lookup.has(st) || McItems.key(st.getItem()).id().equals(id);
         int before = countInventory(counted);
         alto.baritone().getMineProcess().mine(before + count, lookup);
-        return new ProcessHandle(() -> alto.baritone().getMineProcess().isActive(), () -> {
+        return new ProcessHandle(() -> {
+            if (countInventory(counted) - before >= count) {
+                alto.baritone().getMineProcess().cancel(); // enough, even if Baritone cannot count these drops
+                return false;
+            }
+            return alto.baritone().getMineProcess().isActive();
+        }, () -> {
             int got = countInventory(counted) - before;
             return got >= count ? null : "mining stopped after " + Math.max(0, got) + "/" + count;
         });
