@@ -58,6 +58,8 @@ public final class AltoHooks {
         boolean isProtected(int x, int y, int z);
     }
 
+    private static volatile java.util.function.Predicate<Block> neverBreakExtra = b -> false;
+
     private static boolean on() {
         return Baritone.settings().altoEnabled.value;
     }
@@ -77,6 +79,12 @@ public final class AltoHooks {
         AVOIDANCE_PROVIDERS.add(provider);
     }
 
+    /** Integrations: blocks without a block entity that paths must not break either (e.g. Create train tracks). */
+    public static void addNeverBreak(java.util.function.Predicate<Block> blocks) {
+        java.util.function.Predicate<Block> old = neverBreakExtra;
+        neverBreakExtra = old.or(blocks);
+    }
+
     // ------------------------------------------------------------------------------ called by upstream code
 
     /** MovementHelper.avoidWalkingInto: hazard blocks (e.g. Create saws and crushing wheels). */
@@ -87,6 +95,14 @@ public final class AltoHooks {
     /** MovementHelper.canWalkOnBlockState: blocks never stood on (e.g. Create belts in "avoid" mode). */
     public static boolean neverWalkOn(Block block) {
         return on() && neverWalkOn.contains(block);
+    }
+
+    /**
+     * MovementHelper.avoidBreaking: a path never breaks blocks that hold data (machines, containers, signs, Create
+     * shafts and belts...) or train tracks (altoProtectMachines). Read on the path search thread.
+     */
+    public static boolean neverBreak(net.minecraft.world.level.block.state.BlockState state) {
+        return on() && Baritone.settings().altoProtectMachines.value && (state.hasBlockEntity() || neverBreakExtra.test(state.getBlock()));
     }
 
     /** CalculationContext.isPossiblyProtected: never break or place here (other players' claims). */

@@ -1949,6 +1949,13 @@ public final class Settings {
     public final Setting<Boolean> altoHazards = new Setting<>(true);
 
     /**
+     * Protect machines: paths never break blocks that hold data (machines, containers, signs, Create shafts, belts,
+     * funnels, stations...) or train tracks, so walking through a base or a Create factory cannot take it apart.
+     * Blocks that Alto or the builder break on purpose (stations it placed, schematic work) are not affected.
+     */
+    public final Setting<Boolean> altoProtectMachines = new Setting<>(true);
+
+    /**
      * Modded climbables: treat ladder and scaffolding blocks from mods (Create metal ladders, copycat ladders, metal
      * scaffolding...) like vanilla ladders and scaffolding when pathing.
      */

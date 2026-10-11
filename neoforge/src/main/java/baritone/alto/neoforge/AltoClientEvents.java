@@ -157,6 +157,13 @@ public final class AltoClientEvents {
         Minecraft mc = Minecraft.getInstance();
         double mx = mc.mouseHandler.xpos() * mc.getWindow().getGuiScaledWidth() / mc.getWindow().getScreenWidth();
         double my = mc.mouseHandler.ypos() * mc.getWindow().getGuiScaledHeight() / mc.getWindow().getScreenHeight();
+        if (pickAt(alto, mx, my)) {
+            e.setCanceled(true);
+        }
+    }
+
+    /** The pick key at screen position (mx, my) (GUI-scaled): picks the first item a provider sees there. */
+    public static boolean pickAt(Alto alto, double mx, double my) {
         for (ItemPicker.HoverProvider p : alto.picker().providers()) {
             ItemStack stack;
             try {
@@ -166,9 +173,9 @@ public final class AltoClientEvents {
             }
             if (stack != null && !stack.isEmpty()) {
                 alto.picker().pick(stack);
-                e.setCanceled(true);
-                return;
+                return true;
             }
         }
+        return false;
     }
 }

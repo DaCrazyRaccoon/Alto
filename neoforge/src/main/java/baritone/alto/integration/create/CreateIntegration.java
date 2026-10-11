@@ -54,11 +54,14 @@ public final class CreateIntegration implements AltoIntegration {
         alto.hazards().setRotatingCondition((level, be) -> be instanceof KineticBlockEntity k && k.getSpeed() != 0);
         alto.hazards().setAirCurrent(CreateIntegration::airCurrentPoints);
         alto.addFilterAccess(new CreateFilterAccess());
+        // Paths never break train tracks (straight tracks have no block entity, so altoProtectMachines needs this).
+        baritone.alto.AltoHooks.addNeverBreak(b -> b instanceof com.simibubi.create.content.trains.track.TrackBlock);
         // Material lists: Create knows what its blocks cost (belts, shafts, copycats...) and handles vanilla specials.
         alto.supplyRun().addRequirementSource(CreateIntegration::requirement);
         // Moving platforms, trains, elevators, stock keepers.
         alto.addTickListener(CreateTravel::tickPlatform);
         CreateCommands.register(alto);
+        CreateScenarios.register(alto);
         // Script blocks that need Create.
         alto.scriptActions().put("board_train_seat", args -> CreateTravel.TrainTask.boardOnly(alto));
         alto.scriptActions().put("ride_train", args -> {

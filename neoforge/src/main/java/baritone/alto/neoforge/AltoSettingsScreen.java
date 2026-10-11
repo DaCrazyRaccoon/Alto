@@ -55,7 +55,7 @@ public final class AltoSettingsScreen extends Screen {
         GROUPS.put("Crafting and stations", new String[]{"alwaysusecraftingstation", "crafting", "station", "furnace", "fuel", "planner", "nevercons", "smelt"});
         GROUPS.put("Storage and upkeep", new String[]{"storage", "deposit", "restock", "keep", "zone", "eat", "food", "tool", "compress", "shulker", "supply"});
         GROUPS.put("Travel and farming", new String[]{"portal", "vehicle", "train", "platform", "farm", "crop", "climb"});
-        GROUPS.put("Mods", new String[]{"create", "emi", "sophisticated", "claims", "corpse", "filter", "pick", "stockkeeper", "hazard", "compat"});
+        GROUPS.put("Mods", new String[]{"create", "emi", "sophisticated", "claims", "corpse", "filter", "pick", "stockkeeper", "hazard", "protect", "compat"});
         GROUPS.put("Pacing (be kind to servers)", new String[]{"persecond", "click", "timeout", "retries", "lag", "pace", "open"});
     }
 

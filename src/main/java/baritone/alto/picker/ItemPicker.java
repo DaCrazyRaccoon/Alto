@@ -90,6 +90,13 @@ public final class ItemPicker {
         marked.clear();
     }
 
+    /** Marks a block like the pick key does while looking at it (used by #selftest). */
+    public void mark(BlockPos pos) {
+        if (!marked.contains(pos)) {
+            marked.add(pos.immutable());
+        }
+    }
+
     /** Pick key pressed in the world: mark/unmark the block under the crosshair. */
     public void toggleMarkAtCrosshair() {
         HitResult hit = Minecraft.getInstance().hitResult;

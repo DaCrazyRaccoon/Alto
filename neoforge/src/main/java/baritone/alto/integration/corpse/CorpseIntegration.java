@@ -56,6 +56,7 @@ public final class CorpseIntegration implements AltoIntegration {
     public void init(Alto alto) {
         ContainerAdapters.register(new Adapter());
         alto.setCorpseLocator(CorpseIntegration::nearestOwnCorpse);
+        CorpseScenarios.register(alto);
     }
 
     static Optional<Entity> nearestOwnCorpse() {

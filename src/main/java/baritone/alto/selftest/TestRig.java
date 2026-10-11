@@ -112,4 +112,37 @@ public final class TestRig {
     public static Settings settings() {
         return Baritone.settings();
     }
+
+    // ------------------------------------------------------------------------------ for scenarios of mod integrations
+
+    /** The client player's inventory. */
+    public static net.minecraft.world.entity.player.Inventory inv() {
+        return M2Scenarios.inv();
+    }
+
+    /** Runs {@code f} on the integrated server thread, in the client's current dimension. */
+    public static <T> T onServer(java.util.function.Function<ServerLevel, T> f, T fallback) {
+        return M3Scenarios.onServer(f, fallback);
+    }
+
+    /** A storage zone around the test area (removed again by {@link #removeZone}). */
+    public static void zone(baritone.alto.Alto alto, BlockPos o) {
+        M2Scenarios.zone(alto, o);
+    }
+
+    public static void removeZone(baritone.alto.Alto alto) {
+        M2Scenarios.removeZone(alto);
+    }
+
+    public static Block block(String id) {
+        return M3Scenarios.block(id);
+    }
+
+    public static net.minecraft.world.item.Item item(String id) {
+        return M3Scenarios.item(id);
+    }
+
+    public static BlockState facing(BlockState s, net.minecraft.core.Direction d) {
+        return M3Scenarios.facing(s, d);
+    }
 }

@@ -78,6 +78,7 @@ public interface MovementHelper extends ActionCosts, Helper {
         return Baritone.settings().blocksToDisallowBreaking.value.contains(b)
                 || b == Blocks.ICE // ice becomes water, and water can mess up the path
                 || b instanceof InfestedBlock // obvious reasons
+                || AltoHooks.neverBreak(state) // ALTO FORK: machines, containers and train tracks (altoProtectMachines)
                 // call context.get directly with x,y,z. no need to make 5 new BlockPos for no reason
                 || avoidAdjacentBreaking(bsi, x, y + 1, z, true)
                 || avoidAdjacentBreaking(bsi, x + 1, y, z, false)

@@ -58,6 +58,7 @@ public final class ClaimsIntegration implements AltoIntegration {
 
     @Override
     public void init(Alto alto) {
+        ClaimsScenarios.register(alto);
         alto.addTickListener(a -> {
             if (tick++ % 40 == 0) {
                 refresh();

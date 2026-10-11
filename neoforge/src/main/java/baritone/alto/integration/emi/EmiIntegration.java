@@ -86,6 +86,9 @@ public final class EmiIntegration implements AltoIntegration {
         });
         alto.addRecipePreferences(EmiIntegration::preferences);
         alto.addRecipeHint(EmiIntegration::hint);
+        if (net.neoforged.fml.ModList.get().isLoaded("create")) {
+            EmiScenarios.register(alto); // the pick test sets a Create deployer's filter
+        }
     }
 
     static ItemStack hovered(double mouseX, double mouseY) {
