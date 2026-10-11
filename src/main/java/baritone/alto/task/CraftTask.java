@@ -73,6 +73,7 @@ public final class CraftTask extends AltoTask {
     private boolean triedRecipeBook;
     private MenuGoal goal;
     private int waitTicks;
+    private int mismatchTicks;
     private int made;
     /** Output count in the inventory before the first craft (what is still needed is recomputed from it). */
     private int startCount = -1;
@@ -232,6 +233,7 @@ public final class CraftTask extends AltoTask {
         placeAll = !manual && batch >= available && available > 1;
         placements = 0;
         waitTicks = 0;
+        mismatchTicks = 0;
         phase = Phase.PLACE;
         detail("batch of " + batch + (manual ? " (slot by slot)" : " (recipe book)"));
         return Step.stay();
@@ -275,9 +277,15 @@ public final class CraftTask extends AltoTask {
         SlotView result = resultSlot(v);
         if (result != null && !result.isEmpty()) {
             if (!result.item().equals(recipe.output())) {
+                // The server sends the result after the grid: under lag it can still show what a part of the grid
+                // makes (one plank: a button). Only a result that stays wrong means another mod chose the recipe.
+                if (++mismatchTicks <= 20 + alto.lag().confirmTicks(Baritone.settings())) {
+                    return Step.stay();
+                }
                 return Step.failure("the grid makes " + result.item().shortName() + " instead of " + recipe.output().shortName()
                         + " (another mod, e.g. Polymorph, chose a different recipe)");
             }
+            mismatchTicks = 0;
             goal = MenuGoals.takeOutput(result.index(), recipe.output(), 4);
             phase = Phase.TAKE;
             return Step.stay();

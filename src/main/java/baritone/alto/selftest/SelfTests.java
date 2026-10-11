@@ -231,9 +231,17 @@ public final class SelfTests {
         boolean gui = mc.screen instanceof net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<?>
                 || mc.screen != null && mc.screen.getClass().getName().startsWith("baritone.");
         photoScreenTicks = gui ? photoScreenTicks + 1 : 0;
-        if (photoScreenTicks == 6) {
+        if (gui && photoScreenTicks >= 6) {
+            // A container once Alto has put things in it (or after 2 s); Alto's own screens right away.
+            int filled = 0;
+            for (net.minecraft.world.inventory.Slot s : mc.player.containerMenu.slots) {
+                if (!(s.container instanceof net.minecraft.world.entity.player.Inventory) && s.hasItem()) {
+                    filled++;
+                }
+            }
+            boolean ready = mc.screen.getClass().getName().startsWith("baritone.") || filled >= 3 || photoScreenTicks == 40;
             String screen = mc.screen.getClass().getSimpleName().replaceAll("[^A-Za-z0-9]", "").toLowerCase(java.util.Locale.ROOT);
-            if (photosTaken.add(n + "-" + screen)) {
+            if (ready && photosTaken.add(n + "-" + screen)) {
                 ph.request(n + "-" + screen, false);
             }
         }

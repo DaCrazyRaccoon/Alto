@@ -3,6 +3,18 @@
 Alto is a modified version of Baritone 1.11.3 (branch `1.21.1`, commit `10e65932`) for Minecraft 1.21.1 / NeoForge
 21.1.249. Versions are `1.11.3-alto.<milestone>`.
 
+## 1.1.0 — quiet chat, any mod version, ready to share
+
+* **Quiet chat (new default):** Alto tells you results, problems and answers to your commands; the individual steps
+  of a job (crafting, fetching, restocking...) go to the progress HUD (key H) and the log. `#set altoQuietChat false`
+  shows every step in chat again (useful for debugging).
+* **Optional mods are really optional:** Alto starts with any version of Create or EMI (or without them). If a mod's
+  version does not match what Alto knows, only Alto's support for that mod switches itself off, once, with one
+  message; everything else keeps working.
+* **No other mod is inside Alto:** the build downloads the released jars of the mods Alto supports (Modrinth,
+  CurseMaven) only to compile against them; the Alto jar contains Alto and Baritone only.
+* Simpler documentation with pictures of every feature.
+
 ## 1.0.0 — M6: settings, safety, HUD, scripts in game, final tests
 
 * Settings screen (Mods list > Config, `#alto settings`): groups, search, reset per setting, homes and storage zones.

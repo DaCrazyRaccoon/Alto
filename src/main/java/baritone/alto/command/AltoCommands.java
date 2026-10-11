@@ -116,7 +116,10 @@ public final class AltoCommands {
                 alto.hintsFor(plan.missing()).forEach(this::logDirect);
                 throw new CommandInvalidStateException("Cannot get " + count + "x " + key.shortName() + ". Missing: " + plan.missing());
             }
-            plan.describe().forEach(this::logDirect);
+            // Quiet chat: one summary line (the whole plan is in the log, and #plan shows it in chat).
+            java.util.List<String> lines = plan.describe();
+            lines.forEach(AltoLog::info);
+            (AltoLog.quiet() ? lines.subList(0, 1) : lines).forEach(this::logDirect);
             alto.startJob(Job.of(new PlanTask(alto, plan, new PlanContext(new ItemCounts(), p -> false), target), "command"));
         }
 
