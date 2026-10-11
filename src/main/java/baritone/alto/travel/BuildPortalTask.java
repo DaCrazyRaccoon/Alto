@@ -55,12 +55,14 @@ public final class BuildPortalTask extends AltoTask {
     private static final ItemKey OBSIDIAN = McItems.key(Items.OBSIDIAN);
     private static final ItemKey FLINT_AND_STEEL = McItems.key(Items.FLINT_AND_STEEL);
     /** Throwaway blocks kept for towering up to the top of the frame. */
-    private static final int SCAFFOLD = 6;
+    private static final int SCAFFOLD = 4;
 
     private Phase phase = Phase.MATERIALS;
     private AltoTask sub;
     private BlockPos base;
     private Direction.Axis axis;
+    /** The open side in front of the frame, where the bot towers up to place the upper part. */
+    private Direction front;
     private final List<AltoTask> placements = new ArrayList<>();
     private int ticks;
 
@@ -106,7 +108,7 @@ public final class BuildPortalTask extends AltoTask {
             case MATERIALS: {
                 var inv = ctx.player().getInventory();
                 int obsidian = McItems.count(inv, Items.OBSIDIAN);
-                // Corners may be throwaway blocks, but Baritone also needs a few to tower up for the top of the frame.
+                // Corners may be throwaway blocks; Baritone also needs a few to tower up in front of the frame.
                 int corners = throwawayCount() >= 4 + SCAFFOLD ? 4 : 0;
                 int needObsidian = 10 + (4 - corners);
                 ItemCounts target = new ItemCounts();
@@ -179,14 +181,17 @@ public final class BuildPortalTask extends AltoTask {
             Direction side = ax == Direction.Axis.X ? Direction.SOUTH : Direction.EAST;
             for (BlockPos c : BlockPos.betweenClosed(feet.offset(-6, -2, -6), feet.offset(6, 2, 6))) {
                 BlockPos b = c.immutable();
-                if (!fits(level, b, along, side)) {
-                    continue;
-                }
-                double d = b.distSqr(feet);
-                if (d < best && d > 4) { // not right where you stand
-                    best = d;
-                    base = b;
-                    axis = ax;
+                for (Direction f : new Direction[]{side, side.getOpposite()}) {
+                    if (!fits(level, b, along, f)) {
+                        continue;
+                    }
+                    double d = b.distSqr(feet);
+                    if (d < best && d > 4) { // not right where you stand
+                        best = d;
+                        base = b;
+                        axis = ax;
+                        front = f;
+                    }
                 }
             }
         }
@@ -207,10 +212,18 @@ public final class BuildPortalTask extends AltoTask {
                     return false;
                 }
             }
-            // Room to walk in on one side of the middle columns.
-            if ((i == 1 || i == 2) && !level.getBlockState(col.relative(side).above()).isAir()
-                    && !level.getBlockState(col.relative(side.getOpposite()).above()).isAir()) {
-                return false;
+            // In front of the middle columns: solid ground and 5 blocks of air (walking in, and the pillar to build from).
+            if (i == 1 || i == 2) {
+                BlockPos f = col.relative(side);
+                BlockState g = level.getBlockState(f.below());
+                if (!g.isSolidRender(level, f.below()) || g.getBlock() instanceof FallingBlock) {
+                    return false;
+                }
+                for (int h = 0; h < 6; h++) {
+                    if (!level.getBlockState(f.above(h)).isAir()) {
+                        return false;
+                    }
+                }
             }
         }
         return true;
@@ -220,26 +233,37 @@ public final class BuildPortalTask extends AltoTask {
         Direction along = axis == Direction.Axis.X ? Direction.EAST : Direction.SOUTH;
         Predicate<Item> obsidian = i -> i == Items.OBSIDIAN;
         Predicate<Item> corner = throwawayCount() >= 4 + SCAFFOLD ? throwaway().and(i -> i != Items.OBSIDIAN) : obsidian;
-        // Bottom corners, bottom row, the two sides from the bottom up, top corners, top row: every block rests on one placed before.
-        placements.add(stand(new PlaceAtTask(alto, base, corner, "a corner block")));
-        placements.add(stand(new PlaceAtTask(alto, base.relative(along, 3), corner, "a corner block")));
-        placements.add(stand(new PlaceAtTask(alto, base.relative(along, 1), obsidian, "obsidian")));
-        placements.add(stand(new PlaceAtTask(alto, base.relative(along, 2), obsidian, "obsidian")));
-        for (int h = 1; h <= 3; h++) {
-            placements.add(stand(new PlaceAtTask(alto, base.above(h), obsidian, "obsidian")));
-            placements.add(stand(new PlaceAtTask(alto, base.relative(along, 3).above(h), obsidian, "obsidian")));
+        // From the ground: the bottom corners, the bottom row and the first block of each side (every face needed is
+        // below eye level). Everything higher needs a face above eye level, so the bot towers up 3 blocks in front of
+        // the frame (like a player would) and places the rest from there, ending with the top row.
+        placements.add(low(base, corner, "a corner block"));
+        placements.add(low(base.relative(along, 3), corner, "a corner block"));
+        placements.add(low(base.relative(along, 1), obsidian, "obsidian"));
+        placements.add(low(base.relative(along, 2), obsidian, "obsidian"));
+        placements.add(low(base.above(1), obsidian, "obsidian"));
+        placements.add(low(base.relative(along, 3).above(1), obsidian, "obsidian"));
+        for (int h = 2; h <= 3; h++) {
+            placements.add(high(base.above(h), obsidian, "obsidian"));
+            placements.add(high(base.relative(along, 3).above(h), obsidian, "obsidian"));
         }
-        placements.add(stand(new PlaceAtTask(alto, base.above(4), corner, "a corner block")));
-        placements.add(stand(new PlaceAtTask(alto, base.relative(along, 3).above(4), corner, "a corner block")));
-        // The top row's side faces can only be seen from inside the frame: stand on the bottom row to place it.
-        placements.add(new PlaceAtTask(alto, base.relative(along, 1).above(4), obsidian, "obsidian")
-                .standingIn(new baritone.api.pathing.goals.GoalBlock(base.relative(along, 2).above())));
-        placements.add(new PlaceAtTask(alto, base.relative(along, 2).above(4), obsidian, "obsidian")
-                .standingIn(new baritone.api.pathing.goals.GoalBlock(base.relative(along, 1).above())));
+        placements.add(high(base.above(4), corner, "a corner block"));
+        placements.add(high(base.relative(along, 3).above(4), corner, "a corner block"));
+        placements.add(high(base.relative(along, 1).above(4), obsidian, "obsidian"));
+        placements.add(high(base.relative(along, 2).above(4), obsidian, "obsidian"));
     }
 
-    private AltoTask stand(PlaceAtTask t) {
-        return t.pos().getY() <= base.getY() + 1 ? t.standingAt(base.getY()) : t;
+    private AltoTask low(BlockPos pos, Predicate<Item> item, String label) {
+        return new PlaceAtTask(alto, pos, item, label).standingAt(base.getY());
+    }
+
+    private AltoTask high(BlockPos pos, Predicate<Item> item, String label) {
+        return new PlaceAtTask(alto, pos, item, label).standingIn(new baritone.api.pathing.goals.GoalBlock(pillarTop()));
+    }
+
+    /** Where the bot stands for the upper part: on a 3-block pillar in front of the second column. */
+    BlockPos pillarTop() {
+        Direction along = axis == Direction.Axis.X ? Direction.EAST : Direction.SOUTH;
+        return base.relative(along, 1).relative(front).above(3);
     }
 
     @Override
