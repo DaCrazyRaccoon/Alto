@@ -1,12 +1,12 @@
 # Alto test report
 
-Date: 2026-10-10. Fork commit: see the final section. Machine: Windows 11, JDK 21.0.12, NeoForge 21.1.249.
+Date: 2026-10-11. Tested commit: `b35cfbdc`. Machine: Windows 11, JDK 21.0.12, NeoForge 21.1.249.
 
 ## 1. Automatic tests
 
 | Suite | Result | How to run |
 |---|---|---|
-| Unit tests (planner, menu goals with a click simulator, pacing/backoff, storage index, portal routes, shopping list, script language core, the long mission script in a mock world, upstream Baritone tests) | **217/217 pass** | `gradlew test` |
+| Unit tests (planner, menu goals with a click simulator, pacing/backoff, storage index, portal routes, shopping list, script language core, the long mission script in a mock world, upstream Baritone tests) | **219/219 pass** | `gradlew test` |
 | Block editor tests (validator, JSON round trips, schema, offline page, build, Java cross-check 176/176) | **207/207 pass** | `npm test` in `alto-editor/` |
 | Client-only proof: a dedicated NeoForge server **without Alto** (mod list: Minecraft, NeoForge), the Alto client joins it, runs `#alto status`, `#plan`, `#alto integrations`, `#script list`, stays connected 20 s | **PASS** | `pwsh scripts/alto/server-join-test.ps1` |
 | Launch check (game reaches the title screen; fails on error screens, crash reports, missing dependencies, hangs) | **PASS** (dev and pack copy) | `pwsh scripts/alto/test-client.ps1 -Run packClient -Mode boot` |
@@ -44,7 +44,58 @@ normal commands:
 | `farm-modded` | 8 ripe Farmer's Delight cabbages on rich soil farmland | `#farm` harvests and replants all 8 |
 | `lootr-skip` | A Lootr loot chest next to you, a normal chest further away | `#deposit` puts everything into the normal chest |
 
-RESULTS_TABLE
+### Final results (commit `b35cfbdc`, 2026-10-11)
+
+| Run | World | Result |
+|---|---|---|
+| Copy of your pack, `selftest all` | **real overworld** (normal world generation, seed -5681777455056301984) | **35/35 PASS** |
+| Plain Baritone + Alto, no other mods (soft-dependency test), `selftest all` | **real overworld** (seed -7217141881841755901) | **21/21 PASS** |
+| Dedicated server without Alto, client joins and uses Alto | local server | **PASS** |
+| Unit tests | — | **219/219 PASS** |
+| Block editor tests | — | **207/207 PASS** |
+
+Earlier full runs on the way (all passed): pack real overworld 35/35 on `41740b25` and `ba564a1b`, plain Baritone
+real overworld 21/21 on `41740b25`; superflat regression runs for each milestone.
+
+#### Every scenario of the final pack run
+
+| Scenario | Result | Seconds | What happened |
+|---|---|---|---|
+| `planks` | PASS | 6.7 | 9/9 planks placed; left over: 3 planks, 0 logs; tables in world 0, in inventory 0 |
+| `planks-table` | PASS | 13.0 | 9/9 planks placed; left over: 3 planks, 0 logs; tables in world 0, in inventory 1 |
+| `craft-chest` | PASS | 10.9 | chests 1, tables in world 0, table items 1 |
+| `smelt` | PASS | 45.5 | ingots 4, furnace items 1, furnace blocks 0, raw iron left 0 |
+| `fetch-build` | PASS | 8.7 | 9/9 placed; logs left in the chest 0; index knows 1 container(s) |
+| `deposit-restock` | PASS | 13.2 | cobblestone deposited (chest A 512, chest B 1664), torches restocked 32, tools/food kept true |
+| `shulker` | PASS | 11.9 | 9/9 placed; shulker boxes carried 1 (logs inside 0), in world 0 |
+| `auto-eat` | PASS | 3.0 | ate 1 bread, hunger now 19 |
+| `tool-replace` | PASS | 7.2 | now carrying 2 stone pickaxes; table items 1 |
+| `integrations` | PASS | 1.0 | active [Corpse, Sophisticated Storage/Backpacks, Open Parties and Claims, EMI, Create] |
+| `useon` | PASS | 1.8 | note 1, dirt 16 |
+| `create-filter` | PASS | 1.9 | deployer filter {count:1,id:"minecraft:iron_ingot"}, ingots in inventory 1 |
+| `sophisticated-fetch` | PASS | 3.5 | logs 8, chest block sophisticatedstorage:chest, tier upgrade still carried 1 |
+| `portal-travel` | PASS | 42.0 | back in minecraft:overworld, 0 blocks from the target, portal links known 2; done: Travel to 16 89 1 in the overworld: arrived |
+| `farm-seeds` | PASS | 4.6 | planted 8/8 after fetching seeds; seeds left in the chest 0 |
+| `minecart` | PASS | 6.5 | boarded true, riding now false, carried 13 blocks; done: Ride a minecart: got off at 18, 89, 9 |
+| `boat` | PASS | 7.7 | boarded true, at target true, boat items 1, boats left in the world 0; done: Boat towards 16 9: arrived |
+| `supply-build` | PASS | 10.2 | stone bricks 9/9, glass 9/9, shopping list 2 material(s), 0 missing |
+| `portal-build` | PASS | 26.1 | reached the nether true, obsidian left 0; done: Travel to 2 -1 in the nether: arrived |
+| `script-long` | PASS | 87.3 | status FINISHED, result ok, checks 12/12, actions 21, wall 9/9, glass 9/9, note 1, pings typed 1 |
+| `safety-stop` | PASS | 15.5 | stopped at 1 mined, paused 5 s, resumed and mined 8/8 |
+| `screens` | PASS | 5.5 | screens [AltoSettingsScreen, ScriptRunnerScreen], HUD [§eBaritone§7: Custom Goal GoalBlock{x=16,y=89,z=297}, §8goal GoalBlock{x=16,y=89,z=297}] |
+| `machines-safe` | PASS | 9.1 | went around, 20/20 blocks intact; without the protection it broke 1 block(s) |
+| `farm-modded` | PASS | 4.8 | harvested 8 cabbages, replanted 8/8 (0 still ripe) |
+| `lootr-skip` | PASS | 4.3 | done: Deposit items: stored 16 items; cobblestone carried 0, in the normal chest 16/16; indexed [minecraft:chest] |
+| `corpse` | PASS | 3.8 | done: Recover your items from your corpse: all items recovered (19); logs 12/12, pickaxe 1/1, bread 6/6 |
+| `claims-protect` | PASS | 10.0 | went around, 20/20 blocks intact; without the protection it broke 2 block(s) |
+| `emi-pick` | PASS | 2.7 | EMI item minecraft:oak_log at (348,20), picked minecraft:oak_log, done: Filters: set the filter to oak_log on 1 block(s): all 1 steps done, deployer filter {... |
+| `create-materials` | PASS | 1.1 | farmland -> 1x dirt, encased shaft -> 1x create:shaft, list for 3 farmland + 2 encased shafts: dirt 3, shaft 2 |
+| `create-protect` | PASS | 9.1 | went around, 30/30 blocks intact; without the protection it broke 2 block(s) |
+| `create-hazard` | PASS | 3.3 | closest distance to the running drill 2.09 blocks, no damage |
+| `create-platform` | PASS | 7.6 | rode 100 ticks, Baritone paused 99 of them, drift on the platform 0.00 blocks, platform moved from x-2 to x+1, then reached the goal |
+| `create-elevator` | PASS | 9.0 | done: Elevator to Upper: arrived at Upper; rose 6 blocks, paused while moving 115 ticks |
+| `create-order` | PASS | 6.9 | done: Order 4x iron_ingot: ordered 4x iron_ingot; chest 32 -> 28 iron, packager holds Cardboard Package |
+| `create-train` | PASS | 12.2 | done: Train from AltoA to AltoB: arrived at AltoB; boarded true, rode to x+31, 3.3 blocks from AltoB |
 
 ### The long mission script
 
