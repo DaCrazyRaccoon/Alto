@@ -118,7 +118,7 @@ public final class Alto {
     private final List<Supplier<Map<ItemKey, String>>> recipePreferences = new CopyOnWriteArrayList<>();
     private final List<Function<ItemKey, String>> recipeHints = new CopyOnWriteArrayList<>();
     private final Map<String, Function<List<String>, AltoTask>> scriptActions = new java.util.concurrent.ConcurrentHashMap<>();
-    private volatile Supplier<java.util.Optional<net.minecraft.world.entity.Entity>> corpseLocator = java.util.Optional::empty;
+    private volatile Function<java.util.Set<Integer>, java.util.Optional<net.minecraft.world.entity.Entity>> corpseLocator = skip -> java.util.Optional.empty();
 
     private Alto(Baritone baritone) {
         this.baritone = baritone;
@@ -355,12 +355,17 @@ public final class Alto {
     // ------------------------------------------------------------------------------------------ extension hooks
 
     /** Finds your nearest own corpse (Corpse integration). */
-    public void setCorpseLocator(Supplier<java.util.Optional<net.minecraft.world.entity.Entity>> locator) {
+    /** The Corpse integration: your nearest corpse, skipping the entity ids given (corpses already found empty). */
+    public void setCorpseLocator(Function<java.util.Set<Integer>, java.util.Optional<net.minecraft.world.entity.Entity>> locator) {
         corpseLocator = locator;
     }
 
     public java.util.Optional<net.minecraft.world.entity.Entity> nearestOwnCorpse() {
-        return corpseLocator.get();
+        return corpseLocator.apply(java.util.Set.of());
+    }
+
+    public java.util.Optional<net.minecraft.world.entity.Entity> nearestOwnCorpse(java.util.Set<Integer> skip) {
+        return corpseLocator.apply(skip);
     }
 
     public boolean corpseSupport() {

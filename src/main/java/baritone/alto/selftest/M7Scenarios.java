@@ -63,10 +63,10 @@ public final class M7Scenarios {
     }
 
     /**
-     * {@code #goto} from the origin to (0, 0, 10) across walls that have a 3-wide gap at x 4..6. With the tool given,
-     * breaking through is cheaper than the detour, so a pass shows that the pathfinder was not allowed to break.
-     * First a control run without the protection (its result is only reported), then the run that must keep every
-     * wall block. Subclasses (mod scenarios) add their own protection in {@link #protect}.
+     * {@code #goto} from (-5, 0, 0) to (-5, 0, 10) across walls that have a 3-wide gap at x 4..6. With the tool given,
+     * breaking through is much cheaper than the detour. A control run without the protection must break through
+     * (otherwise the setup proves nothing); then the protected run must keep every wall block and go around.
+     * Subclasses (mod scenarios) add their own protection in {@link #protect}.
      */
     public static class WallDetour extends Scenario {
         private final TestRig rig = new TestRig();
@@ -75,6 +75,7 @@ public final class M7Scenarios {
         private final BiConsumer<BlockPos, Map<BlockPos, BlockState>> layout;
         private final Supplier<ItemStack> tool;
         protected final Map<BlockPos, BlockState> wall = new LinkedHashMap<>();
+        private BlockPos start;
         private BlockPos goal;
         private BlockPos origin;
         private int phase;
@@ -110,8 +111,14 @@ public final class M7Scenarios {
             wall.clear();
             layout.accept(o, wall);
             buildWall(level);
-            goal = o.offset(0, 0, 10);
+            start = o.offset(-5, 0, 0);
+            goal = o.offset(-5, 0, 10);
+            place(level, player, o);
+        }
+
+        private void place(ServerLevel level, ServerPlayer player, BlockPos o) {
             TestRig.resetPlayer(level, player, o, tool.get());
+            player.teleportTo(level, start.getX() + 0.5, start.getY(), start.getZ() + 0.5, 0f, 10f);
         }
 
         private void buildWall(ServerLevel level) {
@@ -164,8 +171,10 @@ public final class M7Scenarios {
                     }
                     alto.baritone().getPathingBehavior().cancelEverything();
                     int broken = wall.size() - intact();
-                    controlResult = broken > 0 ? "without the protection it broke " + broken + " block(s)"
-                            : "without the protection it also went around";
+                    if (broken == 0) {
+                        return Verdict.fail("the control run without the protection went around too, so this setup proves nothing");
+                    }
+                    controlResult = "without the protection it broke " + broken + " block(s)";
                     // rebuild, put the player back, switch the protection on
                     var server = Minecraft.getInstance().getSingleplayerServer();
                     server.execute(() -> {
@@ -173,7 +182,7 @@ public final class M7Scenarios {
                         buildWall(sl);
                         sl.getEntitiesOfClass(ItemEntity.class, new AABB(o).inflate(16)).forEach(net.minecraft.world.entity.Entity::discard);
                         ServerPlayer sp = server.getPlayerList().getPlayer(Minecraft.getInstance().player.getUUID());
-                        TestRig.resetPlayer(sl, sp, o, tool.get());
+                        place(sl, sp, o);
                         protect(sl, o);
                     });
                     protectionSetting(rig, true);

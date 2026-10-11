@@ -59,7 +59,11 @@ public final class CorpseIntegration implements AltoIntegration {
         CorpseScenarios.register(alto);
     }
 
-    static Optional<Entity> nearestOwnCorpse() {
+    /**
+     * Your nearest corpse. Corpse sends only the owner, name and worn equipment to clients, never the stored items, so
+     * an empty corpse cannot be told apart here: {@code #corpse} opens it and skips it if it turns out empty.
+     */
+    static Optional<Entity> nearestOwnCorpse(java.util.Set<Integer> skip) {
         Minecraft mc = Minecraft.getInstance();
         LocalPlayer p = mc.player;
         if (p == null || mc.level == null) {
@@ -69,7 +73,7 @@ public final class CorpseIntegration implements AltoIntegration {
         Optional<Entity> best = Optional.empty();
         double bestDist = Double.MAX_VALUE;
         for (Entity e : mc.level.entitiesForRendering()) {
-            if (e instanceof CorpseEntity c && !c.isRemoved() && c.getCorpseUUID().filter(me::equals).isPresent() && !c.isEmpty()) {
+            if (e instanceof CorpseEntity c && !c.isRemoved() && c.getCorpseUUID().filter(me::equals).isPresent() && !skip.contains(e.getId())) {
                 double d = e.distanceToSqr(p);
                 if (d < bestDist) {
                     bestDist = d;

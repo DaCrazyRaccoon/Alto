@@ -29,17 +29,23 @@ import net.minecraft.world.inventory.InventoryMenu;
 
 /**
  * Walks to your own corpse (Corpse mod), opens it with a normal right-click and shift-clicks the items back into
- * your inventory, paced like every other container click. Stops when your inventory is full.
+ * your inventory, paced like every other container click. Stops when your inventory is full. Clients are not told
+ * what a corpse holds, so an older, already emptied corpse is opened, seen to be empty and skipped for the next one.
  */
 public final class RecoverCorpseTask extends AltoTask {
 
     private enum Phase { FIND, APPROACH, OPEN, TAKE, CLOSE }
 
+    private static final int MAX_CORPSES = 8;
+
     private final ContainerSession session;
+    private final java.util.Set<Integer> checked = new java.util.HashSet<>();
     private Phase phase = Phase.FIND;
     private Entity corpse;
     private MenuGoal goal;
     private String result = "";
+    private boolean empty;
+    private int recovered;
     private int tries;
 
     public RecoverCorpseTask(Alto alto) {
@@ -59,16 +65,24 @@ public final class RecoverCorpseTask extends AltoTask {
         }
         switch (phase) {
             case FIND: {
-                corpse = alto.nearestOwnCorpse().orElse(null);
+                corpse = checked.size() >= MAX_CORPSES ? null : alto.nearestOwnCorpse(checked).orElse(null);
                 if (corpse == null) {
-                    return Step.failure("no corpse of yours is loaded nearby");
+                    if (recovered > 0) {
+                        return Step.success("recovered " + recovered + " item(s)");
+                    }
+                    return Step.failure(checked.isEmpty() ? "no corpse of yours is loaded nearby" : "your corpses nearby are empty");
                 }
+                tries = 0;
+                goal = null;
+                empty = false;
                 phase = Phase.APPROACH;
                 return Step.stay();
             }
             case APPROACH: {
                 if (corpse.isRemoved()) {
-                    return Step.failure("the corpse is gone");
+                    checked.add(corpse.getId());
+                    phase = Phase.FIND;
+                    return Step.stay();
                 }
                 detail("walking to the corpse at " + corpse.blockPosition().toShortString());
                 double range = ctx.player().entityInteractionRange() - 0.5;
@@ -96,6 +110,13 @@ public final class RecoverCorpseTask extends AltoTask {
             case TAKE: {
                 detail("taking the items back");
                 if (goal == null) {
+                    int inside = session.view().contents(java.util.EnumSet.of(SlotRole.STORAGE)).total();
+                    if (inside == 0) {
+                        empty = true; // an older corpse that was emptied before
+                        phase = Phase.CLOSE;
+                        return Step.stay();
+                    }
+                    recovered += inside;
                     goal = MenuGoals.clear(MenuGoals.roles(SlotRole.STORAGE), "corpse");
                 }
                 ContainerSession.Status st = session.run(goal);
@@ -111,7 +132,12 @@ public final class RecoverCorpseTask extends AltoTask {
                 if (session.close() != ContainerSession.Status.DONE) {
                     return Step.stay();
                 }
-                return result.isEmpty() ? Step.success("all items recovered") : Step.failure(result);
+                if (empty) {
+                    checked.add(corpse.getId());
+                    phase = Phase.FIND;
+                    return Step.stay();
+                }
+                return result.isEmpty() ? Step.success("all items recovered (" + recovered + ")") : Step.failure(result);
             }
             default:
                 return Step.failure("unknown phase");

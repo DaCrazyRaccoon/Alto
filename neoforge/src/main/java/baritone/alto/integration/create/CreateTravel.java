@@ -115,31 +115,47 @@ final class CreateTravel {
 
     // ------------------------------------------------------------------------------------------ moving platforms
 
+    /** Two fixed points of each contraption, in the world, as seen on the last tick (translation and rotation). */
+    private static final Map<AbstractContraptionEntity, Vec3[]> LAST_POSE = new java.util.WeakHashMap<>();
+    private static final Vec3 REF_A = new Vec3(0.5, 0.5, 0.5);
+    private static final Vec3 REF_B = new Vec3(8.5, 0.5, 8.5);
+
+    /**
+     * Did this contraption move since the last tick? Compares where two fixed contraption points are now with where
+     * they were a tick ago (Create's own partial-tick helpers only interpolate rotation, not sliding contraptions).
+     */
+    static boolean movedSinceLastTick(AbstractContraptionEntity e, Map<AbstractContraptionEntity, Vec3[]> now) {
+        Vec3[] pose = {e.toGlobalVector(REF_A, 1), e.toGlobalVector(REF_B, 1)};
+        now.put(e, pose);
+        Vec3[] before = LAST_POSE.get(e);
+        return before != null && (before[0].distanceToSqr(pose[0]) > 1.0E-6 || before[1].distanceToSqr(pose[1]) > 1.0E-6);
+    }
+
     /** Every tick: are you standing on a contraption that is moving? */
     static void tickPlatform(Alto alto) {
         LocalPlayer p = Minecraft.getInstance().player;
         Level level = Minecraft.getInstance().level;
-        if (p == null || level == null || p.isPassenger() || !Baritone.settings().altoMovingPlatforms.value) {
+        if (p == null || level == null || !Baritone.settings().altoMovingPlatforms.value) {
+            LAST_POSE.clear();
             alto.platformPause().setOnMovingPlatform(false);
             return;
         }
         Vec3 under = p.position().add(0, -0.2, 0);
         AABB feet = new AABB(under, under).inflate(0.35, 0.3, 0.35);
         boolean moving = false;
+        Map<AbstractContraptionEntity, Vec3[]> poses = new java.util.HashMap<>();
         for (AbstractContraptionEntity e : contraptions(level)) {
-            if (!e.getBoundingBox().inflate(1).intersects(feet)) {
+            boolean moved = movedSinceLastTick(e, poses); // every contraption, so a pose is always one tick old
+            if (moving || p.isPassenger() || !e.getBoundingBox().inflate(1).intersects(feet)) {
                 continue;
             }
             Vec3 local = e.toLocalVector(under, 1);
-            if (!e.getContraption().getBlocks().containsKey(BlockPos.containing(local))) {
-                continue;
-            }
-            // Moving: the point under your feet is somewhere else than a tick ago (covers lifts and rotation).
-            if (e.toGlobalVector(local, 1).distanceToSqr(e.toGlobalVector(local, 0)) > 1.0E-6) {
-                moving = true;
-                break;
+            if (e.getContraption().getBlocks().containsKey(BlockPos.containing(local)) && moved) {
+                moving = true; // the floor under your feet moves (lifts, pistons, gantries, bearings)
             }
         }
+        LAST_POSE.clear();
+        LAST_POSE.putAll(poses);
         alto.platformPause().setOnMovingPlatform(moving);
     }
 
@@ -382,6 +398,8 @@ final class CreateTravel {
         private int targetIndex;
         private int targetY;
         private int ticks;
+        private int still;
+        private double lastCabY = Double.NaN;
 
         ElevatorTask(Alto alto, String floor) {
             super(alto);
@@ -391,6 +409,17 @@ final class CreateTravel {
         @Override
         public String name() {
             return "Elevator to " + floor;
+        }
+
+        /** The floor's elevator contact shows "powering" once the cab has arrived there (synced block state). */
+        private boolean arrivedAtContact(ElevatorContraption ec) {
+            var column = ec.getGlobalColumn();
+            if (column == null) {
+                return false;
+            }
+            BlockState contact = ctx.world().getBlockState(new BlockPos(column.x(), targetY, column.z()));
+            return contact.hasProperty(com.simibubi.create.content.contraptions.elevator.ElevatorContactBlock.POWERING)
+                    && contact.getValue(com.simibubi.create.content.contraptions.elevator.ElevatorContactBlock.POWERING);
         }
 
         private MovementContext controlsContext() {
@@ -485,11 +514,17 @@ final class CreateTravel {
                 case RIDE: {
                     detail("riding to " + floor);
                     ElevatorContraption ec = (ElevatorContraption) cab.getContraption();
+                    // The cab's own movement (its entity motion is not kept up to date while a pulley moves it).
+                    still = Math.abs(cab.getY() - lastCabY) < 1.0E-4 ? still + 1 : 0;
+                    lastCabY = cab.getY();
                     int y = (int) Math.round(cab.getY() + ec.getContactYOffset());
-                    if (y == targetY && cab.getDeltaMovement().lengthSqr() < 1.0E-5 && ++ticks > 20) {
+                    if ((y == targetY || arrivedAtContact(ec)) && still > 20) {
                         return Step.success("arrived at " + floor);
                     }
-                    if (ticks > 20 * 120) {
+                    if (!cab.isAlive()) {
+                        return Step.failure("the elevator was taken apart");
+                    }
+                    if (++ticks > 20 * 120) {
                         return Step.failure("the elevator did not arrive");
                     }
                     return Step.stay(); // the moving-platform pause keeps everything still
