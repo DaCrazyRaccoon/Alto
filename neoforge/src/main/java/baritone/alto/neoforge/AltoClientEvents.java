@@ -46,6 +46,10 @@ public final class AltoClientEvents {
     public static final KeyMapping PICK = new KeyMapping("key.alto.pick", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_Y, CATEGORY);
     /** Global stop: the running script, Alto's job and Baritone's pathing. */
     public static final KeyMapping STOP = new KeyMapping("key.alto.stop", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_END, CATEGORY);
+    /** Progress HUD on/off (extra 14). */
+    public static final KeyMapping HUD = new KeyMapping("key.alto.hud", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_H, CATEGORY);
+    /** Script runner screen (M5). */
+    public static final KeyMapping SCRIPTS = new KeyMapping("key.alto.scripts", InputConstants.Type.KEYSYM, InputConstants.UNKNOWN.getValue(), CATEGORY);
 
     private AltoClientEvents() {
     }
@@ -54,7 +58,11 @@ public final class AltoClientEvents {
         modBus.addListener(RegisterKeyMappingsEvent.class, e -> {
             e.register(PICK);
             e.register(STOP);
+            e.register(HUD);
+            e.register(SCRIPTS);
         });
+        modBus.addListener(net.neoforged.neoforge.client.event.RegisterGuiLayersEvent.class, e -> e.registerAboveAll(
+                net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("baritoe", "alto_hud"), AltoClientEvents::renderHud));
         NeoForge.EVENT_BUS.addListener(ClientTickEvent.Post.class, e -> onTick());
         NeoForge.EVENT_BUS.addListener(ScreenEvent.KeyPressed.Pre.class, AltoClientEvents::onScreenKey);
     }
@@ -79,9 +87,47 @@ public final class AltoClientEvents {
         baritone.alto.AltoLog.chat("Stopped" + (script ? " the script," : "") + " Alto and Baritone (stop key).");
     }
 
+    private static void renderHud(net.minecraft.client.gui.GuiGraphics g, net.minecraft.client.DeltaTracker delta) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null || mc.options.hideGui || !Baritone.settings().altoHud.value || !Baritone.settings().altoEnabled.value) {
+            return;
+        }
+        Alto alto = ((Baritone) BaritoneAPI.getProvider().getPrimaryBaritone()).getAlto();
+        java.util.List<String> lines;
+        try {
+            lines = alto.hudLines();
+        } catch (RuntimeException e) {
+            return;
+        }
+        if (lines.isEmpty()) {
+            return;
+        }
+        int y = g.guiHeight() / 3;
+        int w = 0;
+        for (String l : lines) {
+            w = Math.max(w, mc.font.width(l));
+        }
+        g.fill(2, y - 2, 6 + w, y + lines.size() * 10, 0x80000000);
+        for (String l : lines) {
+            g.drawString(mc.font, l, 4, y, 0xFFFFFF);
+            y += 10;
+        }
+    }
+
     private static void onTick() {
         while (STOP.consumeClick()) {
             stopAll();
+        }
+        while (HUD.consumeClick()) {
+            if (Minecraft.getInstance().screen == null) {
+                Baritone.settings().altoHud.value = !Baritone.settings().altoHud.value;
+                baritone.api.utils.SettingsUtil.save(Baritone.settings());
+            }
+        }
+        while (SCRIPTS.consumeClick()) {
+            if (Minecraft.getInstance().screen == null && Minecraft.getInstance().player != null) {
+                Minecraft.getInstance().setScreen(new ScriptRunnerScreen(null));
+            }
         }
         while (PICK.consumeClick()) {
             Alto alto = alto();

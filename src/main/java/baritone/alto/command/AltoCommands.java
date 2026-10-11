@@ -18,6 +18,7 @@
 package baritone.alto.command;
 
 import baritone.Baritone;
+import baritone.api.utils.SettingsUtil;
 import baritone.alto.Alto;
 import baritone.alto.AltoLog;
 import baritone.alto.core.ItemCounts;
@@ -337,6 +338,14 @@ public final class AltoCommands {
                 case "stop":
                     alto.process().cancelJob("stopped with #alto stop");
                     break;
+                case "hud":
+                    Baritone.settings().altoHud.value = !Baritone.settings().altoHud.value;
+                    SettingsUtil.save(Baritone.settings());
+                    logDirect("Progress HUD " + (Baritone.settings().altoHud.value ? "on" : "off"));
+                    break;
+                case "settings":
+                    alto.openSettingsScreen();
+                    break;
                 case "hazards":
                     logDirect("Hazard rules: " + alto.hazards().reload());
                     break;
@@ -353,7 +362,7 @@ public final class AltoCommands {
 
         @Override
         public Stream<String> tabComplete(String label, IArgConsumer args) {
-            return args.hasExactlyOne() ? Stream.of("status", "stop", "hazards", "integrations", "help") : Stream.empty();
+            return args.hasExactlyOne() ? Stream.of("status", "stop", "hud", "settings", "hazards", "integrations", "help") : Stream.empty();
         }
 
         @Override
@@ -370,6 +379,8 @@ public final class AltoCommands {
                     "Usage:",
                     "> alto status - what Alto is doing, server lag, pacing",
                     "> alto stop - stop the current Alto job (#stop stops everything)",
+                    "> alto hud - show/hide the progress HUD",
+                    "> alto settings - open Alto's settings screen",
                     "> alto hazards - reload baritone/alto/hazards.json",
                     "> alto integrations - which mod integrations are active"
             );

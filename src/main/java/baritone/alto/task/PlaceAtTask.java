@@ -49,12 +49,19 @@ public final class PlaceAtTask extends AltoTask {
     private int ticks;
     private int tries;
     private MenuGoalTask hotbar;
+    /** Where to stand while placing: blocks above head height are reached from the ground (never by pillaring). */
+    private Integer standY;
 
     public PlaceAtTask(Alto alto, BlockPos pos, Predicate<Item> item, String label) {
         super(alto);
         this.pos = pos.immutable();
         this.item = item;
         this.label = label;
+    }
+
+    public PlaceAtTask standingAt(int y) {
+        this.standY = y;
+        return this;
     }
 
     @Override
@@ -140,7 +147,7 @@ public final class PlaceAtTask extends AltoTask {
         if (calcFailed && ++tries > 3) {
             return Step.failure("cannot get close to " + pos.toShortString());
         }
-        return Step.walk(new GoalNear(pos, 2));
+        return Step.walk(new GoalNear(standY == null ? pos : new BlockPos(pos.getX(), standY, pos.getZ()), 2));
     }
 
     @Override

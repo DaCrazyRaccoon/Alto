@@ -2097,6 +2097,12 @@ public final class Settings {
      */
     public final Setting<Integer> altoSafetyHealth = new Setting<>(8);
 
+    /**
+     * Progress HUD (extra 14): a small overlay with the running script, Alto's job, Baritone's process and safety
+     * stops. Toggle with the HUD key or #alto hud.
+     */
+    public final Setting<Boolean> altoHud = new Setting<>(true);
+
     // ALTO FORK SETTINGS (end)
 
     /**

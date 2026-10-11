@@ -106,6 +106,7 @@ public final class Alto {
     private final PortalManager portals;
     private final SupplyRun supplyRun;
     private final baritone.alto.scriptmc.ScriptManager scripts;
+    private baritone.alto.safety.SafetyStops safety;
     private final baritone.alto.task.PlatformPauseProcess platformPause;
     private final List<FilterAccess> filterAccess = new CopyOnWriteArrayList<>();
     private final VanillaRecipeSource vanillaRecipes = new VanillaRecipeSource();
@@ -159,6 +160,7 @@ public final class Alto {
         Alto alto = new Alto(baritone);
         baritone.getPathingControlManager().registerProcess(alto.process);
         baritone.getPathingControlManager().registerProcess(alto.platformPause);
+        alto.safety = new baritone.alto.safety.SafetyStops(alto);
         baritone.getGameEventHandler().registerEventListener(alto.new Listener());
         AltoCommands.registerAll(baritone, alto);
         Integrations.initAll(alto);
@@ -203,6 +205,10 @@ public final class Alto {
     /** Integrations that see moving contraptions report here every tick (extra 8). */
     public baritone.alto.task.PlatformPauseProcess platformPause() {
         return platformPause;
+    }
+
+    public baritone.alto.safety.SafetyStops safety() {
+        return safety;
     }
 
     public baritone.alto.scriptmc.ScriptManager scripts() {
@@ -489,6 +495,50 @@ public final class Alto {
                 lag.onServerTime(time.getGameTime());
             }
         }
+    }
+
+    private static volatile Runnable settingsScreenOpener = () -> AltoLog.chat("The settings screen needs the NeoForge part of Alto.");
+    private static volatile Runnable scriptScreenOpener = () -> AltoLog.chat("The script screen needs the NeoForge part of Alto.");
+
+    /** The loader part registers how to open the settings screen (extra 11) and the script runner (M5). */
+    public static void setScreenOpeners(Runnable settings, Runnable scripts) {
+        settingsScreenOpener = settings;
+        scriptScreenOpener = scripts;
+    }
+
+    public void openSettingsScreen() {
+        // Commands run while the chat screen is open; open after the chat has closed.
+        net.minecraft.client.Minecraft.getInstance().tell(() -> net.minecraft.client.Minecraft.getInstance().tell(settingsScreenOpener));
+    }
+
+    public void openScriptScreen() {
+        net.minecraft.client.Minecraft.getInstance().tell(() -> net.minecraft.client.Minecraft.getInstance().tell(scriptScreenOpener));
+    }
+
+    /** Lines for the progress HUD (extra 14); empty when nothing runs. */
+    public List<String> hudLines() {
+        List<String> out = new ArrayList<>();
+        if (safety != null && safety.tripped()) {
+            out.add("§cSafety stop: " + safety.reason() + " (#resume)");
+        }
+        var run = scripts.current();
+        if (run != null && !run.status().isEnded()) {
+            out.add("§bScript " + scripts.currentName() + "§7: " + run.status().name().toLowerCase(java.util.Locale.ROOT)
+                    + (run.currentBlock() == null ? "" : " - " + run.currentBlock()) + " (" + run.actionsStarted() + " actions)");
+        }
+        String job = process.jobLine();
+        if (job != null) {
+            out.add("§aAlto§7: " + job);
+        }
+        baritone.getPathingControlManager().mostRecentInControl()
+                .filter(p -> p != process)
+                .ifPresent(p -> out.add("§eBaritone§7: " + p.displayName()));
+        var goal = baritone.getPathingBehavior().getGoal();
+        if (goal != null && !out.isEmpty()) {
+            String g = goal.toString();
+            out.add("§8goal " + (g.length() > 60 ? g.substring(0, 60) + "..." : g));
+        }
+        return out;
     }
 
     /** Debug helper used by tests and #alto status. */

@@ -42,6 +42,16 @@ public final class AltoNeoForge {
     private AltoNeoForge() {
     }
 
+    public static void init(IEventBus modBus, net.neoforged.fml.ModContainer container) {
+        // Extra 11: the settings screen behind the Mods list "Config" button and #alto settings.
+        container.registerExtensionPoint(net.neoforged.neoforge.client.gui.IConfigScreenFactory.class,
+                (mc, parent) -> new AltoSettingsScreen(parent));
+        baritone.alto.Alto.setScreenOpeners(
+                () -> net.minecraft.client.Minecraft.getInstance().setScreen(new AltoSettingsScreen(null)),
+                () -> net.minecraft.client.Minecraft.getInstance().setScreen(new ScriptRunnerScreen(null)));
+        init(modBus);
+    }
+
     public static void init(IEventBus modBus) {
         ModList mods = ModList.get();
         INTEGRATIONS.forEach((modId, cls) -> {

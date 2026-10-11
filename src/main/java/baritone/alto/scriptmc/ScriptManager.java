@@ -115,6 +115,10 @@ public final class ScriptManager {
         }
     }
 
+    public boolean isConfirmed(String hash) {
+        return confirmed().contains(hash);
+    }
+
     private void markConfirmed(String hash) {
         Set<String> c = confirmed();
         if (c.add(hash)) {

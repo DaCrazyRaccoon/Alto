@@ -1,5 +1,7 @@
 {
   "key.categories.alto": "Baritone (Alto)",
   "key.alto.pick": "Pick item / mark block",
-  "key.alto.stop": "Stop everything (scripts, Alto, Baritone)"
+  "key.alto.stop": "Stop everything (scripts, Alto, Baritone)",
+  "key.alto.hud": "Show/hide the progress HUD",
+  "key.alto.scripts": "Open the script runner"
 }

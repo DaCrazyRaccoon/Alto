@@ -118,6 +118,11 @@ public class ExecutionControlCommands {
             public void execute(String label, IArgConsumer args) throws CommandException {
                 args.requireMax(0);
                 baritone.getBuilderProcess().resume();
+                // ALTO FORK: #resume also continues after an Alto safety stop
+                if (((baritone.Baritone) baritone).getAlto().safety().resume() && !paused[0]) {
+                    logDirect("Resumed after the safety stop");
+                    return;
+                }
                 if (!paused[0]) {
                     throw new CommandInvalidStateException("Not paused");
                 }
@@ -179,6 +184,10 @@ public class ExecutionControlCommands {
                 if (paused[0]) {
                     paused[0] = false;
                 }
+                // ALTO FORK: #stop also ends a running Alto script and forgets a safety stop
+                ((baritone.Baritone) baritone).getAlto().scripts().stop("stopped with #stop");
+                ((baritone.Baritone) baritone).getAlto().process().cancelJob("stopped with #stop");
+                ((baritone.Baritone) baritone).getAlto().safety().clear();
                 baritone.getPathingBehavior().cancelEverything();
                 logDirect("ok canceled");
             }

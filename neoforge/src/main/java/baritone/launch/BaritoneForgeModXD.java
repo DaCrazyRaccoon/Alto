@@ -26,7 +26,7 @@ import net.neoforged.fml.common.Mod;
 public class BaritoneForgeModXD {
 
     // ALTO FORK: register the optional integrations and key mappings (client only, no network channels).
-    public BaritoneForgeModXD(IEventBus modBus) {
-        AltoNeoForge.init(modBus);
+    public BaritoneForgeModXD(IEventBus modBus, net.neoforged.fml.ModContainer container) {
+        AltoNeoForge.init(modBus, container);
     }
 }

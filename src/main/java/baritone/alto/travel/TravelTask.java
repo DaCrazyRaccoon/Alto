@@ -200,6 +200,13 @@ public final class TravelTask extends AltoTask {
         }
     }
 
+    @Override
+    public void cancel() {
+        if (builder != null) {
+            builder.cancel();
+        }
+    }
+
     private boolean inPortal() {
         BlockPos feet = ctx.player().blockPosition();
         return ctx.world().getBlockState(feet).is(Blocks.NETHER_PORTAL);

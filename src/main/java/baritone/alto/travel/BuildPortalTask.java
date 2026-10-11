@@ -61,6 +61,7 @@ public final class BuildPortalTask extends AltoTask {
     private Direction.Axis axis;
     private final List<AltoTask> placements = new ArrayList<>();
     private int ticks;
+    private Boolean savedAllowPlace;
 
     public BuildPortalTask(Alto alto) {
         super(alto);
@@ -129,12 +130,14 @@ public final class BuildPortalTask extends AltoTask {
                     return Step.failure("no flat, clear 4x5 spot for a portal within 6 blocks");
                 }
                 planPlacements();
+                holdPlacing(true);
                 phase = Phase.PLACE;
                 return Step.stay();
             }
             case PLACE: {
                 detail("building the frame (" + (14 - placements.size()) + "/14)");
                 if (placements.isEmpty()) {
+                    holdPlacing(false);
                     phase = Phase.LIGHT;
                     return Step.stay();
                 }
@@ -218,22 +221,39 @@ public final class BuildPortalTask extends AltoTask {
         Predicate<Item> obsidian = i -> i == Items.OBSIDIAN;
         Predicate<Item> corner = throwawayCount() >= 4 ? throwaway().and(i -> i != Items.OBSIDIAN) : obsidian;
         // Bottom corners, bottom row, the two sides from the bottom up, top corners, top row: every block rests on one placed before.
-        placements.add(new PlaceAtTask(alto, base, corner, "a corner block"));
-        placements.add(new PlaceAtTask(alto, base.relative(along, 3), corner, "a corner block"));
-        placements.add(new PlaceAtTask(alto, base.relative(along, 1), obsidian, "obsidian"));
-        placements.add(new PlaceAtTask(alto, base.relative(along, 2), obsidian, "obsidian"));
+        placements.add(stand(new PlaceAtTask(alto, base, corner, "a corner block")));
+        placements.add(stand(new PlaceAtTask(alto, base.relative(along, 3), corner, "a corner block")));
+        placements.add(stand(new PlaceAtTask(alto, base.relative(along, 1), obsidian, "obsidian")));
+        placements.add(stand(new PlaceAtTask(alto, base.relative(along, 2), obsidian, "obsidian")));
         for (int h = 1; h <= 3; h++) {
-            placements.add(new PlaceAtTask(alto, base.above(h), obsidian, "obsidian"));
-            placements.add(new PlaceAtTask(alto, base.relative(along, 3).above(h), obsidian, "obsidian"));
+            placements.add(stand(new PlaceAtTask(alto, base.above(h), obsidian, "obsidian")));
+            placements.add(stand(new PlaceAtTask(alto, base.relative(along, 3).above(h), obsidian, "obsidian")));
         }
-        placements.add(new PlaceAtTask(alto, base.above(4), corner, "a corner block"));
-        placements.add(new PlaceAtTask(alto, base.relative(along, 3).above(4), corner, "a corner block"));
-        placements.add(new PlaceAtTask(alto, base.relative(along, 1).above(4), obsidian, "obsidian"));
-        placements.add(new PlaceAtTask(alto, base.relative(along, 2).above(4), obsidian, "obsidian"));
+        placements.add(stand(new PlaceAtTask(alto, base.above(4), corner, "a corner block")));
+        placements.add(stand(new PlaceAtTask(alto, base.relative(along, 3).above(4), corner, "a corner block")));
+        placements.add(stand(new PlaceAtTask(alto, base.relative(along, 1).above(4), obsidian, "obsidian")));
+        placements.add(stand(new PlaceAtTask(alto, base.relative(along, 2).above(4), obsidian, "obsidian")));
+    }
+
+    private AltoTask stand(PlaceAtTask t) {
+        return t.standingAt(base.getY());
+    }
+
+    /** No scaffolding while the frame is built: the corner blocks are throwaway blocks Baritone would use up. */
+    private void holdPlacing(boolean hold) {
+        var allow = Baritone.settings().allowPlace;
+        if (hold && savedAllowPlace == null) {
+            savedAllowPlace = allow.value;
+            allow.value = false;
+        } else if (!hold && savedAllowPlace != null) {
+            allow.value = savedAllowPlace;
+            savedAllowPlace = null;
+        }
     }
 
     @Override
     public void cancel() {
+        holdPlacing(false);
         if (sub != null) {
             sub.cancel();
         }

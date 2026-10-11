@@ -175,6 +175,11 @@ public final class AltoProcess extends BaritoneProcessHelper {
         }
     }
 
+    /** The running job and what it is doing now, or null when idle (for the HUD). */
+    public String jobLine() {
+        return job == null ? null : lastDisplay;
+    }
+
     @Override
     public String displayName0() {
         return "Alto: " + (job == null ? "idle" : lastDisplay);

@@ -315,7 +315,8 @@ public final class DevTestHarness {
             lastScreenNanos = System.nanoTime();
             stuckReported = false;
             screenTicks = 0;
-        } else if (CONTAINER_SHOTS && mc.screen instanceof net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<?>
+        } else if (CONTAINER_SHOTS && (mc.screen instanceof net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<?>
+                || mc.screen != null && mc.screen.getClass().getName().startsWith("baritone.alto"))
                 && ++screenTicks % 8 == 3 && screenTicks < 60) {
             // -Palto_devtest_containershots=true: what the player would see while Alto clicks in a container.
             shot(mc, "container-" + mc.screen.getClass().getSimpleName() + "-t" + screenTicks);

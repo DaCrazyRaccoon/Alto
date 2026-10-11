@@ -80,6 +80,7 @@ final class ScriptCommand extends Command {
                 logDirect("Forgot the saved script run.");
             }
             case "status" -> scripts.status().forEach(this::logDirect);
+            case "gui", "screen" -> alto.openScriptScreen();
             default -> throw new CommandInvalidStateException("Unknown option " + op + "; see #help script");
         }
     }
@@ -87,7 +88,7 @@ final class ScriptCommand extends Command {
     @Override
     public Stream<String> tabComplete(String label, IArgConsumer args) throws CommandException {
         if (args.hasExactlyOne()) {
-            return Stream.of("list", "run", "check", "stop", "pause", "resume", "status", "forget");
+            return Stream.of("list", "run", "check", "stop", "pause", "resume", "status", "forget", "gui");
         }
         String op = args.getString();
         if (args.hasExactlyOne() && (op.equalsIgnoreCase("run") || op.equalsIgnoreCase("check"))) {
@@ -114,7 +115,8 @@ final class ScriptCommand extends Command {
                 "> script run <name> [confirm]",
                 "> script pause / resume / stop / status",
                 "> script resume - also continues a run saved before the game closed (asks nothing more)",
-                "> script forget - forget a saved run"
+                "> script forget - forget a saved run",
+                "> script gui - the script runner screen (also a key in Controls)"
         );
     }
 }
