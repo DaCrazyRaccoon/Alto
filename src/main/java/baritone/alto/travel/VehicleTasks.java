@@ -257,8 +257,9 @@ public final class VehicleTasks {
                     if (slot < 0) {
                         return Step.failure("no boat nearby and none in the hotbar");
                     }
+                // Open water: a boat placed next to the shore collides with it and the game refuses to place it.
                     water = BlockPos.betweenClosedStream(p.blockPosition().offset(-8, -3, -8), p.blockPosition().offset(8, 1, 8))
-                            .filter(b -> ctx.world().getBlockState(b).is(Blocks.WATER) && ctx.world().getBlockState(b.above()).isAir())
+                            .filter(this::openWater)
                             .map(BlockPos::immutable)
                             .min(Comparator.comparingDouble(b -> b.distSqr(p.blockPosition())))
                             .orElse(null);
@@ -394,6 +395,18 @@ public final class VehicleTasks {
                 default:
                     return Step.failure("unknown phase");
             }
+        }
+
+        private boolean openWater(BlockPos b) {
+            for (int dx = -1; dx <= 1; dx++) {
+                for (int dz = -1; dz <= 1; dz++) {
+                    BlockPos n = b.offset(dx, 0, dz);
+                    if (!ctx.world().getBlockState(n).is(Blocks.WATER) || !ctx.world().getBlockState(n.above()).isAir()) {
+                        return false;
+                    }
+                }
+            }
+            return true;
         }
 
         private void clearSteer() {

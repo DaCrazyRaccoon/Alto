@@ -34,7 +34,7 @@ import java.util.Optional;
  */
 public final class TravelTask extends AltoTask {
 
-    private enum Phase { ROUTE, TO_PORTAL, IN_PORTAL, FINAL }
+    private enum Phase { ROUTE, LEAVE_PORTAL, TO_PORTAL, IN_PORTAL, FINAL }
 
     private final String targetDim;
     private final int x;
@@ -86,8 +86,25 @@ public final class TravelTask extends AltoTask {
                 route = r.get();
                 startDim = dim();
                 detail("via the portal at " + route.portal());
-                phase = Phase.TO_PORTAL;
+                // Just arrived (standing in the arrival portal): vanilla keeps the portal cooldown running while you
+                // stay inside, so step out first and come back in.
+                phase = inPortal() ? Phase.LEAVE_PORTAL : Phase.TO_PORTAL;
+                waited = 0;
                 return Step.stay();
+            }
+            case LEAVE_PORTAL: {
+                detail("stepping out of the portal");
+                if (!inPortal()) {
+                    if (++waited > 30) {
+                        phase = Phase.TO_PORTAL;
+                    }
+                    return Step.stay();
+                }
+                waited = 0;
+                if (calcFailed && ++failures > 3) {
+                    return Step.failure("cannot step out of the portal");
+                }
+                return Step.walk(new baritone.api.pathing.goals.GoalRunAway(2, ctx.player().blockPosition()));
             }
             case TO_PORTAL: {
                 if (!dim().equals(startDim)) {
@@ -119,8 +136,13 @@ public final class TravelTask extends AltoTask {
                     phase = Phase.TO_PORTAL;
                     return Step.stay();
                 }
-                if (++waited > 20 * 20) {
-                    return Step.failure("the portal did not teleport within 20 seconds");
+                if (++waited > 20 * 8) {
+                    if (++failures > 2) {
+                        return Step.failure("the portal did not teleport (tried 3 times)");
+                    }
+                    phase = Phase.LEAVE_PORTAL; // still on cooldown: step out and in again
+                    waited = 0;
+                    return Step.stay();
                 }
                 return Step.stay(); // stand still; the normal portal timer does the rest
             }

@@ -91,6 +91,16 @@ public enum DefaultSchematicFormats implements ISchematicFormat {
                     throw new UnsupportedOperationException("Unsuported Version of a Litematica Schematic");
             }
         }
+    },
+
+    /**
+     * ALTO FORK: vanilla structure files (structure blocks, Create schematics). Denoted by the ".nbt" file extension.
+     */
+    STRUCTURE("nbt") {
+        @Override
+        public IStaticSchematic parse(InputStream input) throws IOException {
+            return new baritone.alto.schematic.StructureNbtSchematic(NbtIo.readCompressed(input, NbtAccounter.unlimitedHeap()));
+        }
     };
 
     private final String extension;
