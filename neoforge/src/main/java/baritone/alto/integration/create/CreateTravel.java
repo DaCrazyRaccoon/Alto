@@ -309,7 +309,7 @@ final class CreateTravel {
                         if (calcFailed && ++tries > 3) {
                             return Step.failure("cannot reach a free seat");
                         }
-                        return Step.walk(new GoalNear(BlockPos.containing(seatPos), 1));
+                        return Step.walk(reachGoal(BlockPos.containing(seatPos)));
                     }
                     alto.baritone().getLookBehavior().updateTarget(RotationUtils.calcRotationFromVec3d(p.getEyePosition(), seatPos, ctx.playerRotations()), true);
                     // Click only when Create's own ray test says the seat (and nothing else, e.g. controls) is under the crosshair.
@@ -379,6 +379,18 @@ final class CreateTravel {
         public void cancel() {
             alto.baritone().getInputOverrideHandler().setInputForceState(Input.SNEAK, false);
         }
+    }
+
+    /**
+     * Somewhere to stand from which a block on a contraption is in reach: seats are usually up on the carriage, where
+     * nothing can be stood on, so any spot within 2 blocks of a point 0 to 3 blocks below it will do.
+     */
+    static baritone.api.pathing.goals.Goal reachGoal(BlockPos target) {
+        baritone.api.pathing.goals.Goal[] goals = new baritone.api.pathing.goals.Goal[4];
+        for (int down = 0; down < goals.length; down++) {
+            goals[down] = new GoalNear(target.below(down), 2);
+        }
+        return new baritone.api.pathing.goals.GoalComposite(goals);
     }
 
     // ------------------------------------------------------------------------------------------ elevators

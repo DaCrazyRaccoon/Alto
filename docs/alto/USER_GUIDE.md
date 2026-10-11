@@ -104,8 +104,15 @@ farmland, Alto fetches seeds from your storage.
   (filter / fetch / craft / plan / mine). `#pick favorites` lists your EMI favorites.
 * `#useon <item> <x y z> [face]` uses an item on a block (e.g. puts an item on a depot).
 * `#order <item> <count> [address]` orders from the nearest Create stock keeper (only when the server lets you open it).
-* `#corpse` (Corpse mod) walks to your corpse and takes your items back.
-* Open Parties and Claims: Baritone never breaks or places in other players' claims.
+* `#corpse` (Corpse mod) walks to your corpse and takes your items back. Clients are not told what a corpse holds, so
+  Alto opens your nearest corpse; an older, already emptied one is skipped and the next one is tried.
+* Open Parties and Claims: Baritone never breaks or places in other players' claims. Alto sees the claims your server
+  sends to clients: with the server setting `claimsSynchronization = ALL` that is every claim; with `OWNED_ONLY` only
+  yours, your party's and server claims (other claims are still protected by the server, but Baritone may then try a
+  path through them and get stuck).
+* **Machines are safe from paths** (`altoProtectMachines`, on by default): Baritone never breaks a block that holds
+  data (machines, chests, barrels, signs, Create shafts, belts, funnels, stations...) or a train track to make a path.
+  `#mine` of such a block needs the setting off.
 * Hazards (running saws, drills, crushing wheels, fans, belts...) are avoided; edit `baritone/alto/hazards.json` and
   `#alto hazards` to reload.
 * `#alto integrations` shows which mod integrations are active.

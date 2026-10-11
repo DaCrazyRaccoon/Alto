@@ -17,6 +17,24 @@ Alto is a modified version of Baritone 1.11.3 (branch `1.21.1`, commit `10e65932
 * Tests: real-terrain test worlds, a run fails unless every self-test passes, dedicated-server join test (a server
   without Alto), the long mission script.
 
+### Mod compatibility round (final)
+
+* New setting `altoProtectMachines` (on by default): a path never breaks blocks that hold data (machines,
+  containers, signs, Create shafts, belts, funnels, stations, cannons...) or train tracks of any kind (Create and
+  Steam 'n' Rails). Before, Baritone would cut through a Create factory or a rail line when that was shorter.
+* Fixed: the moving-platform pause never switched on. It compared Create's partial-tick positions, which only change
+  for rotating contraptions (not for pistons, elevators or gantries), and it asked Baritone which process was in
+  control at a moment when Baritone has just cleared that value. Now the bot really stands still while the floor
+  moves.
+* Fixed: `#elevator` never reported arrival (the cab's motion value stays stale on the client) and its ride
+  time-out could not trigger. Arrival is now the cab standing still at the floor (or the floor's contact lighting up).
+* Fixed: `#corpse` could not find corpses on a server: Corpse never tells clients what a corpse holds, so every corpse
+  looked empty. Alto now opens your nearest corpse, and skips older corpses that turn out to be empty.
+* `#train`: "the train stopped" is measured from the carriage's position.
+* New in-game tests, built with real mod blocks in the pack copy: `machines-safe`, `create-materials`,
+  `create-protect`, `create-hazard`, `create-platform`, `create-elevator`, `create-order`, `create-train`,
+  `claims-protect`, `corpse`, `emi-pick`, `farm-modded`, `lootr-skip`.
+
 ## 0.5.0 — M5: scripts
 
 * `#script` runs Alto scripts (`baritone/alto/scripts/*.alto.json`): every action block is a real Alto job or Baritone
