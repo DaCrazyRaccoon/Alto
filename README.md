@@ -53,8 +53,8 @@ Alto smelts in a furnace it finds or places. It never burns valuable fuel.
 
 Mark a storage room and Alto remembers what is in every container there.
 
-![Taking items from a chest](docs/images/storage.jpg)
-*`#fetch` opens a chest in your storage zone and takes exactly the number of items you asked for.*
+![Putting items away in a chest](docs/images/storage.jpg)
+*`#deposit` puts your items into the chests of your storage zone. Tools, food and armor stay in your inventory.*
 
 - `#home zone add storage` turns your selection (`#sel 1`, `#sel 2`) into a storage zone.
 - `#fetch cobblestone 64` takes exactly 64 from your storage.

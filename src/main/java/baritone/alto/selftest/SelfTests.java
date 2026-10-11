@@ -247,7 +247,7 @@ public final class SelfTests {
             if (cls.startsWith("baritone.")) {
                 ready = photoScreenTicks >= 6; // Alto's own screens
             } else if (cls.contains("StockKeeper")) {
-                ready = photoScreenTicks == 20; // its stock list arrives a little later
+                ready = photoScreenTicks == 9; // its stock list arrives a few ticks after it opens
             } else if (n.equals("emi-pick")) {
                 ready = photoScreenTicks == 18; // EMI's list next to the inventory
             } else if (crafting) {

@@ -44,8 +44,8 @@ Alto only uses containers inside your storage zones.
 #home zone scan storage        open every container once so Alto knows what is inside
 ```
 
-![Taking items from a chest](../images/storage.jpg)
-*`#fetch` opens a chest in your storage zone and takes exactly the number of items you asked for.*
+![Putting items away in a chest](../images/storage.jpg)
+*`#deposit` puts your items into the chests of your storage zone. Tools, food and armor stay in your inventory.*
 
 | Command | What it does |
 |---|---|
