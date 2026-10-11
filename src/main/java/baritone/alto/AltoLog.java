@@ -52,11 +52,16 @@ public final class AltoLog {
 
     /** Components to chat with the [Alto] prefix (or as a toast when Baritone's logAsToast is on). */
     public static void chat(Component... components) {
+        send(Baritone.settings().logAsToast.value, components);
+    }
+
+    /** Components to chat with the [Alto] prefix, or as a toast. */
+    public static void send(boolean asToast, Component... components) {
         MutableComponent body = Component.literal("");
         for (Component c : components) {
             body.append(c);
         }
-        if (Baritone.settings().logAsToast.value) {
+        if (asToast) {
             Minecraft.getInstance().execute(() -> Baritone.settings().toaster.value.accept(prefix(), body));
             return;
         }

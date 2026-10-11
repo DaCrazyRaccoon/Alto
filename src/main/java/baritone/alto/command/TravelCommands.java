@@ -23,7 +23,6 @@ import baritone.alto.task.Job;
 import baritone.alto.travel.PortalBook;
 import baritone.alto.travel.TravelTask;
 import baritone.api.IBaritone;
-import baritone.api.command.Command;
 import baritone.api.command.argument.IArgConsumer;
 import baritone.api.command.argument.ICommandArgument;
 import baritone.api.command.exception.CommandException;
@@ -82,7 +81,7 @@ public final class TravelCommands {
         alto.startJob(Job.of(new TravelTask(alto, t.dim(), t.x(), t.y(), t.z()), "command"));
     }
 
-    static final class TravelCommand extends Command {
+    static final class TravelCommand extends AltoChatCommand {
         private final Alto alto;
 
         TravelCommand(IBaritone baritone, Alto alto) {
@@ -133,7 +132,7 @@ public final class TravelCommands {
         }
     }
 
-    static final class MinecartCommand extends Command {
+    static final class MinecartCommand extends AltoChatCommand {
         private final Alto alto;
 
         MinecartCommand(IBaritone baritone, Alto alto) {
@@ -174,7 +173,7 @@ public final class TravelCommands {
         }
     }
 
-    static final class BoatCommand extends Command {
+    static final class BoatCommand extends AltoChatCommand {
         private final Alto alto;
 
         BoatCommand(IBaritone baritone, Alto alto) {
@@ -217,7 +216,7 @@ public final class TravelCommands {
         }
     }
 
-    static final class PortalsCommand extends Command {
+    static final class PortalsCommand extends AltoChatCommand {
         private final Alto alto;
 
         PortalsCommand(IBaritone baritone, Alto alto) {

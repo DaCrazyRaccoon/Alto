@@ -20,7 +20,6 @@ package baritone.alto.command;
 import baritone.alto.Alto;
 import baritone.alto.script.ScriptReport;
 import baritone.api.IBaritone;
-import baritone.api.command.Command;
 import baritone.api.command.argument.IArgConsumer;
 import baritone.api.command.exception.CommandException;
 import baritone.api.command.exception.CommandInvalidStateException;
@@ -32,7 +31,7 @@ import java.util.Locale;
 import java.util.stream.Stream;
 
 /** #script: run Alto scripts from baritone/alto/scripts (M5). */
-final class ScriptCommand extends Command {
+final class ScriptCommand extends AltoChatCommand {
     private final Alto alto;
 
     ScriptCommand(IBaritone baritone, Alto alto) {

@@ -27,7 +27,6 @@ import baritone.alto.task.SequenceTask;
 import baritone.alto.task.SetFilterTask;
 import baritone.alto.task.UseItemOnBlockTask;
 import baritone.api.IBaritone;
-import baritone.api.command.Command;
 import baritone.api.command.argument.IArgConsumer;
 import baritone.api.command.datatypes.ForDirection;
 import baritone.api.command.datatypes.ItemById;
@@ -86,7 +85,7 @@ final class FilterCommands {
         }
     }
 
-    static final class FilterCommand extends Command {
+    static final class FilterCommand extends AltoChatCommand {
         private final Alto alto;
 
         FilterCommand(IBaritone baritone, Alto alto) {
@@ -180,7 +179,7 @@ final class FilterCommands {
         }
     }
 
-    static final class MarkCommand extends Command {
+    static final class MarkCommand extends AltoChatCommand {
         private final Alto alto;
 
         MarkCommand(IBaritone baritone, Alto alto) {
@@ -219,7 +218,7 @@ final class FilterCommands {
         }
     }
 
-    static final class PickCommand extends Command {
+    static final class PickCommand extends AltoChatCommand {
         private final Alto alto;
 
         PickCommand(IBaritone baritone, Alto alto) {
@@ -268,7 +267,7 @@ final class FilterCommands {
         }
     }
 
-    static final class UseOnCommand extends Command {
+    static final class UseOnCommand extends AltoChatCommand {
         private final Alto alto;
 
         UseOnCommand(IBaritone baritone, Alto alto) {

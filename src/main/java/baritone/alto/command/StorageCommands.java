@@ -34,7 +34,6 @@ import baritone.alto.task.AltoTask;
 import baritone.alto.task.Job;
 import baritone.alto.task.SequenceTask;
 import baritone.api.IBaritone;
-import baritone.api.command.Command;
 import baritone.api.command.argument.IArgConsumer;
 import baritone.api.command.datatypes.ItemById;
 import baritone.api.command.exception.CommandException;
@@ -58,7 +57,7 @@ final class StorageCommands {
     private StorageCommands() {
     }
 
-    static final class HomeCommand extends Command {
+    static final class HomeCommand extends AltoChatCommand {
         private final Alto alto;
 
         HomeCommand(IBaritone baritone, Alto alto) {
@@ -240,7 +239,7 @@ final class StorageCommands {
         }
     }
 
-    static final class FetchCommand extends Command {
+    static final class FetchCommand extends AltoChatCommand {
         private final Alto alto;
 
         FetchCommand(IBaritone baritone, Alto alto) {
@@ -295,7 +294,7 @@ final class StorageCommands {
         }
     }
 
-    static final class DepositCommand extends Command {
+    static final class DepositCommand extends AltoChatCommand {
         private final Alto alto;
 
         DepositCommand(IBaritone baritone, Alto alto) {
@@ -330,7 +329,7 @@ final class StorageCommands {
         }
     }
 
-    static final class ShulkerCommand extends Command {
+    static final class ShulkerCommand extends AltoChatCommand {
         private final Alto alto;
 
         ShulkerCommand(IBaritone baritone, Alto alto) {
@@ -394,7 +393,7 @@ final class StorageCommands {
         }
     }
 
-    static final class ExportRegistryCommand extends Command {
+    static final class ExportRegistryCommand extends AltoChatCommand {
         private final Alto alto;
 
         ExportRegistryCommand(IBaritone baritone, Alto alto) {

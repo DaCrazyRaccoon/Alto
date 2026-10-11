@@ -19,9 +19,9 @@ package baritone.alto.integration.create;
 
 import baritone.Baritone;
 import baritone.alto.Alto;
+import baritone.alto.command.AltoChatCommand;
 import baritone.alto.task.Job;
 import baritone.api.IBaritone;
-import baritone.api.command.Command;
 import baritone.api.command.argument.IArgConsumer;
 import baritone.api.command.datatypes.ItemById;
 import baritone.api.command.exception.CommandException;
@@ -56,7 +56,7 @@ final class CreateCommands {
         }
     }
 
-    static final class TrainCommand extends Command {
+    static final class TrainCommand extends AltoChatCommand {
         private final Alto alto;
 
         TrainCommand(IBaritone baritone, Alto alto) {
@@ -114,7 +114,7 @@ final class CreateCommands {
         }
     }
 
-    static final class StationsCommand extends Command {
+    static final class StationsCommand extends AltoChatCommand {
         private final Alto alto;
 
         StationsCommand(IBaritone baritone, Alto alto) {
@@ -145,7 +145,7 @@ final class CreateCommands {
         }
     }
 
-    static final class ElevatorCommand extends Command {
+    static final class ElevatorCommand extends AltoChatCommand {
         private final Alto alto;
 
         ElevatorCommand(IBaritone baritone, Alto alto) {
@@ -184,7 +184,7 @@ final class CreateCommands {
         }
     }
 
-    static final class OrderCommand extends Command {
+    static final class OrderCommand extends AltoChatCommand {
         private final Alto alto;
 
         OrderCommand(IBaritone baritone, Alto alto) {

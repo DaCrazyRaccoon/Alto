@@ -36,7 +36,6 @@ import baritone.api.schematic.IStaticSchematic;
 import baritone.process.BuilderProcess;
 import baritone.utils.schematic.SchematicSystem;
 import baritone.api.IBaritone;
-import baritone.api.command.Command;
 import baritone.api.command.ICommand;
 import baritone.api.command.argument.IArgConsumer;
 import baritone.api.command.datatypes.ItemById;
@@ -90,7 +89,7 @@ public final class AltoCommands {
     }
 
     /** #craft <item> [count] — craft (planning the whole chain) until you have count more than now. */
-    static final class CraftCommand extends Command {
+    static final class CraftCommand extends AltoChatCommand {
         private final Alto alto;
 
         CraftCommand(IBaritone baritone, Alto alto) {
@@ -149,7 +148,7 @@ public final class AltoCommands {
     }
 
     /** #materials — the shopping list of the current build or of a schematic file; "fetch" starts a supply run. */
-    static final class MaterialsCommand extends Command {
+    static final class MaterialsCommand extends AltoChatCommand {
         private final Alto alto;
 
         MaterialsCommand(IBaritone baritone, Alto alto) {
@@ -233,7 +232,7 @@ public final class AltoCommands {
     }
 
     /** #corpse — take your items back from your own corpse (Corpse mod). */
-    static final class CorpseCommand extends Command {
+    static final class CorpseCommand extends AltoChatCommand {
         private final Alto alto;
 
         CorpseCommand(IBaritone baritone, Alto alto) {
@@ -273,7 +272,7 @@ public final class AltoCommands {
     }
 
     /** #plan <item> [count] — show the plan only. */
-    static final class PlanCommand extends Command {
+    static final class PlanCommand extends AltoChatCommand {
         private final Alto alto;
 
         PlanCommand(IBaritone baritone, Alto alto) {
@@ -320,7 +319,7 @@ public final class AltoCommands {
     }
 
     /** #alto [status|stop|help] */
-    static final class AltoCommand extends Command {
+    static final class AltoCommand extends AltoChatCommand {
         private final Alto alto;
 
         AltoCommand(IBaritone baritone, Alto alto) {
@@ -388,7 +387,7 @@ public final class AltoCommands {
     }
 
     /** #selftest [list|all|<name>] [confirm] */
-    static final class SelfTestCommand extends Command {
+    static final class SelfTestCommand extends AltoChatCommand {
         private final Alto alto;
 
         SelfTestCommand(IBaritone baritone, Alto alto) {
