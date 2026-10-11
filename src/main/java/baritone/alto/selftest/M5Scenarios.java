@@ -90,6 +90,8 @@ final class M5Scenarios {
             TestRig.resetPlayer(level, player, o, new ItemStack(Items.STONE_PICKAXE), new ItemStack(Items.STICK, 1),
                     new ItemStack(Items.COAL, 1), new ItemStack(Items.BREAD, 3));
             player.getFoodData().setFoodLevel(14);
+            // Peaceful refills the hunger bar by itself; off for this test so the script's eat block really eats.
+            level.getGameRules().getRule(net.minecraft.world.level.GameRules.RULE_NATURAL_REGENERATION).set(false, level.getServer());
         }
 
         @Override
@@ -161,6 +163,10 @@ final class M5Scenarios {
 
         @Override
         public void cleanup(Alto alto) {
+            var server = Minecraft.getInstance().getSingleplayerServer();
+            if (server != null) {
+                server.execute(() -> server.overworld().getGameRules().getRule(net.minecraft.world.level.GameRules.RULE_NATURAL_REGENERATION).set(true, server));
+            }
             alto.scripts().stop("self-test cleanup");
             alto.baritone().getPathingBehavior().cancelEverything();
             M2Scenarios.removeZone(alto);

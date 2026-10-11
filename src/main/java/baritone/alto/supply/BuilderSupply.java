@@ -25,6 +25,8 @@ import baritone.alto.core.ItemKey;
 import baritone.alto.mc.McItems;
 import baritone.alto.planner.Plan;
 import baritone.alto.task.Job;
+import baritone.alto.task.MenuGoalTask;
+import baritone.alto.container.MenuGoals;
 import baritone.alto.task.PlanContext;
 import baritone.alto.task.PlanTask;
 import baritone.process.BuilderProcess;
@@ -106,7 +108,27 @@ public final class BuilderSupply {
             return false;
         }
         if (plan.isEmpty()) {
-            return false; // nothing to do (the builder will find the blocks itself)
+            // Everything is carried, but maybe not on the hotbar (the builder only places from the hotbar).
+            var inv = alto.ctx().player().getInventory();
+            for (ItemKey k : need.asMap().keySet()) {
+                Item it = McItems.item(k);
+                boolean onHotbar = false;
+                for (int i = 0; i < 9; i++) {
+                    onHotbar |= inv.getItem(i).is(it);
+                }
+                if (!onHotbar && McItems.count(inv, it) > 0) {
+                    java.util.Set<ItemKey> buildItems = need.asMap().keySet();
+                    MenuGoalTask move = new MenuGoalTask(alto, "Put " + k.shortName() + " on the hotbar for the build",
+                            MenuGoals.toHotbar(k, x -> !buildItems.contains(x) && !(McItems.item(x) instanceof net.minecraft.world.item.TieredItem)));
+                    alto.startJob(new Job(move, true, "builder", (ok, msg) -> {
+                        if (!ok) {
+                            fail();
+                        }
+                    }));
+                    return true;
+                }
+            }
+            return false; // on the hotbar already: the builder places them
         }
         lastRequest = need;
         PlanContext pctx = new PlanContext(new ItemCounts(), builder::altoInBuildArea);

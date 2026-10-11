@@ -608,6 +608,11 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
 
         Goal goal = assemble(bcc, approxPlaceable.subList(0, 9));
         if (goal == null) {
+            // ALTO FORK: nothing placeable from the hotbar: Alto moves the blocks from the main inventory to the
+            // hotbar (paced clicks), or produces them. Upstream would walk to the build and wait there.
+            if (baritone.getAlto().builderSupply().onMissing(this, altoLastMissing)) {
+                return new PathingCommand(null, PathingCommandType.REQUEST_PAUSE);
+            }
             goal = assemble(bcc, approxPlaceable, true); // we're far away, so assume that we have our whole inventory to recalculate placeable properly
             if (goal == null) {
                 if (Baritone.settings().skipFailedLayers.value && Baritone.settings().buildInLayers.value && layer * Baritone.settings().layerHeight.value < realSchematic.heightY()) {

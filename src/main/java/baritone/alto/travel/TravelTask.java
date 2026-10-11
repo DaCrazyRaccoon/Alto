@@ -49,6 +49,8 @@ public final class TravelTask extends AltoTask {
     private int hops;
 
     private boolean stopOnArrival;
+    private boolean builtOne;
+    private BuildPortalTask builder;
 
     public TravelTask(Alto alto, String targetDim, int x, Integer y, int z) {
         super(alto);
@@ -81,6 +83,17 @@ public final class TravelTask extends AltoTask {
 
     @Override
     public Step tick(boolean calcFailed) {
+        if (builder != null) {
+            Step s = builder.tick(calcFailed);
+            if (!s.finished()) {
+                return s;
+            }
+            builder.cancel();
+            builder = null;
+            if (s.kind() == Step.Kind.FAILURE) {
+                return s;
+            }
+        }
         switch (phase) {
             case ROUTE: {
                 if (dim().equals(targetDim)) {
@@ -96,9 +109,17 @@ public final class TravelTask extends AltoTask {
                 Optional<PortalBook.Route> r = alto.portals().book().best(dim(), ctx.player().getX(), ctx.player().getY(),
                         ctx.player().getZ(), targetDim, x, z);
                 if (r.isEmpty()) {
-                    return Step.failure(Double.isNaN(PortalBook.scale(dim(), targetDim))
-                            ? "Alto can only travel between the overworld and the nether"
-                            : "no known nether portal here. Walk through one once (or come within a few chunks of it) so Alto learns it");
+                    if (Double.isNaN(PortalBook.scale(dim(), targetDim))) {
+                        return Step.failure("Alto can only travel between the overworld and the nether");
+                    }
+                    if (baritone.Baritone.settings().altoBuildPortals.value && !builtOne) {
+                        builtOne = true;
+                        hops--;
+                        builder = new BuildPortalTask(alto); // then plan again: the new portal is the route
+                        return Step.stay();
+                    }
+                    return Step.failure("no known nether portal here. Walk through one once (or come within a few chunks of it) "
+                            + "so Alto learns it, or turn on altoBuildPortals");
                 }
                 route = r.get();
                 startDim = dim();

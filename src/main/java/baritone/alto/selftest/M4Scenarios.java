@@ -48,6 +48,7 @@ final class M4Scenarios {
         tests.register("minecart", MinecartRide::new);
         tests.register("boat", BoatTrip::new);
         tests.register("supply-build", SupplyBuild::new);
+        tests.register("portal-build", PortalBuild::new);
     }
 
     // ------------------------------------------------------------------------------------------ portal travel
@@ -465,6 +466,73 @@ final class M4Scenarios {
             alto.baritone().getPathingBehavior().cancelEverything();
             M2Scenarios.removeZone(alto);
             rig.restore();
+        }
+    }
+
+    // ------------------------------------------------------------------------------------------ portal building
+
+    static final class PortalBuild extends Scenario {
+        private final TestRig rig = new TestRig();
+        private BlockPos origin;
+        private boolean wasInNether;
+
+        @Override
+        public String name() {
+            return "portal-build";
+        }
+
+        @Override
+        public String description() {
+            return "#goto into the nether with no portal known: build a frame (10 obsidian, 4 cobblestone corners), light it, go through";
+        }
+
+        @Override
+        public int timeoutSeconds() {
+            return 180;
+        }
+
+        @Override
+        public void setup(ServerLevel level, ServerPlayer player, BlockPos o) {
+            TestRig.clearArea(level, o);
+            TestRig.resetPlayer(level, player, o, new ItemStack(Items.OBSIDIAN, 10), new ItemStack(Items.COBBLESTONE, 4),
+                    new ItemStack(Items.FLINT_AND_STEEL));
+        }
+
+        @Override
+        public void start(Alto alto, BlockPos o) {
+            origin = o;
+            rig.setting(TestRig.settings().altoBuildPortals, true);
+            for (PortalBook.Pos p : alto.portals().book().portals()) {
+                alto.portals().book().forget(p); // no known portal: it has to build one
+            }
+            alto.baritone().getCommandManager().execute("goto " + Math.floorDiv(o.getX(), 8) + " " + Math.floorDiv(o.getZ(), 8) + " nether");
+        }
+
+        @Override
+        public Verdict check(Alto alto, BlockPos o, int ticks) {
+            String dim = Minecraft.getInstance().level.dimension().location().toString();
+            wasInNether |= dim.equals(PortalBook.NETHER);
+            if (ticks < 40 || alto.process().busy()) {
+                return Verdict.RUNNING;
+            }
+            int obsidian = baritone.alto.mc.McItems.count(Minecraft.getInstance().player.getInventory(), Items.OBSIDIAN);
+            String s = "reached the nether " + wasInNether + ", obsidian left " + obsidian + "; " + alto.process().lastResult();
+            return wasInNether && obsidian == 0 ? Verdict.pass(s) : Verdict.fail(s);
+        }
+
+        @Override
+        public void cleanup(Alto alto) {
+            alto.baritone().getPathingBehavior().cancelEverything();
+            rig.restore();
+            MinecraftServer server = Minecraft.getInstance().getSingleplayerServer();
+            if (server != null && origin != null) {
+                server.execute(() -> {
+                    ServerPlayer sp = server.getPlayerList().getPlayer(Minecraft.getInstance().player.getUUID());
+                    if (sp != null && sp.level().dimension() != Level.OVERWORLD) {
+                        sp.teleportTo(server.overworld(), origin.getX() + 0.5, origin.getY(), origin.getZ() + 0.5, 0f, 10f);
+                    }
+                });
+            }
         }
     }
 }
