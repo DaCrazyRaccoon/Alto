@@ -442,7 +442,7 @@ public final class ContainerSession {
     private boolean userScreenOpen() {
         if (Minecraft.getInstance().screen instanceof ChatScreen) {
             if (chatWaitTicks++ == 0) {
-                AltoLog.chat("Waiting while the chat is open.");
+                AltoLog.step("Waiting while the chat is open.");
             }
             return true;
         }

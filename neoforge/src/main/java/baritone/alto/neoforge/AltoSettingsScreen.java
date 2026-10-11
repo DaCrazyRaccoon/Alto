@@ -50,7 +50,7 @@ public final class AltoSettingsScreen extends Screen {
     private static final Map<String, String[]> GROUPS = new LinkedHashMap<>();
 
     static {
-        GROUPS.put("General", new String[]{"altoenabled", "altodebug", "altohud", "altoshowscreens", "altoselftest"});
+        GROUPS.put("General", new String[]{"altoenabled", "altoquietchat", "altodebug", "altohud", "altoshowscreens", "altoselftest"});
         GROUPS.put("Scripts and safety", new String[]{"script", "safety"});
         GROUPS.put("Crafting and stations", new String[]{"alwaysusecraftingstation", "crafting", "station", "furnace", "fuel", "planner", "nevercons", "smelt"});
         GROUPS.put("Storage and upkeep", new String[]{"storage", "deposit", "restock", "keep", "zone", "eat", "food", "tool", "compress", "shulker", "supply"});

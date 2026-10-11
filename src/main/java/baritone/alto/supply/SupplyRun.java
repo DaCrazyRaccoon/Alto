@@ -177,9 +177,9 @@ public final class SupplyRun {
         } catch (IOException e) {
             AltoLog.debug("could not write the shopping list: " + e);
         }
-        AltoLog.chat(title + ": " + list.lines().size() + " material(s), " + (list.totalMissing() == 0
+        AltoLog.step(title + ": " + list.lines().size() + " material(s), " + (list.totalMissing() == 0
                 ? "everything is carried or in your storage" : list.totalMissing() + " item(s) missing") + " (full list: baritone/alto/shopping-list.txt)");
-        lines.stream().skip(1).filter(l -> l.contains("MISSING")).limit(6).forEach(l -> AltoLog.chat("  " + l));
+        lines.stream().skip(1).filter(l -> l.contains("MISSING")).limit(6).forEach(l -> AltoLog.step("  " + l));
     }
 
     /** Fetches from storage what fits in the inventory, as one temporary job. False if there is nothing to fetch. */
@@ -212,7 +212,7 @@ public final class SupplyRun {
         if (steps.isEmpty()) {
             return false;
         }
-        AltoLog.chat(name + ": fetching " + run.total() + " item(s) of " + run.asMap().size() + " kind(s) from your storage.");
+        AltoLog.step(name + ": fetching " + run.total() + " item(s) of " + run.asMap().size() + " kind(s) from your storage.");
         alto.startJob(new Job(new SequenceTask(alto, name, steps), true, "supply", (ok, msg) -> {
         }));
         return true;

@@ -60,7 +60,7 @@ public final class AltoProcess extends BaritoneProcessHelper {
             finish(false, "replaced by " + newJob.root().name());
         }
         job = newJob;
-        AltoLog.chat("Started: " + newJob.root().name());
+        AltoLog.step("Started: " + newJob.root().name());
     }
 
     public Job job() {
@@ -139,8 +139,18 @@ public final class AltoProcess extends BaritoneProcessHelper {
         }
         String text = ended.root().name() + (message == null || message.isEmpty() ? "" : ": " + message);
         lastResult = (success ? "done: " : "stopped: ") + text;
+        // Quiet chat: only jobs you started report their result; Alto's own helpers (builder supply, upkeep,
+        // scripts' steps) only report problems, and being cancelled or replaced is not a problem.
+        boolean yours = ended.source().equals("command") || ended.source().equals("picker") || ended.source().equals("selftest");
+        boolean expectedStop = message != null && (message.equals("cancelled") || message.startsWith("replaced by"));
         if (success) {
-            AltoLog.chat("Done: " + text);
+            if (yours) {
+                AltoLog.chat("Done: " + text);
+            } else {
+                AltoLog.step("Done: " + text);
+            }
+        } else if (AltoLog.quiet() && (expectedStop || ended.source().equals("script"))) {
+            AltoLog.step("Stopped: " + text);
         } else {
             AltoLog.error("Stopped: " + text);
         }

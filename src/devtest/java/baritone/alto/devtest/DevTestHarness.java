@@ -95,11 +95,74 @@ public final class DevTestHarness {
         }
     }
 
+    // -Palto_devtest_photos=true: documentation pictures at the moments the self-tests ask for (screenshots/photo-*.png).
+    private static final boolean PHOTOS = Boolean.getBoolean("alto.devtest.photos");
+    private final java.util.ArrayDeque<Object[]> photoQueue = new java.util.ArrayDeque<>();
+    private Object[] photoNow;
+    private int photoTicks;
+    private net.minecraft.client.CameraType photoCamera;
+
+    private boolean photoHookInstalled;
+
+    /** Sets SelfTests.photos (by reflection: this harness is compiled without Alto on its classpath). */
+    private void installPhotoHook() {
+        photoHookInstalled = true;
+        try {
+            ClassLoader cl = DevTestHarness.class.getClassLoader();
+            Class<?> selfTests = Class.forName("baritone.alto.selftest.SelfTests", true, cl);
+            Class<?> hookType = Class.forName("baritone.alto.selftest.SelfTests$PhotoHook", true, cl);
+            Object hook = java.lang.reflect.Proxy.newProxyInstance(cl, new Class<?>[]{hookType}, (proxy, m, args) -> switch (m.getName()) {
+                case "request" -> {
+                    photoQueue.add(new Object[]{args[0], args[1]});
+                    yield null;
+                }
+                case "busy" -> photoNow != null || !photoQueue.isEmpty();
+                case "hashCode" -> System.identityHashCode(proxy);
+                case "equals" -> proxy == args[0];
+                default -> "photo hook";
+            });
+            selfTests.getField("photos").set(null, hook);
+            LOG.info("[alto-devtest] documentation photos on");
+        } catch (ReflectiveOperationException | RuntimeException e) {
+            LOG.warn("[alto-devtest] could not install the photo hook", e);
+        }
+    }
+
+    private void tickPhotos(Minecraft mc) {
+        if (photoNow == null) {
+            photoNow = photoQueue.poll();
+            if (photoNow == null) {
+                return;
+            }
+            photoTicks = 0;
+            photoCamera = mc.options.getCameraType();
+            mc.options.setCameraType((Boolean) photoNow[1] ? net.minecraft.client.CameraType.THIRD_PERSON_BACK : net.minecraft.client.CameraType.FIRST_PERSON);
+            return;
+        }
+        if (++photoTicks < 4) {
+            return; // let a few frames render from the new camera
+        }
+        String file = "photo-" + photoNow[0] + ".png";
+        net.minecraft.client.Screenshot.grab(mc.gameDirectory, file, mc.getMainRenderTarget(), msg -> {
+        });
+        LOG.info("[alto-devtest] photo {}", file);
+        mc.options.setCameraType(photoCamera);
+        photoNow = null;
+    }
+
     private void onClientTick(ClientTickEvent.Post event) {
         if (done) {
             return;
         }
         Minecraft mc = Minecraft.getInstance();
+        if (PHOTOS) {
+            if (!photoHookInstalled) {
+                installPhotoHook();
+            }
+            if (mc.player != null) {
+                tickPhotos(mc);
+            }
+        }
         if (System.nanoTime() - startNanos > timeoutNanos) {
             finish(mc, "TIMEOUT after " + (timeoutNanos / 1_000_000_000L) + " s");
             return;

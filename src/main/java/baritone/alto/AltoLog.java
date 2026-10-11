@@ -88,6 +88,19 @@ public final class AltoLog {
         LOG.info(message);
     }
 
+    /** True while quiet chat is on (the default): steps of jobs stay out of chat. */
+    public static boolean quiet() {
+        return Baritone.settings().altoQuietChat.value;
+    }
+
+    /** A step of a job: in chat only with quiet chat off (altoQuietChat), always in the log. */
+    public static void step(String message) {
+        if (!quiet()) {
+            chat(message, ChatFormatting.GRAY);
+        }
+        LOG.info(message);
+    }
+
     public static void warn(String message) {
         chat(message, ChatFormatting.GOLD);
         LOG.warn(message);

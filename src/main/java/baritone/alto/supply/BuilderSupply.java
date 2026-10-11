@@ -144,7 +144,7 @@ public final class BuilderSupply {
         for (String line : plan.describe()) {
             AltoLog.info(line);
         }
-        AltoLog.chat("The build is out of " + need + "; getting more: " + plan.steps().size() + " step(s), about "
+        AltoLog.step("The build is out of " + need + "; getting more: " + plan.steps().size() + " step(s), about "
                 + Plan.formatTicks(plan.estimatedTicks()) + ".");
         Object[] snapshot = builder.altoSnapshot();
         alto.startJob(new Job(task, true, "builder", (ok, msg) -> {

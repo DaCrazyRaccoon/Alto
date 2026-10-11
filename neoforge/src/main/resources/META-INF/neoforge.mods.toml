@@ -52,17 +52,19 @@ versionRange="[21.1.0,)"
 ordering="NONE"
 side="CLIENT"
 
-# Optional integrations (soft dependencies). Baritone works without them.
+# Optional integrations (soft dependencies). Alto works without them, and with any version of them: support for a
+# mod whose version does not match is switched off at runtime instead of blocking the game from starting.
+# (Tested with Create 6.0.10 and EMI 1.1.24.)
 [[dependencies.baritoe]]
 modId="create"
 type="optional"
-versionRange="[6.0.10,6.1)"
+versionRange="*"
 ordering="NONE"
 side="CLIENT"
 
 [[dependencies.baritoe]]
 modId="emi"
 type="optional"
-versionRange="[1.1,)"
+versionRange="*"
 ordering="NONE"
 side="CLIENT"

@@ -430,6 +430,26 @@ public final class Alto {
         tickListeners.add(listener);
     }
 
+    private final Map<Consumer<Alto>, Integer> listenerFailures = new java.util.HashMap<>();
+
+    /**
+     * A tick listener threw. A one-off is logged; a listener that keeps failing (20 ticks in a row) or does not match
+     * the installed mod version at all (LinkageError) is switched off once, with one message, and Alto keeps going.
+     */
+    private void listenerFailed(Consumer<Alto> l, Throwable t) {
+        int n = listenerFailures.merge(l, 1, Integer::sum);
+        String cls = l.getClass().getName();
+        int i = cls.indexOf(".integration.");
+        String part = i < 0 ? "a part of Alto" : "Alto's " + cls.substring(i + 13, cls.indexOf('.', i + 13) < 0 ? cls.length() : cls.indexOf('.', i + 13)) + " support";
+        if (t instanceof LinkageError || n >= 20) {
+            tickListeners.remove(l);
+            listenerFailures.remove(l);
+            AltoLog.exception("Switched off " + part + " (it kept failing; another version of that mod?). Everything else keeps working", t);
+        } else if (n == 1) {
+            AltoLog.exception("Alto tick listener failed", t);
+        }
+    }
+
     /** Starts a job (top level, replaces what Alto is doing). */
     public void startJob(Job job) {
         if (!enabled()) {
@@ -470,8 +490,9 @@ public final class Alto {
             for (Consumer<Alto> l : tickListeners) {
                 try {
                     l.accept(Alto.this);
+                    listenerFailures.remove(l);
                 } catch (Throwable t) {
-                    AltoLog.exception("Alto tick listener failed", t);
+                    listenerFailed(l, t);
                 }
             }
             selfTests.tick();

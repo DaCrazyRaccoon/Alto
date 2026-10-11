@@ -142,7 +142,7 @@ public final class Upkeep {
         }
         if (best == null) {
             cooldownUntil.put("seeds", System.currentTimeMillis() + FAIL_COOLDOWN_MS);
-            AltoLog.chat("Out of seeds, and none are known in your storage.");
+            AltoLog.warn("Out of seeds, and none are known in your storage.");
             return false;
         }
         List<AltoTask> steps = new ArrayList<>();
@@ -156,7 +156,7 @@ public final class Upkeep {
             steps.add(new FetchTask(alto, r.key, best, take));
             left -= take;
         }
-        AltoLog.chat("Out of seeds: fetching " + best.shortName() + " from your storage.");
+        AltoLog.step("Out of seeds: fetching " + best.shortName() + " from your storage.");
         start("seeds", new SequenceTask(alto, "Restock seeds (" + best.shortName() + ")", steps));
         return true;
     }
@@ -198,7 +198,7 @@ public final class Upkeep {
         Inventory inv = alto.ctx().player().getInventory();
         for (Item item : Baritone.settings().altoFoodItems.value) {
             if (McItems.count(inv, item) > 0 && new ItemStack(item).has(DataComponents.FOOD)) {
-                AltoLog.chat("Hunger " + food + ": eating " + McItems.key(item).shortName());
+                AltoLog.step("Hunger " + food + ": eating " + McItems.key(item).shortName());
                 start("eat", new EatTask(alto, item));
                 return true;
             }
@@ -226,7 +226,7 @@ public final class Upkeep {
                 needs.add(McItems.key(item), 1);
             }
         }
-        AltoLog.chat("Inventory full: depositing into storage, then continuing.");
+        AltoLog.step("Inventory full: depositing into storage, then continuing.");
         start("deposit", new DepositTask(alto, KeepList.keep(needs)));
         return true;
     }
@@ -280,7 +280,7 @@ public final class Upkeep {
                 cooldownUntil.put(key, System.currentTimeMillis() + FAIL_COOLDOWN_MS);
                 continue;
             }
-            AltoLog.chat("Restocking " + rule.getKey().shortName() + " (" + have + " left, want " + want + ").");
+            AltoLog.step("Restocking " + rule.getKey().shortName() + " (" + have + " left, want " + want + ").");
             start(key, new SequenceTask(alto, "Restock " + rule.getKey().shortName(), steps));
             return true;
         }
@@ -314,7 +314,7 @@ public final class Upkeep {
             if (!onlyCrafting || plan.isEmpty()) {
                 continue;
             }
-            AltoLog.chat("Compressing " + from.shortName() + " into " + to.shortName() + ".");
+            AltoLog.step("Compressing " + from.shortName() + " into " + to.shortName() + ".");
             start("compress", new PlanTask(alto, plan, new PlanContext(new ItemCounts(), p -> false), want));
             return true;
         }
@@ -368,7 +368,7 @@ public final class Upkeep {
             ItemCounts want = ItemCounts.of(ck, McItems.count(inv, candidate.get()) + 1);
             Plan plan = alto.plan(want, new ItemCounts());
             if (plan.isComplete() && !plan.isEmpty()) {
-                AltoLog.chat("The " + McItems.key(held.getItem()).shortName() + " is nearly broken (" + left + " uses left): getting a "
+                AltoLog.step("The " + McItems.key(held.getItem()).shortName() + " is nearly broken (" + left + " uses left): getting a "
                         + ck.shortName() + ".");
                 start(key, new PlanTask(alto, plan, new PlanContext(new ItemCounts(), p -> false), want));
                 return true;

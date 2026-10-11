@@ -2110,6 +2110,12 @@ public final class Settings {
      */
     public final Setting<Boolean> altoHud = new Setting<>(true);
 
+    /**
+     * Quiet chat: Alto only tells you results, problems and answers to your commands; every step of a job goes to
+     * the progress HUD (key H) and the log. Turn off to see every step in chat (for debugging).
+     */
+    public final Setting<Boolean> altoQuietChat = new Setting<>(true);
+
     // ALTO FORK SETTINGS (end)
 
     /**

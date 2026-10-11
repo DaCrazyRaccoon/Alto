@@ -489,7 +489,7 @@ public final class VehicleTasks {
                         boatsBefore = boatItems(p);
                     }
                     if (++ticks > 20 * 20) {
-                        AltoLog.chat("Could not pick the boat up again; it is left at " + boat.blockPosition().toShortString() + ".");
+                        AltoLog.warn("Could not pick the boat up again; it is left at " + boat.blockPosition().toShortString() + ".");
                         phase = Phase.WALK;
                         return Step.stay();
                     }
@@ -516,7 +516,7 @@ public final class VehicleTasks {
                                     e -> e.getItem().getItem() instanceof BoatItem)
                             .stream().min(Comparator.comparingDouble(e -> e.distanceToSqr(p)));
                     if (++ticks > 20 * 20 || drop.isEmpty() && ticks > 40) {
-                        AltoLog.chat("Could not collect the boat item.");
+                        AltoLog.warn("Could not collect the boat item.");
                         phase = Phase.WALK;
                         return Step.stay();
                     }

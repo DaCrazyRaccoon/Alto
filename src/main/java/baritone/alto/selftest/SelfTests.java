@@ -54,6 +54,25 @@ public final class SelfTests {
     public record Result(String name, String outcome, String message, double seconds) {
     }
 
+    /**
+     * Pictures for the documentation (dev harness only, -Palto_devtest_photos=true): the self-tests ask for one at
+     * the moments that show a feature best; while one is being taken, the scenario waits.
+     */
+    public interface PhotoHook {
+        void request(String name, boolean thirdPerson);
+
+        boolean busy();
+    }
+
+    /** Null in a normal game: no pictures are ever taken. */
+    public static volatile PhotoHook photos;
+
+    private final java.util.Set<String> photosTaken = new java.util.HashSet<>();
+    private Scenario.Verdict heldVerdict;
+    private int photoScreenTicks;
+    private int photoRideTicks;
+    private int photoMoveTicks;
+
     private final Alto alto;
     private final Map<String, Supplier<Scenario>> scenarios = new LinkedHashMap<>();
     private final Deque<String> queue = new ArrayDeque<>();
@@ -153,6 +172,16 @@ public final class SelfTests {
             finish(Scenario.Verdict.fail("left the world"));
             return;
         }
+        PhotoHook ph = photos;
+        if (ph != null && ph.busy()) {
+            return; // a documentation picture is being taken
+        }
+        if (heldVerdict != null) {
+            Scenario.Verdict v = heldVerdict;
+            heldVerdict = null;
+            finish(v);
+            return;
+        }
         try {
             if (phase == 0) {
                 origin = baseOrigin != null ? baseOrigin : mc.player.blockPosition();
@@ -177,6 +206,14 @@ public final class SelfTests {
             }
             ticks++;
             Scenario.Verdict v = current.check(alto, origin, ticks);
+            if (ph != null) {
+                photoMoments(ph, mc);
+            }
+            if (v.outcome() == Scenario.Outcome.PASS && ph != null && photosTaken.add(current.name() + "-done")) {
+                ph.request(current.name() + "-done", true); // the result, seen from behind the player
+                heldVerdict = v;
+                return;
+            }
             if (v.outcome() != Scenario.Outcome.RUNNING) {
                 finish(v);
             } else if (ticks > current.timeoutSeconds() * 20) {
@@ -185,6 +222,31 @@ public final class SelfTests {
         } catch (Throwable t) {
             AltoLog.exception("self-test " + current.name() + " crashed", t);
             finish(Scenario.Verdict.fail("crashed: " + t));
+        }
+    }
+
+    /** The moments that show a feature best: a container in use, a ride, a moving platform, a safety stop. */
+    private void photoMoments(PhotoHook ph, Minecraft mc) {
+        String n = current.name();
+        boolean gui = mc.screen instanceof net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<?>
+                || mc.screen != null && mc.screen.getClass().getName().startsWith("baritone.");
+        photoScreenTicks = gui ? photoScreenTicks + 1 : 0;
+        if (photoScreenTicks == 6) {
+            String screen = mc.screen.getClass().getSimpleName().replaceAll("[^A-Za-z0-9]", "").toLowerCase(java.util.Locale.ROOT);
+            if (photosTaken.add(n + "-" + screen)) {
+                ph.request(n + "-" + screen, false);
+            }
+        }
+        photoRideTicks = mc.player.isPassenger() ? photoRideTicks + 1 : 0;
+        if (photoRideTicks == 30 && photosTaken.add(n + "-riding")) {
+            ph.request(n + "-riding", true);
+        }
+        photoMoveTicks = alto.platformPause().onMovingPlatform() ? photoMoveTicks + 1 : 0;
+        if (photoMoveTicks == 15 && photosTaken.add(n + "-moving")) {
+            ph.request(n + "-moving", true);
+        }
+        if (alto.safety().tripped() && photosTaken.add(n + "-safety")) {
+            ph.request(n + "-safety", false);
         }
     }
 
