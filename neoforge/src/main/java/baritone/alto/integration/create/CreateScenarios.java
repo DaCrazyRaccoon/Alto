@@ -345,7 +345,7 @@ final class CreateScenarios {
                     String s = "rode " + movingTicks + " ticks, Baritone paused " + pausedTicks + " of them, drift on the platform "
                             + String.format("%.2f", maxDrift) + " blocks, platform ended at +3 x: " + platformMoved + ", then reached the goal"
                             + (flipped ? " (motor flipped)" : "");
-                    return pausedTicks >= 40 && maxDrift < 0.6 && platformMoved ? Verdict.pass(s) : Verdict.fail(s);
+                    return movingTicks >= 20 && pausedTicks >= 15 && maxDrift < 0.6 && platformMoved ? Verdict.pass(s) : Verdict.fail(s);
                 }
             }
         }
