@@ -59,6 +59,28 @@ public final class CreateIntegration implements AltoIntegration {
         // Moving platforms, trains, elevators, stock keepers.
         alto.addTickListener(CreateTravel::tickPlatform);
         CreateCommands.register(alto);
+        // Script blocks that need Create.
+        alto.scriptActions().put("board_train_seat", args -> CreateTravel.TrainTask.boardOnly(alto));
+        alto.scriptActions().put("ride_train", args -> {
+            var level = alto.ctx().world();
+            var from = CreateTravel.station(level, args.get(0));
+            var to = CreateTravel.station(level, args.get(1));
+            if (from.isEmpty() || to.isEmpty()) {
+                String missing = from.isEmpty() ? args.get(0) : args.get(1);
+                return new baritone.alto.task.AltoTask(alto) {
+                    @Override
+                    public String name() {
+                        return "Ride a train";
+                    }
+
+                    @Override
+                    public baritone.alto.task.Step tick(boolean calcFailed) {
+                        return baritone.alto.task.Step.failure("unknown station '" + missing + "'");
+                    }
+                };
+            }
+            return new CreateTravel.TrainTask(alto, from.get().getKey(), from.get().getValue(), to.get().getKey(), to.get().getValue());
+        });
     }
 
     static baritone.alto.core.ItemCounts requirement(net.minecraft.world.level.block.state.BlockState state) {

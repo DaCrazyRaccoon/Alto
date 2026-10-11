@@ -44,12 +44,17 @@ public final class AltoClientEvents {
 
     public static final String CATEGORY = "key.categories.alto";
     public static final KeyMapping PICK = new KeyMapping("key.alto.pick", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_Y, CATEGORY);
+    /** Global stop: the running script, Alto's job and Baritone's pathing. */
+    public static final KeyMapping STOP = new KeyMapping("key.alto.stop", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_END, CATEGORY);
 
     private AltoClientEvents() {
     }
 
     static void init(IEventBus modBus) {
-        modBus.addListener(RegisterKeyMappingsEvent.class, e -> e.register(PICK));
+        modBus.addListener(RegisterKeyMappingsEvent.class, e -> {
+            e.register(PICK);
+            e.register(STOP);
+        });
         NeoForge.EVENT_BUS.addListener(ClientTickEvent.Post.class, e -> onTick());
         NeoForge.EVENT_BUS.addListener(ScreenEvent.KeyPressed.Pre.class, AltoClientEvents::onScreenKey);
     }
@@ -62,7 +67,22 @@ public final class AltoClientEvents {
         return alto != null && Baritone.settings().altoEnabled.value ? alto : null;
     }
 
+    private static void stopAll() {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null) {
+            return;
+        }
+        Alto alto = ((Baritone) BaritoneAPI.getProvider().getPrimaryBaritone()).getAlto();
+        boolean script = alto.scripts().stop("stopped with the stop key");
+        alto.process().cancelJob("stopped with the stop key");
+        BaritoneAPI.getProvider().getPrimaryBaritone().getPathingBehavior().cancelEverything();
+        baritone.alto.AltoLog.chat("Stopped" + (script ? " the script," : "") + " Alto and Baritone (stop key).");
+    }
+
     private static void onTick() {
+        while (STOP.consumeClick()) {
+            stopAll();
+        }
         while (PICK.consumeClick()) {
             Alto alto = alto();
             if (alto != null && Minecraft.getInstance().screen == null) {
@@ -72,6 +92,11 @@ public final class AltoClientEvents {
     }
 
     private static void onScreenKey(ScreenEvent.KeyPressed.Pre e) {
+        if (!(e.getScreen() instanceof ChatScreen) && STOP.isActiveAndMatches(InputConstants.getKey(e.getKeyCode(), e.getScanCode()))
+                && !(e.getScreen().getFocused() instanceof net.minecraft.client.gui.components.EditBox)) {
+            stopAll(); // works in container screens too (Alto may have one open)
+            return;
+        }
         if (e.getScreen() instanceof ChatScreen || !PICK.isActiveAndMatches(InputConstants.getKey(e.getKeyCode(), e.getScanCode()))) {
             return;
         }

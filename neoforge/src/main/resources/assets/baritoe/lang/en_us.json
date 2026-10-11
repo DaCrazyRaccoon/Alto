@@ -1,4 +1,5 @@
 {
   "key.categories.alto": "Baritone (Alto)",
-  "key.alto.pick": "Pick item / mark block"
+  "key.alto.pick": "Pick item / mark block",
+  "key.alto.stop": "Stop everything (scripts, Alto, Baritone)"
 }

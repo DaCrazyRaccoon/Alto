@@ -1,0 +1,1332 @@
+{
+  "format": "alto-script",
+  "version": 1,
+  "name": "Long mission self-test",
+  "description": "Alto's long self-test script: storage, crafting, stations, smelting, mining, filling, using items, building a schematic with a supply run, eating, depositing, walking, timers, chat triggers, item events, procedures, loops, math and text. Every step checks its own result; the run only ends with result 'ok' when all 12 checks pass. Coordinates are relative to where it starts, so it runs in Alto's self-test area anywhere.",
+  "variables": [
+    {
+      "name": "ox",
+      "initial": 0
+    },
+    {
+      "name": "oy",
+      "initial": 0
+    },
+    {
+      "name": "oz",
+      "initial": 0
+    },
+    {
+      "name": "step",
+      "initial": 0
+    },
+    {
+      "name": "planks_rounds",
+      "initial": 0
+    },
+    {
+      "name": "wall_rows",
+      "initial": 0
+    },
+    {
+      "name": "heartbeat",
+      "initial": 0
+    },
+    {
+      "name": "chat_pings",
+      "initial": 0
+    },
+    {
+      "name": "torch_refills",
+      "initial": 0
+    },
+    {
+      "name": "checks_passed",
+      "initial": 0
+    },
+    {
+      "name": "dice",
+      "initial": 0
+    },
+    {
+      "name": "tag",
+      "initial": "alto"
+    },
+    {
+      "name": "note_block",
+      "initial": ""
+    },
+    {
+      "name": "low_health_seen",
+      "initial": false
+    },
+    {
+      "name": "result",
+      "initial": "pending"
+    }
+  ],
+  "procedures": [
+    {
+      "name": "log_step",
+      "params": [
+        {
+          "name": "label",
+          "type": "string"
+        }
+      ],
+      "body": [
+        {
+          "block": "change_var",
+          "name": "step",
+          "delta": 1
+        },
+        {
+          "block": "message",
+          "text": {
+            "expr": "join",
+            "parts": [
+              "[",
+              {
+                "expr": "var",
+                "name": "step"
+              },
+              "] ",
+              {
+                "expr": "param",
+                "name": "label"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "check",
+      "params": [
+        {
+          "name": "ok",
+          "type": "boolean"
+        },
+        {
+          "name": "label",
+          "type": "string"
+        }
+      ],
+      "body": [
+        {
+          "block": "if",
+          "condition": {
+            "expr": "param",
+            "name": "ok"
+          },
+          "then": [
+            {
+              "block": "change_var",
+              "name": "checks_passed",
+              "delta": 1
+            },
+            {
+              "block": "message",
+              "text": {
+                "expr": "join",
+                "parts": [
+                  "check ok: ",
+                  {
+                    "expr": "param",
+                    "name": "label"
+                  }
+                ]
+              }
+            }
+          ],
+          "else": [
+            {
+              "block": "message",
+              "text": {
+                "expr": "join",
+                "parts": [
+                  "CHECK FAILED: ",
+                  {
+                    "expr": "param",
+                    "name": "label"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "ensure_crafted",
+      "params": [
+        {
+          "name": "item",
+          "type": "item"
+        },
+        {
+          "name": "amount",
+          "type": "number"
+        }
+      ],
+      "body": [
+        {
+          "block": "if",
+          "condition": {
+            "expr": "lt",
+            "a": {
+              "expr": "item_count",
+              "item": {
+                "expr": "param",
+                "name": "item"
+              },
+              "where": "inventory"
+            },
+            "b": {
+              "expr": "param",
+              "name": "amount"
+            }
+          },
+          "then": [
+            {
+              "block": "craft",
+              "item": {
+                "expr": "param",
+                "name": "item"
+              },
+              "count": {
+                "expr": "sub",
+                "a": {
+                  "expr": "param",
+                  "name": "amount"
+                },
+                "b": {
+                  "expr": "item_count",
+                  "item": {
+                    "expr": "param",
+                    "name": "item"
+                  },
+                  "where": "inventory"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "restock",
+      "params": [
+        {
+          "name": "item",
+          "type": "item"
+        },
+        {
+          "name": "amount",
+          "type": "number"
+        }
+      ],
+      "body": [
+        {
+          "block": "if",
+          "condition": {
+            "expr": "gte",
+            "a": {
+              "expr": "item_count",
+              "item": {
+                "expr": "param",
+                "name": "item"
+              },
+              "where": "storage"
+            },
+            "b": {
+              "expr": "param",
+              "name": "amount"
+            }
+          },
+          "then": [
+            {
+              "block": "fetch",
+              "item": {
+                "expr": "param",
+                "name": "item"
+              },
+              "count": {
+                "expr": "param",
+                "name": "amount"
+              }
+            }
+          ],
+          "else": [
+            {
+              "block": "call",
+              "procedure": "ensure_crafted",
+              "args": {
+                "item": {
+                  "expr": "param",
+                  "name": "item"
+                },
+                "amount": {
+                  "expr": "param",
+                  "name": "amount"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "fill_row",
+      "params": [
+        {
+          "name": "row",
+          "type": "number"
+        },
+        {
+          "name": "mat",
+          "type": "block"
+        }
+      ],
+      "body": [
+        {
+          "block": "fill",
+          "material": {
+            "expr": "param",
+            "name": "mat"
+          },
+          "x1": {
+            "expr": "sub",
+            "a": {
+              "expr": "var",
+              "name": "ox"
+            },
+            "b": 5
+          },
+          "y1": {
+            "expr": "add",
+            "a": {
+              "expr": "var",
+              "name": "oy"
+            },
+            "b": {
+              "expr": "param",
+              "name": "row"
+            }
+          },
+          "z1": {
+            "expr": "add",
+            "a": {
+              "expr": "var",
+              "name": "oz"
+            },
+            "b": 6
+          },
+          "x2": {
+            "expr": "sub",
+            "a": {
+              "expr": "var",
+              "name": "ox"
+            },
+            "b": 3
+          },
+          "y2": {
+            "expr": "add",
+            "a": {
+              "expr": "var",
+              "name": "oy"
+            },
+            "b": {
+              "expr": "param",
+              "name": "row"
+            }
+          },
+          "z2": {
+            "expr": "add",
+            "a": {
+              "expr": "var",
+              "name": "oz"
+            },
+            "b": 6
+          }
+        },
+        {
+          "block": "change_var",
+          "name": "wall_rows",
+          "delta": 1
+        }
+      ]
+    }
+  ],
+  "events": [
+    {
+      "event": "on_start",
+      "body": [
+        {
+          "block": "set_var",
+          "name": "ox",
+          "value": {
+            "expr": "position",
+            "axis": "x"
+          }
+        },
+        {
+          "block": "set_var",
+          "name": "oy",
+          "value": {
+            "expr": "position",
+            "axis": "y"
+          }
+        },
+        {
+          "block": "set_var",
+          "name": "oz",
+          "value": {
+            "expr": "position",
+            "axis": "z"
+          }
+        },
+        {
+          "block": "call",
+          "procedure": "log_step",
+          "args": {
+            "label": "start"
+          }
+        },
+        {
+          "block": "message",
+          "text": {
+            "expr": "join",
+            "parts": [
+              "health ",
+              {
+                "expr": "health"
+              },
+              ", hunger ",
+              {
+                "expr": "hunger"
+              },
+              ", time ",
+              {
+                "expr": "time_of_day"
+              },
+              ", inventory full ",
+              {
+                "expr": "inventory_full"
+              }
+            ]
+          }
+        },
+        {
+          "block": "if",
+          "condition": {
+            "expr": "neq",
+            "a": {
+              "expr": "dimension"
+            },
+            "b": "minecraft:overworld"
+          },
+          "then": [
+            {
+              "block": "message",
+              "text": "This mission must start in the overworld."
+            },
+            {
+              "block": "stop"
+            }
+          ]
+        },
+        {
+          "block": "call",
+          "procedure": "log_step",
+          "args": {
+            "label": "fetch logs"
+          }
+        },
+        {
+          "block": "call",
+          "procedure": "restock",
+          "args": {
+            "item": "oak_log",
+            "amount": 12
+          }
+        },
+        {
+          "block": "call",
+          "procedure": "log_step",
+          "args": {
+            "label": "planks"
+          }
+        },
+        {
+          "block": "repeat_until",
+          "condition": {
+            "expr": "gte",
+            "a": {
+              "expr": "item_count",
+              "item": "oak_planks",
+              "where": "inventory"
+            },
+            "b": 32
+          },
+          "body": [
+            {
+              "block": "craft",
+              "item": "oak_planks",
+              "count": 8
+            },
+            {
+              "block": "change_var",
+              "name": "planks_rounds",
+              "delta": 1
+            },
+            {
+              "block": "if",
+              "condition": {
+                "expr": "gte",
+                "a": {
+                  "expr": "var",
+                  "name": "planks_rounds"
+                },
+                "b": 10
+              },
+              "then": [
+                {
+                  "block": "break"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "block": "call",
+          "procedure": "check",
+          "args": {
+            "ok": {
+              "expr": "gte",
+              "a": {
+                "expr": "item_count",
+                "item": "oak_planks",
+                "where": "inventory"
+              },
+              "b": 32
+            },
+            "label": "32 planks"
+          }
+        },
+        {
+          "block": "call",
+          "procedure": "log_step",
+          "args": {
+            "label": "chest"
+          }
+        },
+        {
+          "block": "call",
+          "procedure": "ensure_crafted",
+          "args": {
+            "item": "chest",
+            "amount": 1
+          }
+        },
+        {
+          "block": "call",
+          "procedure": "check",
+          "args": {
+            "ok": {
+              "expr": "gte",
+              "a": {
+                "expr": "item_count",
+                "item": "chest",
+                "where": "inventory"
+              },
+              "b": 1
+            },
+            "label": "chest crafted"
+          }
+        },
+        {
+          "block": "call",
+          "procedure": "log_step",
+          "args": {
+            "label": "stations"
+          }
+        },
+        {
+          "block": "place_station",
+          "kind": "crafting_table"
+        },
+        {
+          "block": "wait",
+          "seconds": 1
+        },
+        {
+          "block": "pickup_station",
+          "kind": "crafting_table"
+        },
+        {
+          "block": "call",
+          "procedure": "log_step",
+          "args": {
+            "label": "smelting"
+          }
+        },
+        {
+          "block": "call",
+          "procedure": "restock",
+          "args": {
+            "item": "raw_iron",
+            "amount": 3
+          }
+        },
+        {
+          "block": "call",
+          "procedure": "restock",
+          "args": {
+            "item": "coal",
+            "amount": 2
+          }
+        },
+        {
+          "block": "smelt",
+          "item": "iron_ingot",
+          "count": 3
+        },
+        {
+          "block": "wait_until",
+          "condition": {
+            "expr": "gte",
+            "a": {
+              "expr": "item_count",
+              "item": "iron_ingot",
+              "where": "inventory"
+            },
+            "b": 3
+          },
+          "timeout_seconds": 30
+        },
+        {
+          "block": "call",
+          "procedure": "check",
+          "args": {
+            "ok": {
+              "expr": "gte",
+              "a": {
+                "expr": "item_count",
+                "item": "iron_ingot",
+                "where": "inventory"
+              },
+              "b": 3
+            },
+            "label": "3 iron ingots"
+          }
+        },
+        {
+          "block": "call",
+          "procedure": "log_step",
+          "args": {
+            "label": "mining"
+          }
+        },
+        {
+          "block": "mine",
+          "block_or_item": "polished_andesite",
+          "count": 4
+        },
+        {
+          "block": "call",
+          "procedure": "check",
+          "args": {
+            "ok": {
+              "expr": "gte",
+              "a": {
+                "expr": "item_count",
+                "item": "polished_andesite",
+                "where": "inventory"
+              },
+              "b": 4
+            },
+            "label": "mined 4 polished andesite"
+          }
+        },
+        {
+          "block": "call",
+          "procedure": "log_step",
+          "args": {
+            "label": "wall"
+          }
+        },
+        {
+          "block": "repeat",
+          "times": 3,
+          "body": [
+            {
+              "block": "call",
+              "procedure": "fill_row",
+              "args": {
+                "row": {
+                  "expr": "var",
+                  "name": "wall_rows"
+                },
+                "mat": "oak_planks"
+              }
+            }
+          ]
+        },
+        {
+          "block": "if",
+          "condition": {
+            "expr": "and",
+            "a": {
+              "expr": "eq",
+              "a": {
+                "expr": "block_at",
+                "x": {
+                  "expr": "add",
+                  "a": {
+                    "expr": "var",
+                    "name": "ox"
+                  },
+                  "b": -4
+                },
+                "y": {
+                  "expr": "add",
+                  "a": {
+                    "expr": "var",
+                    "name": "oy"
+                  },
+                  "b": 2
+                },
+                "z": {
+                  "expr": "add",
+                  "a": {
+                    "expr": "var",
+                    "name": "oz"
+                  },
+                  "b": 6
+                }
+              },
+              "b": "minecraft:oak_planks"
+            },
+            "b": {
+              "expr": "eq",
+              "a": {
+                "expr": "block_at",
+                "x": {
+                  "expr": "add",
+                  "a": {
+                    "expr": "var",
+                    "name": "ox"
+                  },
+                  "b": -5
+                },
+                "y": {
+                  "expr": "add",
+                  "a": {
+                    "expr": "var",
+                    "name": "oy"
+                  },
+                  "b": 0
+                },
+                "z": {
+                  "expr": "add",
+                  "a": {
+                    "expr": "var",
+                    "name": "oz"
+                  },
+                  "b": 6
+                }
+              },
+              "b": "minecraft:oak_planks"
+            }
+          },
+          "then": [
+            {
+              "block": "call",
+              "procedure": "check",
+              "args": {
+                "ok": true,
+                "label": "wall of planks"
+              }
+            }
+          ],
+          "else": [
+            {
+              "block": "call",
+              "procedure": "check",
+              "args": {
+                "ok": false,
+                "label": "wall of planks"
+              }
+            }
+          ]
+        },
+        {
+          "block": "call",
+          "procedure": "log_step",
+          "args": {
+            "label": "note block"
+          }
+        },
+        {
+          "block": "set_var",
+          "name": "note_block",
+          "value": {
+            "expr": "block_at",
+            "x": {
+              "expr": "add",
+              "a": {
+                "expr": "var",
+                "name": "ox"
+              },
+              "b": 4
+            },
+            "y": {
+              "expr": "add",
+              "a": {
+                "expr": "var",
+                "name": "oy"
+              },
+              "b": 0
+            },
+            "z": {
+              "expr": "add",
+              "a": {
+                "expr": "var",
+                "name": "oz"
+              },
+              "b": 1
+            }
+          }
+        },
+        {
+          "block": "use_item_on_block",
+          "item": "oak_planks",
+          "x": {
+            "expr": "add",
+            "a": {
+              "expr": "var",
+              "name": "ox"
+            },
+            "b": 4
+          },
+          "y": {
+            "expr": "var",
+            "name": "oy"
+          },
+          "z": {
+            "expr": "add",
+            "a": {
+              "expr": "var",
+              "name": "oz"
+            },
+            "b": 1
+          },
+          "face": "up"
+        },
+        {
+          "block": "call",
+          "procedure": "check",
+          "args": {
+            "ok": {
+              "expr": "eq",
+              "a": {
+                "expr": "var",
+                "name": "note_block"
+              },
+              "b": "minecraft:note_block"
+            },
+            "label": "note block found"
+          }
+        },
+        {
+          "block": "call",
+          "procedure": "log_step",
+          "args": {
+            "label": "build"
+          }
+        },
+        {
+          "block": "build",
+          "schematic": "alto_supply_test.nbt",
+          "x": {
+            "expr": "add",
+            "a": {
+              "expr": "var",
+              "name": "ox"
+            },
+            "b": 2
+          },
+          "y": {
+            "expr": "var",
+            "name": "oy"
+          },
+          "z": {
+            "expr": "add",
+            "a": {
+              "expr": "var",
+              "name": "oz"
+            },
+            "b": 5
+          }
+        },
+        {
+          "block": "call",
+          "procedure": "check",
+          "args": {
+            "ok": {
+              "expr": "eq",
+              "a": {
+                "expr": "block_at",
+                "x": {
+                  "expr": "add",
+                  "a": {
+                    "expr": "var",
+                    "name": "ox"
+                  },
+                  "b": 3
+                },
+                "y": {
+                  "expr": "add",
+                  "a": {
+                    "expr": "var",
+                    "name": "oy"
+                  },
+                  "b": 1
+                },
+                "z": {
+                  "expr": "add",
+                  "a": {
+                    "expr": "var",
+                    "name": "oz"
+                  },
+                  "b": 6
+                }
+              },
+              "b": "minecraft:glass"
+            },
+            "label": "schematic built"
+          }
+        },
+        {
+          "block": "call",
+          "procedure": "log_step",
+          "args": {
+            "label": "eat"
+          }
+        },
+        {
+          "block": "eat"
+        },
+        {
+          "block": "call",
+          "procedure": "check",
+          "args": {
+            "ok": {
+              "expr": "gte",
+              "a": {
+                "expr": "hunger"
+              },
+              "b": 15
+            },
+            "label": "ate"
+          }
+        },
+        {
+          "block": "call",
+          "procedure": "log_step",
+          "args": {
+            "label": "math"
+          }
+        },
+        {
+          "block": "set_var",
+          "name": "tag",
+          "value": {
+            "expr": "join",
+            "parts": [
+              "alto-",
+              {
+                "expr": "round",
+                "a": {
+                  "expr": "div",
+                  "a": {
+                    "expr": "mul",
+                    "a": 7,
+                    "b": 6
+                  },
+                  "b": 4
+                }
+              }
+            ]
+          }
+        },
+        {
+          "block": "call",
+          "procedure": "check",
+          "args": {
+            "ok": {
+              "expr": "eq",
+              "a": {
+                "expr": "var",
+                "name": "tag"
+              },
+              "b": "alto-11"
+            },
+            "label": "math"
+          }
+        },
+        {
+          "block": "call",
+          "procedure": "check",
+          "args": {
+            "ok": {
+              "expr": "and",
+              "a": {
+                "expr": "eq",
+                "a": {
+                  "expr": "mod",
+                  "a": -1,
+                  "b": 5
+                },
+                "b": 4
+              },
+              "b": {
+                "expr": "not",
+                "a": {
+                  "expr": "gt",
+                  "a": {
+                    "expr": "abs",
+                    "a": -3
+                  },
+                  "b": {
+                    "expr": "max",
+                    "a": 5,
+                    "b": {
+                      "expr": "min",
+                      "a": 2,
+                      "b": 9
+                    }
+                  }
+                }
+              }
+            },
+            "label": "logic"
+          }
+        },
+        {
+          "block": "set_var",
+          "name": "dice",
+          "value": {
+            "expr": "random",
+            "min": 1,
+            "max": 1
+          }
+        },
+        {
+          "block": "call",
+          "procedure": "check",
+          "args": {
+            "ok": {
+              "expr": "or",
+              "a": {
+                "expr": "eq",
+                "a": {
+                  "expr": "var",
+                  "name": "dice"
+                },
+                "b": 1
+              },
+              "b": {
+                "expr": "lte",
+                "a": {
+                  "expr": "var",
+                  "name": "dice"
+                },
+                "b": 0
+              }
+            },
+            "label": "random"
+          }
+        },
+        {
+          "block": "call",
+          "procedure": "log_step",
+          "args": {
+            "label": "deposit"
+          }
+        },
+        {
+          "block": "deposit",
+          "only": [
+            "polished_andesite"
+          ]
+        },
+        {
+          "block": "call",
+          "procedure": "check",
+          "args": {
+            "ok": {
+              "expr": "eq",
+              "a": {
+                "expr": "item_count",
+                "item": "polished_andesite",
+                "where": "inventory"
+              },
+              "b": 0
+            },
+            "label": "deposited"
+          }
+        },
+        {
+          "block": "call",
+          "procedure": "log_step",
+          "args": {
+            "label": "return"
+          }
+        },
+        {
+          "block": "goto",
+          "target": {
+            "type": "coords",
+            "x": {
+              "expr": "var",
+              "name": "ox"
+            },
+            "y": {
+              "expr": "var",
+              "name": "oy"
+            },
+            "z": {
+              "expr": "var",
+              "name": "oz"
+            }
+          }
+        },
+        {
+          "block": "wait_until",
+          "condition": {
+            "expr": "gte",
+            "a": {
+              "expr": "var",
+              "name": "heartbeat"
+            },
+            "b": 1
+          },
+          "timeout_seconds": 60
+        },
+        {
+          "block": "wait_until",
+          "condition": {
+            "expr": "gte",
+            "a": {
+              "expr": "var",
+              "name": "torch_refills"
+            },
+            "b": 1
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "block": "wait_until",
+          "condition": {
+            "expr": "gte",
+            "a": {
+              "expr": "var",
+              "name": "chat_pings"
+            },
+            "b": 1
+          },
+          "timeout_seconds": 300
+        },
+        {
+          "block": "repeat_until",
+          "condition": {
+            "expr": "gte",
+            "a": {
+              "expr": "var",
+              "name": "heartbeat"
+            },
+            "b": 2
+          },
+          "body": [
+            {
+              "block": "wait",
+              "seconds": 1
+            }
+          ]
+        },
+        {
+          "block": "if",
+          "condition": {
+            "expr": "eq",
+            "a": {
+              "expr": "var",
+              "name": "checks_passed"
+            },
+            "b": 12
+          },
+          "then": [
+            {
+              "block": "set_var",
+              "name": "result",
+              "value": "ok"
+            }
+          ],
+          "else": [
+            {
+              "block": "set_var",
+              "name": "result",
+              "value": {
+                "expr": "join",
+                "parts": [
+                  "failed: ",
+                  {
+                    "expr": "var",
+                    "name": "checks_passed"
+                  },
+                  " of ",
+                  12,
+                  " checks"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "block": "message",
+          "text": {
+            "expr": "join",
+            "parts": [
+              "Long mission finished: ",
+              {
+                "expr": "var",
+                "name": "result"
+              },
+              " after ",
+              {
+                "expr": "var",
+                "name": "step"
+              },
+              " steps, ",
+              {
+                "expr": "var",
+                "name": "planks_rounds"
+              },
+              " planks rounds, ",
+              {
+                "expr": "var",
+                "name": "wall_rows"
+              },
+              " wall rows, heartbeat ",
+              {
+                "expr": "var",
+                "name": "heartbeat"
+              },
+              ", pings ",
+              {
+                "expr": "var",
+                "name": "chat_pings"
+              },
+              ", torch refills ",
+              {
+                "expr": "var",
+                "name": "torch_refills"
+              },
+              ", low health seen ",
+              {
+                "expr": "var",
+                "name": "low_health_seen"
+              }
+            ]
+          }
+        },
+        {
+          "block": "stop"
+        }
+      ]
+    },
+    {
+      "event": "every",
+      "seconds": 5,
+      "body": [
+        {
+          "block": "change_var",
+          "name": "heartbeat",
+          "delta": 1
+        }
+      ]
+    },
+    {
+      "event": "on_chat",
+      "trigger": "!ping",
+      "body": [
+        {
+          "block": "change_var",
+          "name": "chat_pings",
+          "delta": 1
+        },
+        {
+          "block": "message",
+          "text": {
+            "expr": "join",
+            "parts": [
+              "pong ",
+              {
+                "expr": "var",
+                "name": "chat_pings"
+              },
+              " (step ",
+              {
+                "expr": "var",
+                "name": "step"
+              },
+              ")"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "event": "on_item_below",
+      "item": "torch",
+      "count": 1,
+      "where": "inventory",
+      "body": [
+        {
+          "block": "craft",
+          "item": "torch",
+          "count": 4
+        },
+        {
+          "block": "change_var",
+          "name": "torch_refills",
+          "delta": 1
+        }
+      ]
+    },
+    {
+      "event": "on_health_below",
+      "health": 4,
+      "body": [
+        {
+          "block": "set_var",
+          "name": "low_health_seen",
+          "value": true
+        },
+        {
+          "block": "message",
+          "text": {
+            "expr": "join",
+            "parts": [
+              "Low health! ",
+              {
+                "expr": "health"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

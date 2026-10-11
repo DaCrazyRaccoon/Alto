@@ -184,6 +184,16 @@ final class CreateTravel {
         private int still;
         private int tries;
         private boolean leftStart;
+        private boolean boardOnly;
+
+        /** Script block board_vehicle train_seat: sit on a free seat of a train stopped near you. */
+        static TrainTask boardOnly(Alto alto) {
+            BlockPos here = alto.ctx().player().blockPosition();
+            TrainTask t = new TrainTask(alto, "here", here, "here", here);
+            t.boardOnly = true;
+            t.phase = Phase.WAIT;
+            return t;
+        }
 
         TrainTask(Alto alto, String fromName, BlockPos from, String toName, BlockPos to) {
             super(alto);
@@ -243,8 +253,8 @@ final class CreateTravel {
                 }
                 case WAIT: {
                     detail("waiting for a train at " + fromName);
-                    if (++ticks > Baritone.settings().altoTrainWaitSeconds.value * 20) {
-                        return Step.failure("no train stopped at " + fromName + " in time");
+                    if (++ticks > (boardOnly ? 20 * 10 : Baritone.settings().altoTrainWaitSeconds.value * 20)) {
+                        return Step.failure(boardOnly ? "no stopped train with a free seat near you" : "no train stopped at " + fromName + " in time");
                     }
                     Optional<CarriageContraptionEntity> c = stoppedCarriageNear(from, 16);
                     if (c.isPresent() && freeSeat(c.get()) >= 0) {
@@ -258,6 +268,9 @@ final class CreateTravel {
                 case BOARD: {
                     detail("boarding");
                     if (p.getVehicle() != null) {
+                        if (boardOnly) {
+                            return Step.success("seated");
+                        }
                         phase = Phase.RIDE;
                         ticks = 0;
                         still = 0;

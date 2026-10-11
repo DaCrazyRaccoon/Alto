@@ -71,6 +71,7 @@ public final class SelfTests {
         M2Scenarios.register(this);
         M3Scenarios.register(this);
         M4Scenarios.register(this);
+        M5Scenarios.register(this);
     }
 
     public void register(String name, Supplier<Scenario> factory) {
