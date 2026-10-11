@@ -386,7 +386,7 @@ final class M2Scenarios {
 
         @Override
         public String description() {
-            return "hunger 8 with bread in the inventory and auto-eat switched on: eats one bread";
+            return "hunger 8 with bread in the inventory and auto-eat switched on: eats bread until above the threshold";
         }
 
         @Override
@@ -413,8 +413,9 @@ final class M2Scenarios {
             alto.selfTests().allowUpkeep(true);
             int bread = McItems.count(inv(), Items.BREAD);
             int food = Minecraft.getInstance().player.getFoodData().getFoodLevel();
-            if (bread == 2 && food > 8 && !alto.process().busy()) {
-                return Verdict.pass("ate one bread, hunger now " + food);
+            if (bread < 3 && food > 8 && !alto.process().busy()) {
+                // It keeps eating while hunger is at or below the threshold (14); bread gives 5.
+                return Verdict.pass("ate " + (3 - bread) + " bread, hunger now " + food);
             }
             return Verdict.RUNNING;
         }

@@ -118,8 +118,7 @@ public final class SmeltTask extends AltoTask {
                     if (inputItem == null) {
                         return Step.failure("no " + recipe.inputs().get(0).displayLabel() + " in the inventory");
                     }
-                    int have = slot(v, SlotRole.FURNACE_INPUT).isEmpty() ? 0 : slot(v, SlotRole.FURNACE_INPUT).count();
-                    goal = MenuGoals.fillSlot(slot(v, SlotRole.FURNACE_INPUT).index(), inputItem, have + share, true);
+                    goal = MenuGoals.insert(slot(v, SlotRole.FURNACE_INPUT).index(), inputItem, share);
                     phase = Phase.INPUT;
                 }
                 return Step.stay();
@@ -136,8 +135,7 @@ public final class SmeltTask extends AltoTask {
                     if (fuel.isEmpty() || fuelShare <= 0) {
                         phase = Phase.CLOSE;
                     } else {
-                        int already = fuelSlot.holds(fuel) ? fuelSlot.count() : 0;
-                        goal = MenuGoals.fillSlot(fuelSlot.index(), fuel, already + fuelShare, true);
+                        goal = MenuGoals.insert(fuelSlot.index(), fuel, fuelShare);
                         phase = Phase.FUEL;
                     }
                 }

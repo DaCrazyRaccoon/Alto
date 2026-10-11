@@ -238,6 +238,61 @@ public final class MenuGoals {
         };
     }
 
+    /**
+     * Put {@code count} items into slot {@code slot}, counting what left the inventory rather than what the slot
+     * shows: a furnace burns fuel (and eventually input) as soon as it arrives, so its slot can look empty again.
+     * Whole stacks are placed with a left click when they fit; the remainder with single right clicks.
+     */
+    public static MenuGoal insert(int slot, ItemKey item, int count) {
+        return new MenuGoal() {
+            int baseline = -1;
+
+            @Override
+            public MenuGoal.Decision decide(MenuView v) {
+                int inInventory = v.count(item, MenuView.PLAYER_STORAGE) + (v.carrying() && v.carriedItem().equals(item) ? v.carriedCount() : 0);
+                if (baseline < 0) {
+                    baseline = inInventory;
+                }
+                int placed = baseline - inInventory;
+                int need = count - placed;
+                SlotView dest = v.slot(slot);
+                if (!dest.isEmpty() && !dest.item().equals(item)) {
+                    return fail("slot " + slot + " holds " + dest.item().shortName() + ", expected " + item.shortName());
+                }
+                if (v.carrying()) {
+                    if (!v.carriedItem().equals(item) || need <= 0 || dest.space() <= 0) {
+                        return returnCarried(v);
+                    }
+                    if (v.carriedCount() <= need) {
+                        return click(Click.left(slot, "put " + item.shortName()));
+                    }
+                    return click(Click.right(slot, "put 1 " + item.shortName()));
+                }
+                if (need <= 0) {
+                    return done("put " + placed + "x " + item.shortName() + " into slot " + slot);
+                }
+                if (dest.space() <= 0) {
+                    return fail("slot " + slot + " is full");
+                }
+                SlotView src = null;
+                for (SlotView s : v.withRoles(MenuView.PLAYER_STORAGE)) {
+                    if (s.holds(item) && (src == null || s.count() > src.count())) {
+                        src = s;
+                    }
+                }
+                if (src == null) {
+                    return fail("no " + item.shortName() + " left in the inventory (" + placed + "/" + count + " put in)");
+                }
+                return click(Click.left(src.index(), "pick up " + item.shortName()));
+            }
+
+            @Override
+            public String describe() {
+                return "put " + count + "x " + item.shortName() + " into slot " + slot;
+            }
+        };
+    }
+
     /** Shift-click an output slot until it is empty, checking that it holds what we expect. */
     public static MenuGoal takeOutput(int slot, ItemKey expected, int maxClicks) {
         return new MenuGoal() {

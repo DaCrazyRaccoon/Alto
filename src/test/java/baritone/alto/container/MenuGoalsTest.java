@@ -158,4 +158,22 @@ class MenuGoalsTest {
         assertFalse(sim.view().carrying());
         assertEquals(10, sim.view().count(LOG, MenuView.PLAYER_STORAGE));
     }
+
+    @Test
+    void insertCountsWhatLeftTheInventoryEvenWhenTheSlotIsConsumed() {
+        // A furnace burns fuel the moment it arrives: the fuel slot looks empty again right after the click.
+        MenuSim sim = MenuSim.craftingTable().put(10, "coal", 5);
+        MenuGoal goal = MenuGoals.insert(1, ItemKey.of("coal"), 2);
+        int guard = 0;
+        MenuGoal.Decision d;
+        while ((d = goal.decide(sim.view())) instanceof MenuGoal.ClickNext n && guard++ < 20) {
+            sim.apply(n.click());
+            if (sim.view().slot(1).count() > 0) {
+                sim.put(1, "coal", 0); // burned
+            }
+        }
+        assertInstanceOf(MenuGoal.Done.class, d);
+        assertEquals(3, sim.view().count(ItemKey.of("coal"), MenuView.PLAYER_STORAGE));
+        assertFalse(sim.view().carrying());
+    }
 }

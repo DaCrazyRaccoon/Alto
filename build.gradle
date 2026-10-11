@@ -129,6 +129,36 @@ neoForge {
     }
 }
 
+// ---------------------------------------------------------------------------------------------
+// Optional integrations (soft dependencies). Compiled against the jars of the pack COPY in
+// testenv/pack/mods; compileOnly = never shipped, never on the dev runtime classpath, so the plain
+// dev client still tests "Create/EMI not installed". Their code lives in neoforge/src/main/java/
+// baritone/alto/integration/<mod>/ and is only loaded by name when the mod is present.
+// ---------------------------------------------------------------------------------------------
+def packModsDir = new File(testenvDir, 'pack/mods')
+def integrationJarNames = [
+        'create-1.21.1-6.0.10.jar',
+        'emi-1.1.24+1.21.1+neoforge.jar',
+        'sophisticatedcore-1.21.1-1.4.87.2270.jar',
+        'sophisticatedstorage-1.21.1-1.5.89.2109.jar',
+        'sophisticatedbackpacks-1.21.1-3.25.77.2086.jar',
+        'open-parties-and-claims-neoforge-1.21.1-0.30.3.jar',
+        'corpse-neoforge-1.21.1-1.1.13.jar',
+]
+def integrationJars = integrationJarNames.collect { new File(packModsDir, it) }
+def integrationNestedDir = layout.buildDirectory.dir('integrationNested')
+def extractIntegrationNested = tasks.register('extractIntegrationNested', Copy) {
+    integrationJars.findAll { it.exists() }.each { jarFile ->
+        from(zipTree(jarFile)) {
+            include 'META-INF/jarjar/*.jar'
+            eachFile { it.path = it.name }
+        }
+    }
+    includeEmptyDirs = false
+    into integrationNestedDir
+}
+tasks.named('compileJava') { dependsOn extractIntegrationNested }
+
 // The schematica/litematica stubs and the dev harness need Minecraft on their compile classpath.
 neoForge.addModdingDependenciesTo(sourceSets.schematica_api)
 neoForge.addModdingDependenciesTo(sourceSets.devtest)
@@ -137,6 +167,8 @@ dependencies {
     shade "dev.babbaj:nether-pathfinder:${nether_pathfinder_version}"
     additionalRuntimeClasspath "dev.babbaj:nether-pathfinder:${nether_pathfinder_version}"
     compileOnly 'com.google.code.findbugs:jsr305:3.0.2'
+    compileOnly files(integrationJars.findAll { it.exists() })
+    compileOnly fileTree(dir: integrationNestedDir, include: '*.jar').builtBy(extractIntegrationNested)
     testCompileOnly 'com.google.code.findbugs:jsr305:3.0.2'
 
     testImplementation platform('org.junit:junit-bom:5.11.4')
