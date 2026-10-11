@@ -87,6 +87,7 @@ public final class DevTestHarness {
         String cmds = System.getProperty("alto.devtest.commands", "");
         Arrays.stream(cmds.split(";")).map(String::trim).filter(s -> !s.isEmpty()).forEach(commands::add);
         NeoForge.EVENT_BUS.addListener(this::onClientTick);
+        NeoForge.EVENT_BUS.addListener(this::onGuiLayer);
         LOG.info("[alto-devtest] mode={} commands={}", mode, commands);
         try {
             Files.writeString(Path.of("alto-devtest.pid"), Long.toString(ProcessHandle.current().pid()), StandardCharsets.UTF_8);
@@ -104,6 +105,13 @@ public final class DevTestHarness {
     private net.minecraft.world.entity.player.ChatVisiblity photoChat;
 
     private boolean photoHookInstalled;
+
+    /** Documentation pictures: hide other mods' watermarks (Create Deep Seas' "In development" line). */
+    private void onGuiLayer(net.neoforged.neoforge.client.event.RenderGuiLayerEvent.Pre e) {
+        if (PHOTOS && e.getName().toString().equals("create_submarine:watermark")) {
+            e.setCanceled(true);
+        }
+    }
 
     /** Sets SelfTests.photos (by reflection: this harness is compiled without Alto on its classpath). */
     private void installPhotoHook() {
