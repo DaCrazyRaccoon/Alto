@@ -1,0 +1,18 @@
+{
+  "name": "alto-script-editor",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Offline block editor for Alto scripts (*.alto.json), built as one self-contained HTML file.",
+  "license": "LGPL-3.0-or-later",
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "node --test --test-reporter=spec test/",
+    "crosscheck": "node test/java/crosscheck.mjs"
+  },
+  "devDependencies": {
+    "ajv": "8.17.1",
+    "blockly": "12.5.1",
+    "esbuild": "0.28.2"
+  }
+}
