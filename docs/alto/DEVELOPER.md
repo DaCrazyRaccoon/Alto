@@ -67,6 +67,7 @@ Every change is marked with a comment containing `ALTO FORK`. Search for it to s
 | `command/defaults/GotoCommand.java` | `goto <x> [y] <z> <dimension>` goes to `TravelCommands` (portal travel) |
 | `command/defaults/ExecutionControlCommands.java` | `#resume` also ends an Alto safety stop; `#stop` also stops scripts and Alto's job |
 | `utils/schematic/format/DefaultSchematicFormats.java` | `.nbt` structure files (`StructureNbtSchematic`) |
+| `api/utils/BlockOptionalMeta.java` | When the loot-table stub fails (it does in the pack), drops fall back to the block's item and Alto's drop table; the drops cache is filled without `computeIfAbsent` (the fallback is re-entrant) |
 | `launch/BaritoneForgeModXD.java` | Calls `AltoNeoForge.init(modBus, container)` (integrations, keys, HUD, settings screen) |
 
 `AltoHooks` is the only class upstream code calls. Its data is published from the client thread as immutable
