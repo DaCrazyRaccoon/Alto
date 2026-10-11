@@ -30,6 +30,7 @@ public final class Approach {
     private final BlockPos target;
     private int calcFailures;
     private int stillTicks;
+    private int atGoalTicks;
 
     public Approach(BlockPos target) {
         this.target = target;
@@ -52,7 +53,21 @@ public final class Approach {
         if (calcFailed && ++calcFailures >= 3) {
             return Step.failure("cannot find a path to " + target.toShortString());
         }
-        return Step.walk(new GoalGetToBlock(target));
+        GoalGetToBlock goal = new GoalGetToBlock(target);
+        // Standing at the goal but the block still cannot be reached or seen (covered, or gone): give up after 5 s
+        // instead of waiting forever (Baritone has nothing more to walk there).
+        if (goal.isInGoal(ctx.playerFeet()) && ctx.player().getDeltaMovement().horizontalDistanceSqr() < 1.0E-4) {
+            if (++atGoalTicks % 40 == 1) {
+                baritone.alto.AltoLog.debug("approach " + target.toShortString() + ": at goal, feet " + ctx.playerFeet()
+                        + ", block " + ctx.world().getBlockState(target) + ", dist " + Math.sqrt(ctx.playerFeet().distSqr(target)));
+            }
+            if (atGoalTicks > 100) {
+                return Step.failure("cannot reach " + target.toShortString() + " from next to it (blocked or gone)");
+            }
+        } else {
+            atGoalTicks = 0;
+        }
+        return Step.walk(goal);
     }
 
     public BlockPos target() {

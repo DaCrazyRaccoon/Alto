@@ -19,6 +19,7 @@ package baritone.alto.storage;
 
 import baritone.Baritone;
 import baritone.alto.Alto;
+import baritone.alto.AltoLog;
 import baritone.alto.container.MenuGoals;
 import baritone.alto.container.SlotRole;
 import baritone.alto.container.mc.ContainerAdapters;
@@ -111,6 +112,12 @@ public final class DepositTask extends AltoTask {
             }
             case APPROACH: {
                 Step s = approach.tick(ctx, calcFailed);
+                if (s != null && s.kind() == Step.Kind.FAILURE) {
+                    AltoLog.info("deposit: skipping the container at " + target.toShortString() + " (" + s.message() + ")");
+                    tried.add(targetKey.id());
+                    phase = Phase.CHOOSE; // try the next container
+                    return Step.stay();
+                }
                 if (s != null) {
                     detail("walking to " + target.toShortString());
                     return s;
