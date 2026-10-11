@@ -44,6 +44,10 @@ trigger (typed by the test) and its item-below handler (which crafts torches). I
 * The builder only places from the hotbar → Alto moves blocks from the main inventory to the hotbar.
 * Portal frames need a raised standing spot for the upper part → the bot towers up in front of the frame.
 * Peaceful refills hunger by itself → disabled during the script test so `eat` really eats.
+* A removed chest stayed in the storage index (Baritone only reports changes of blocks it tracks), so a deposit
+  walked to a chest that was gone and waited there → Alto now forgets vanished containers every 2 s, and an approach
+  that cannot reach its block gives up after 5 s and tries the next container.
+* The build's up-front supply run and the builder's own supply could both start → the supply run goes first.
 
 ## 4. Not verified (and why)
 
