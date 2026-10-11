@@ -17,6 +17,7 @@
 
 package baritone.command.defaults;
 
+import baritone.alto.command.TravelCommands;
 import baritone.api.IBaritone;
 import baritone.api.command.Command;
 import baritone.api.command.argument.IArgConsumer;
@@ -40,6 +41,10 @@ public class GotoCommand extends Command {
 
     @Override
     public void execute(String label, IArgConsumer args) throws CommandException {
+        // ALTO FORK: "goto <x> [y] <z> <overworld|nether>" travels through nether portals
+        if (TravelCommands.tryGoto(baritone, args)) {
+            return;
+        }
         // If we have a numeric first argument, then parse arguments as coordinates.
         // Note: There is no reason to want to go where you're already at so there
         // is no need to handle the case of empty arguments.
@@ -80,7 +85,8 @@ public class GotoCommand extends Command {
                 "> goto <block> - Go to a block, wherever it is in the world",
                 "> goto <y> - Go to a Y level",
                 "> goto <x> <z> - Go to an X,Z position",
-                "> goto <x> <y> <z> - Go to an X,Y,Z position"
+                "> goto <x> <y> <z> - Go to an X,Y,Z position",
+                "> goto <x> [y] <z> <overworld|nether> - Go there through nether portals (Alto fork)"
         );
     }
 }

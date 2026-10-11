@@ -2008,6 +2008,67 @@ public final class Settings {
      */
     public final Setting<Boolean> altoDebug = new Setting<>(false);
 
+    /**
+     * Farming (#farm): restock seeds from your storage zones when you run out while there is empty farmland.
+     */
+    public final Setting<Boolean> altoFarmRestockSeeds = new Setting<>(true);
+
+    /**
+     * Farming (#farm): pick up all dropped food and seed items in the farm area (modded crops included), not only
+     * the vanilla crop items.
+     */
+    public final Setting<Boolean> altoFarmPickupModded = new Setting<>(true);
+
+    /**
+     * Modded crops that #farm must never break (e.g. crops harvested by right-clicking instead).
+     */
+    public final Setting<List<Block>> altoFarmIgnore = new Setting<>(new ArrayList<>());
+
+    /**
+     * Portals (#travel): remember nether portals you walk through, and use them to travel between dimensions.
+     */
+    public final Setting<Boolean> altoPortals = new Setting<>(true);
+
+    /**
+     * Portals (#travel): if no known portal leads to the target dimension, build one from 10 obsidian and light it
+     * with flint and steel (both must be in your inventory or storage). Off by default.
+     */
+    public final Setting<Boolean> altoBuildPortals = new Setting<>(false);
+
+    /**
+     * Vehicles: #boat and #minecart may use boats and minecarts. #boat places a boat from your inventory and picks
+     * it up again at the end.
+     */
+    public final Setting<Boolean> altoVehicles = new Setting<>(true);
+
+    /**
+     * Create trains (#train from to): walk to a named station, board an empty passenger seat, ride and get off at
+     * the destination station. Never touches train controls, conductors or schedules.
+     */
+    public final Setting<Boolean> altoTrains = new Setting<>(true);
+
+    /**
+     * Create trains: how long to wait at the station for a train that goes to the destination (seconds).
+     */
+    public final Setting<Integer> altoTrainWaitSeconds = new Setting<>(600);
+
+    /**
+     * Moving platforms: while you stand on a moving Create contraption (elevator, piston platform, gantry...),
+     * Baritone stops walking until it stops, then plans again from there.
+     */
+    public final Setting<Boolean> altoMovingPlatforms = new Setting<>(true);
+
+    /**
+     * Schematic supply runs: before a #build starts, fetch the materials it needs from your storage in as few trips
+     * as possible (your inventory permitting), and show a shopping list of what is missing.
+     */
+    public final Setting<Boolean> altoSupplyRuns = new Setting<>(true);
+
+    /**
+     * Create stock keepers (#order): allow ordering from a stock keeper whose menu the server opened for you.
+     */
+    public final Setting<Boolean> altoStockKeeper = new Setting<>(true);
+
     // ALTO FORK SETTINGS (end)
 
     /**

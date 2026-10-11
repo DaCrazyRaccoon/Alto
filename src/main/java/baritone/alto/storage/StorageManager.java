@@ -90,6 +90,12 @@ public final class StorageManager {
         save();
     }
 
+    /** The folder for this world's Alto data (baritone/alto/worlds/<id>), or null without a world. */
+    public Path worldDir() {
+        ensureLoaded();
+        return worldId.isEmpty() ? null : dir;
+    }
+
     public String worldId() {
         ensureLoaded();
         return worldId;

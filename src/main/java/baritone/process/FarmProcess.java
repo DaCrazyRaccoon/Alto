@@ -18,6 +18,7 @@
 package baritone.process;
 
 import baritone.Baritone;
+import baritone.alto.AltoHooks;
 import baritone.api.BaritoneAPI;
 import baritone.api.pathing.goals.Goal;
 import baritone.api.pathing.goals.GoalBlock;
@@ -185,7 +186,7 @@ public final class FarmProcess extends BaritoneProcessHelper implements IFarmPro
     }
 
     private boolean isPlantable(ItemStack stack) {
-        return FARMLAND_PLANTABLE.contains(stack.getItem());
+        return FARMLAND_PLANTABLE.contains(stack.getItem()) || AltoHooks.isModdedSeed(stack); // ALTO FORK
     }
 
     private boolean isBoneMeal(ItemStack stack) {
@@ -207,6 +208,7 @@ public final class FarmProcess extends BaritoneProcessHelper implements IFarmPro
             for (Harvest harvest : Harvest.values()) {
                 scan.add(harvest.block);
             }
+            scan.addAll(AltoHooks.extraFarmBlocks()); // ALTO FORK: modded crops and farmland
             if (Baritone.settings().replantCrops.value) {
                 scan.add(Blocks.FARMLAND);
                 scan.add(Blocks.JUNGLE_LOG);
@@ -234,7 +236,7 @@ public final class FarmProcess extends BaritoneProcessHelper implements IFarmPro
 
             BlockState state = ctx.world().getBlockState(pos);
             boolean airAbove = ctx.world().getBlockState(pos.above()).getBlock() instanceof AirBlock;
-            if (state.getBlock() == Blocks.FARMLAND) {
+            if (AltoHooks.isFarmland(state.getBlock())) { // ALTO FORK: modded farmland
                 if (airAbove) {
                     openFarmland.add(pos);
                 }
@@ -255,9 +257,12 @@ public final class FarmProcess extends BaritoneProcessHelper implements IFarmPro
                 }
                 continue;
             }
-            if (readyForHarvest(ctx.world(), pos, state)) {
+            if (readyForHarvest(ctx.world(), pos, state) || AltoHooks.isModdedCropReady(state)) { // ALTO FORK
                 toBreak.add(pos);
                 continue;
+            }
+            if (AltoHooks.isModdedCrop(state)) { // ALTO FORK
+                hasImmatureCrop = true;
             }
             for (Harvest harvest : Harvest.values()) {
                 if (harvest.block == state.getBlock()) {
@@ -363,6 +368,8 @@ public final class FarmProcess extends BaritoneProcessHelper implements IFarmPro
                 goalz.add(new GoalBlock(pos.above()));
             }
         }
+        AltoHooks.setFarmOutOfSeeds(!openFarmland.isEmpty() && Baritone.settings().replantCrops.value
+                && !baritone.getInventoryBehavior().throwaway(false, this::isPlantable)); // ALTO FORK: seed restock
         if (baritone.getInventoryBehavior().throwaway(false, this::isNetherWart)) {
             for (BlockPos pos : openSoulsand) {
                 goalz.add(new GoalBlock(pos.above()));
@@ -385,13 +392,16 @@ public final class FarmProcess extends BaritoneProcessHelper implements IFarmPro
         for (Entity entity : ctx.entities()) {
             if (entity instanceof ItemEntity && entity.onGround()) {
                 ItemEntity ei = (ItemEntity) entity;
-                if (PICKUP_DROPPED.contains(ei.getItem().getItem())) {
+                if (PICKUP_DROPPED.contains(ei.getItem().getItem()) || AltoHooks.farmPickup(ei.getItem())) { // ALTO FORK
                     // +0.1 because of farmland's 0.9375 dummy height lol
                     goalz.add(new GoalBlock(new BetterBlockPos(entity.position().x, entity.position().y + 0.1, entity.position().z)));
                 }
             }
         }
         if (goalz.isEmpty()) {
+            if (AltoHooks.farmShouldWaitForSeeds()) { // ALTO FORK: Alto is fetching seeds from storage
+                return new PathingCommand(null, PathingCommandType.REQUEST_PAUSE);
+            }
             if (hasImmatureCrop && Baritone.settings().farmWaitForGrowth.value) {
                 return new PathingCommand(null, PathingCommandType.REQUEST_PAUSE);
             }
@@ -408,6 +418,7 @@ public final class FarmProcess extends BaritoneProcessHelper implements IFarmPro
     @Override
     public void onLostControl() {
         active = false;
+        AltoHooks.setFarmOutOfSeeds(false); // ALTO FORK
     }
 
     @Override

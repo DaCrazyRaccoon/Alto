@@ -70,6 +70,7 @@ public final class SelfTests {
         M1Scenarios.register(this);
         M2Scenarios.register(this);
         M3Scenarios.register(this);
+        M4Scenarios.register(this);
     }
 
     public void register(String name, Supplier<Scenario> factory) {
@@ -115,10 +116,13 @@ public final class SelfTests {
         List<String> todo = new ArrayList<>();
         if (what.equalsIgnoreCase("all")) {
             todo.addAll(scenarios.keySet());
-        } else if (scenarios.containsKey(what)) {
-            todo.add(what);
         } else {
-            return "unknown scenario '" + what + "'; known: " + String.join(", ", scenarios.keySet());
+            for (String name : what.split(",")) { // several: "smelt,shulker"
+                if (!scenarios.containsKey(name.trim())) {
+                    return "unknown scenario '" + name.trim() + "'; known: " + String.join(", ", scenarios.keySet());
+                }
+                todo.add(name.trim());
+            }
         }
         results.clear();
         baseOrigin = mc.player.blockPosition();
@@ -152,7 +156,7 @@ public final class SelfTests {
                 MinecraftServer server = mc.getSingleplayerServer();
                 server.submit(() -> {
                     ServerPlayer sp = server.getPlayerList().getPlayer(mc.player.getUUID());
-                    ServerLevel level = sp.serverLevel();
+                    ServerLevel level = server.overworld(); // test areas are always in the overworld (the travel test visits the nether)
                     current.setup(level, sp, origin);
                 }).get(30, TimeUnit.SECONDS);
                 phase = 1;
@@ -160,8 +164,8 @@ public final class SelfTests {
                 return;
             }
             if (phase == 1) {
-                if (++ticks < 20) {
-                    return; // let the world changes reach the client
+                if (++ticks < 20 || mc.level.dimension() != net.minecraft.world.level.Level.OVERWORLD && ticks < 600) {
+                    return; // let the world changes (and a dimension change back) reach the client
                 }
                 current.start(alto, origin);
                 phase = 2;

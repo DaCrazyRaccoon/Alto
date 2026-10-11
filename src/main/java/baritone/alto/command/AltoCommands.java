@@ -67,6 +67,8 @@ public final class AltoCommands {
         commands.add(new FilterCommands.PickCommand(baritone, alto));
         commands.add(new FilterCommands.UseOnCommand(baritone, alto));
         commands.add(new CorpseCommand(baritone, alto));
+        commands.add(new TravelCommands.TravelCommand(baritone, alto));
+        commands.add(new TravelCommands.PortalsCommand(baritone, alto));
         commands.forEach(baritone.getCommandManager().getRegistry()::register);
     }
 
@@ -335,6 +337,7 @@ public final class AltoCommands {
                     "Usage:",
                     "> selftest list",
                     "> selftest <name> [confirm]",
+                    "> selftest <name>,<name>,... [confirm]",
                     "> selftest all [confirm]"
             );
         }

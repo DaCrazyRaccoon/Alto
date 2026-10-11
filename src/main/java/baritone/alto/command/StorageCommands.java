@@ -269,7 +269,7 @@ final class StorageCommands {
                     break;
                 }
                 int take = Math.min(left, r.contents.get(key));
-                steps.add(new FetchTask(alto, r.key, key, take));
+                steps.add(new FetchTask(alto, r.key, key, take).exact()); // the count the user typed
                 left -= take;
             }
             if (left > 0) {

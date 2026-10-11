@@ -52,6 +52,7 @@ public final class FetchTask extends AltoTask {
     private final String label;
     private final int count;
     private final ContainerSession session;
+    private boolean exact;
     private Phase phase = Phase.LOCATE;
     private BlockPos pos;
     private Approach approach;
@@ -69,6 +70,12 @@ public final class FetchTask extends AltoTask {
         this.label = label;
         this.count = count;
         this.session = new ContainerSession(alto);
+    }
+
+    /** Take exactly the count (split the last stack with single clicks, up to 16) instead of whole stacks. */
+    public FetchTask exact() {
+        this.exact = true;
+        return this;
     }
 
     @Override
@@ -134,7 +141,7 @@ public final class FetchTask extends AltoTask {
             }
             case TAKE: {
                 detail("taking " + label);
-                MenuGoal goal = takeGoal == null ? (takeGoal = MenuGoals.take(match, label, count, MenuGoals.roles(SlotRole.STORAGE), false)) : takeGoal;
+                MenuGoal goal = takeGoal == null ? (takeGoal = MenuGoals.take(match, label, count, MenuGoals.roles(SlotRole.STORAGE), exact)) : takeGoal;
                 ContainerSession.Status st = session.run(goal);
                 if (st == ContainerSession.Status.FAILED) {
                     alto.storage().recorder().recordNow();

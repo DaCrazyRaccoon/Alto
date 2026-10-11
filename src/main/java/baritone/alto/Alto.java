@@ -51,6 +51,7 @@ import baritone.alto.hazard.HazardManager;
 import baritone.alto.integration.FilterAccess;
 import baritone.alto.integration.Integrations;
 import baritone.alto.picker.ItemPicker;
+import baritone.alto.travel.PortalManager;
 import baritone.api.Settings;
 import baritone.api.event.events.PacketEvent;
 import baritone.api.event.events.TickEvent;
@@ -100,6 +101,7 @@ public final class Alto {
     private Upkeep upkeep;
     private final HazardManager hazards;
     private final ItemPicker picker;
+    private final PortalManager portals;
     private final List<FilterAccess> filterAccess = new CopyOnWriteArrayList<>();
     private final VanillaRecipeSource vanillaRecipes = new VanillaRecipeSource();
     private final BuilderSupply builderSupply;
@@ -128,6 +130,7 @@ public final class Alto {
         this.selfTests = new SelfTests(this);
         this.hazards = new HazardManager(this);
         this.picker = new ItemPicker(this);
+        this.portals = new PortalManager(this);
         // Vanilla fallback: the item in the inventory slot under the mouse (integrations such as EMI come first).
         this.picker.addProvider((mx, my) -> net.minecraft.client.Minecraft.getInstance().screen
                 instanceof net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<?> s && s.getSlotUnderMouse() != null
@@ -185,6 +188,10 @@ public final class Alto {
 
     public StorageManager storage() {
         return storage;
+    }
+
+    public PortalManager portals() {
+        return portals;
     }
 
     public ItemPicker picker() {

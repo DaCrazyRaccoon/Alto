@@ -97,9 +97,56 @@ public final class Upkeep {
         if (s.altoToolUpkeep.value && tryToolReplacement()) {
             return;
         }
+        if (s.altoFarmRestockSeeds.value && working.get() instanceof FarmProcess && tryRestockSeeds()) {
+            return;
+        }
         if (s.altoRestock.value) {
             tryRestock();
         }
+    }
+
+    /** #farm has open farmland but nothing to plant: fetch the seed type your storage holds most of. */
+    private boolean tryRestockSeeds() {
+        if (!baritone.alto.AltoHooks.farmOutOfSeeds() || !haveStorage() || cooling("seeds")) {
+            return false;
+        }
+        java.util.Set<Item> seeds = new java.util.HashSet<>(baritone.alto.AltoHooks.moddedSeeds());
+        seeds.addAll(List.of(net.minecraft.world.item.Items.WHEAT_SEEDS, net.minecraft.world.item.Items.BEETROOT_SEEDS,
+                net.minecraft.world.item.Items.CARROT, net.minecraft.world.item.Items.POTATO,
+                net.minecraft.world.item.Items.MELON_SEEDS, net.minecraft.world.item.Items.PUMPKIN_SEEDS));
+        ItemKey best = null;
+        int bestCount = 0;
+        java.util.function.Predicate<ContainerRecord> usable = alto.storage().usable();
+        for (ContainerRecord r : alto.storage().index().all()) {
+            if (!usable.test(r)) {
+                continue;
+            }
+            for (Map.Entry<ItemKey, Integer> e : r.contents.asMap().entrySet()) {
+                if (seeds.contains(McItems.item(e.getKey())) && e.getValue() > bestCount) {
+                    best = e.getKey();
+                    bestCount = e.getValue();
+                }
+            }
+        }
+        if (best == null) {
+            cooldownUntil.put("seeds", System.currentTimeMillis() + FAIL_COOLDOWN_MS);
+            AltoLog.chat("Out of seeds, and none are known in your storage.");
+            return false;
+        }
+        List<AltoTask> steps = new ArrayList<>();
+        int left = 64;
+        for (ContainerRecord r : alto.storage().index().containing(best, alto.storage().dimension(),
+                alto.ctx().player().getX(), alto.ctx().player().getY(), alto.ctx().player().getZ(), usable)) {
+            if (left <= 0) {
+                break;
+            }
+            int take = Math.min(left, r.contents.get(best));
+            steps.add(new FetchTask(alto, r.key, best, take));
+            left -= take;
+        }
+        AltoLog.chat("Out of seeds: fetching " + best.shortName() + " from your storage.");
+        start("seeds", new SequenceTask(alto, "Restock seeds (" + best.shortName() + ")", steps));
+        return true;
     }
 
     /** The Baritone process doing a job right now (not Alto itself, not plain #goto). */

@@ -45,6 +45,7 @@ public final class AltoProcess extends BaritoneProcessHelper {
 
     private final Alto alto;
     private Job job;
+    private String lastResult = "";
     private String lastDisplay = "";
     private boolean deferring;
 
@@ -64,6 +65,11 @@ public final class AltoProcess extends BaritoneProcessHelper {
 
     public Job job() {
         return job;
+    }
+
+    /** How the last job ended ("done: ..." / "stopped: ..."), for #alto status and the self-tests. */
+    public String lastResult() {
+        return lastResult;
     }
 
     public boolean busy() {
@@ -132,6 +138,7 @@ public final class AltoProcess extends BaritoneProcessHelper {
             AltoLog.exception("cleanup failed", t);
         }
         String text = ended.root().name() + (message == null || message.isEmpty() ? "" : ": " + message);
+        lastResult = (success ? "done: " : "stopped: ") + text;
         if (success) {
             AltoLog.chat("Done: " + text);
         } else {
