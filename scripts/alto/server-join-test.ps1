@@ -33,6 +33,9 @@ Set-Content -Encoding ascii (Join-Path $serverDir 'eula.txt') 'eula=true'
     'enable-command-block=false',
     'motd=Alto client-only test (no Alto on this server)'
 ) | Set-Content -Encoding ascii (Join-Path $serverDir 'server.properties')
+# A fresh test world each run (only this test server's own world in testenv).
+$world = Join-Path $serverDir 'world'
+if (Test-Path $world) { Remove-Item -Recurse -Force $world }
 $serverLog = Join-Path $serverDir 'logs\latest.log'
 if (Test-Path $serverLog) { Move-Item -Force $serverLog (Join-Path $serverDir 'logs\previous-run.log') }
 
@@ -58,7 +61,8 @@ try {
         Start-Sleep -Seconds 2
     }
     if (-not ((Test-Path $serverLog) -and (Select-String -Path $serverLog -Pattern 'Done \(' -Quiet))) { throw 'server not ready after 6 minutes' }
-    $altoOnServer = Select-String -Path $serverLog -Pattern 'baritoe|Alto fork' -Quiet
+    # The server's mod list line for Alto would read "Baritone (Alto fork) <version> (baritoe)".
+    $altoOnServer = Select-String -Path $serverLog -Pattern '\(baritoe\)\s*$' -Quiet
     $lines += "server ready after $([int]((Get-Date) - $started).TotalSeconds) s; Alto loaded on the server: $altoOnServer"
     if ($altoOnServer) { throw 'the server loaded Alto; this test needs a server without it' }
 
