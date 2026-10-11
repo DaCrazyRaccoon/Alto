@@ -26,7 +26,7 @@ import java.util.List;
  * @param name     JSON field name
  * @param kind     what the field holds
  * @param required whether the field must be present
- * @param min      smallest allowed number (number kinds) or 0
+ * @param min      smallest allowed number (number kinds); for {@link FieldKind#STRING} 1 means "must not be blank"
  * @param max      largest allowed number (number kinds) or the maximum text length (text kinds)
  * @param choices  allowed values for {@link FieldKind#CHOICE}
  */
@@ -60,6 +60,11 @@ public record FieldSpec(String name, FieldKind kind, boolean required, double mi
 
     public static FieldSpec string(String name, int maxLength) {
         return new FieldSpec(name, FieldKind.STRING, true, 0, maxLength, List.of());
+    }
+
+    /** A string expression that must not be blank (names of stations and the like). */
+    public static FieldSpec name(String name, int maxLength) {
+        return new FieldSpec(name, FieldKind.STRING, true, 1, maxLength, List.of());
     }
 
     public static FieldSpec any(String name) {
@@ -133,6 +138,11 @@ public record FieldSpec(String name, FieldKind kind, boolean required, double mi
             }
             case TEXT -> {
                 if (s.isBlank()) {
+                    return new Problem(DiagnosticCode.INVALID_TEXT, name + " must not be empty");
+                }
+            }
+            case STRING -> {
+                if (min >= 1 && s.isBlank()) {
                     return new Problem(DiagnosticCode.INVALID_TEXT, name + " must not be empty");
                 }
             }

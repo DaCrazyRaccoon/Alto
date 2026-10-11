@@ -272,6 +272,8 @@ class ValidatorTest {
         expect(script("", "", handler("'event':'on_chat','trigger':''")), DiagnosticCode.INVALID_TEXT, "events[0].trigger");
         expect(onStart("{'block':'goto','target':{'type':'storage_zone','name':''}}"), DiagnosticCode.INVALID_TEXT,
                 "events[0].body[0].target.name");
+        expect(onStart("{'block':'ride_train','from_station':' ','to_station':'B'}"), DiagnosticCode.INVALID_TEXT,
+                "events[0].body[0].from_station");
     }
 
     // ------------------------------------------------------------------------------------------ control flow

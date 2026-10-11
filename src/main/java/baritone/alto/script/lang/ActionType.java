@@ -57,8 +57,8 @@ public enum ActionType implements JsonNamed {
     PLACE_STATION("place_station", Runner.HOST, choice("kind", StationType.values())),
     PICKUP_STATION("pickup_station", Runner.HOST, choice("kind", StationType.values())),
     BOARD_VEHICLE("board_vehicle", Runner.HOST, choice("kind", VehicleKind.values())),
-    RIDE_TRAIN("ride_train", Runner.HOST, FieldSpec.string("from_station", Limits.MAX_NAME_LENGTH),
-            FieldSpec.string("to_station", Limits.MAX_NAME_LENGTH)),
+    RIDE_TRAIN("ride_train", Runner.HOST, FieldSpec.name("from_station", Limits.MAX_NAME_LENGTH),
+            FieldSpec.name("to_station", Limits.MAX_NAME_LENGTH)),
     LEAVE_VEHICLE("leave_vehicle", Runner.HOST),
     TAKE_PORTAL("take_portal", Runner.HOST),
     STOP("stop", Runner.INTERPRETER);
