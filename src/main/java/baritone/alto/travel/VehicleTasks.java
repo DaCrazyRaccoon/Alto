@@ -315,6 +315,7 @@ public final class VehicleTasks {
         private int blocked;
         private int tries;
         private int boatsBefore;
+        private baritone.alto.task.MenuGoalTask hotbar;
 
         public BoatTask(Alto alto, int x, int z) {
             super(alto);
@@ -347,7 +348,27 @@ public final class VehicleTasks {
                     }
                     int slot = boatSlot(p);
                     if (slot < 0) {
-                        return Step.failure("no boat nearby and none in the hotbar");
+                        // A boat in the main inventory: put it on the hotbar first (paced inventory clicks).
+                        for (int i = 9; i < 36; i++) {
+                            if (p.getInventory().getItem(i).getItem() instanceof BoatItem) {
+                                if (hotbar == null) {
+                                    var key = baritone.alto.mc.McItems.key(p.getInventory().getItem(i).getItem());
+                                    hotbar = new baritone.alto.task.MenuGoalTask(alto, "Put the boat on the hotbar",
+                                            baritone.alto.container.MenuGoals.toHotbar(key, k -> !(baritone.alto.mc.McItems.item(k)
+                                                    instanceof net.minecraft.world.item.TieredItem)));
+                                }
+                                Step h = hotbar.tick(calcFailed);
+                                if (h.finished()) {
+                                    hotbar.cancel();
+                                    hotbar = null;
+                                    if (h.kind() == Step.Kind.FAILURE) {
+                                        return h;
+                                    }
+                                }
+                                return Step.stay();
+                            }
+                        }
+                        return Step.failure("no boat nearby and none carried");
                     }
                 // Open water: a boat placed next to the shore collides with it and the game refuses to place it.
                     water = BlockPos.betweenClosedStream(p.blockPosition().offset(-8, -3, -8), p.blockPosition().offset(8, 1, 8))
