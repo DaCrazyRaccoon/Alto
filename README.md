@@ -1,6 +1,10 @@
 # Alto
 
-## **Alto is a vibecoded modification of Baritone. It is not made by the Baritone team, and the Baritone team does not support it.**
+> [!CAUTION]  
+> ## Alto is a vibecoded modification of Baritone. It is not made by the Baritone team, and the Baritone team does not support it. This was mainly made to test the abilities of Large Language Models with Minecraft mod creation. Everything you read below is AI-Generated ##
+
+> [!NOTE] 
+> If Baritone developers want this removed or want to connect, please contact me through discord ``dacrazyraccoon``
 
 Alto is a fork of [Baritone](https://github.com/cabaletta/baritone) for Minecraft 1.21.1 (NeoForge). Baritone walks,
 mines, builds and farms for you. Alto adds what Baritone cannot do: use chests, crafting tables, furnaces and modded
