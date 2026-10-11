@@ -117,6 +117,39 @@ class CodecTest {
     }
 
     @Test
+    void canonicalStringsUseGsonEscaping() {
+        // The rule is documented in SCRIPT_LANGUAGE.md section 14 so other tools can reproduce the hash.
+        String literal = "\"tab\\t nl\\n bell\\u0007 quote\\\" slash\\\\ ls\\u2028 eé <&>\"";
+        Script s = parse(onStart("{'block':'message','text':" + literal + "}"));
+        Stmt.Action message = (Stmt.Action) s.handlers().get(0).body().get(0);
+        assertEquals(new Expr.Literal("events[0].body[0].text", Value.of("tab\t nl\n bell\007 quote\" slash\\ ls  eé <&>")),
+                message.expr("text"));
+        String canonical = ScriptCodec.toCanonicalJson(s);
+        assertTrue(canonical.contains("\"text\":" + literal), canonical);
+    }
+
+    @Test
+    void examplesRoundTripThroughThePrettyForm() {
+        for (java.nio.file.Path file : ExamplesTest.examples()) {
+            Script s = parse(ExamplesTest.read(file));
+            Script again = parse(ScriptCodec.toPrettyJson(s));
+            assertEquals(s, again, file::toString);
+            assertEquals(ScriptCodec.hash(s), ScriptCodec.hash(again));
+        }
+    }
+
+    @Test
+    void theAstIsImmutable() {
+        Script s = parse(Fixtures.EVERYTHING);
+        assertThrows(UnsupportedOperationException.class, () -> s.handlers().clear());
+        assertThrows(UnsupportedOperationException.class, () -> s.handlers().get(0).body().clear());
+        Stmt.Action deposit = (Stmt.Action) s.handlers().get(0).body().get(11);
+        assertThrows(UnsupportedOperationException.class, () -> deposit.args().clear());
+        Stmt.Call call = (Stmt.Call) s.handlers().get(0).body().get(30);
+        assertThrows(UnsupportedOperationException.class, () -> call.args().clear());
+    }
+
+    @Test
     void parsesFieldsIntoTypedNodes() {
         Script s = parse(onStart("{'block':'craft','item':{'expr':'var','name':'x'},'count':{'expr':'add','a':1,'b':2}}"));
         Stmt.Action craft = assertInstanceOf(Stmt.Action.class, s.handlers().get(0).body().get(0));

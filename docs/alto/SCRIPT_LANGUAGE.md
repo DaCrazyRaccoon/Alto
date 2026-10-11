@@ -705,6 +705,24 @@ by name, all top-level fields present. The **hash** is the SHA-256 of the compac
 Formatting, key order or `64` versus `64.0` do not change it; any change to names, values, texts or blocks does. Alto
 uses the hash to notice new or changed scripts and asks for confirmation again.
 
+Exact rules of the compact canonical form, for tools that want to compute the same hash:
+
+* no whitespace between tokens; UTF-8;
+* keys in the order of the tables in this document: top level `format, version, name, description, variables,
+  procedures, events`; variables `name, initial`; procedures `name, params, body`; parameters `name, type`; handlers
+  `event`, then the event fields (`trigger` / `health` / `item, count, where` / `seconds`), then `body`; blocks
+  `block`, then the fields in the order of their table; expressions `expr`, then the fields in table order; targets
+  `type, x, y, z, dimension` or `type, name`; `call` arguments sorted by name;
+* all top-level fields are written (`description` as `""`, empty arrays as `[]`); other optional fields only when
+  present (`else` only when not empty); defaults that have a value (`where`) are always written; `call` always has
+  `args` (possibly `{}`);
+* numbers: whole numbers below 2^53 as integers (`64`, `-3`); other numbers as Java's `Double.toString` (the shortest
+  form that reads back as the same number: plain between 0.001 and 10,000,000 such as `0.25`, otherwise scientific
+  such as `1.0E-5`);
+* strings: `"` and `\` escaped with a backslash; backspace, form feed, newline, carriage return and tab as `\b`,
+  `\f`, `\n`, `\r`, `\t`; other characters below U+0020 and U+2028/U+2029 as `\u` with four lower-case hex digits;
+  everything else as is.
+
 `version` is the language version. Version 1 is described here; Alto refuses scripts with another version instead of
 guessing. Later versions will only add things in a way that version 1 scripts keep their meaning.
 

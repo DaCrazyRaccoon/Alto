@@ -17,6 +17,7 @@
 
 package baritone.alto.script.lang;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -33,7 +34,7 @@ public sealed interface Expr {
 
     /** Names of every {@code expr} kind, for messages and schema checks. */
     static List<String> kinds() {
-        List<String> kinds = new java.util.ArrayList<>(List.of("var", "param", "item_count", "position", "block_at",
+        List<String> kinds = new ArrayList<>(List.of("var", "param", "item_count", "position", "block_at",
                 "random", "join"));
         kinds.addAll(JsonNamed.names(SensorType.values()));
         kinds.addAll(JsonNamed.names(BinaryOp.values()));

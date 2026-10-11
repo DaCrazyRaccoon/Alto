@@ -53,8 +53,7 @@ public final class StrictJson {
     }
 
     public static JsonElement parse(String text) throws SyntaxError {
-        JsonReader reader = new JsonReader(new StringReader(text));
-        reader.setLenient(false);
+        JsonReader reader = new JsonReader(new StringReader(text)); // strict unless setLenient(true) is called
         try {
             JsonElement root = read(reader, "", 0);
             if (reader.peek() != JsonToken.END_DOCUMENT) {
