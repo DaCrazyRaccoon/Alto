@@ -483,7 +483,7 @@ final class M4Scenarios {
 
         @Override
         public String description() {
-            return "#goto into the nether with no portal known: build a frame (10 obsidian, 4 cobblestone corners), light it, go through";
+            return "#goto into the nether with no portal known: build a frame (10 obsidian, cobblestone corners), light it, go through";
         }
 
         @Override
@@ -494,7 +494,7 @@ final class M4Scenarios {
         @Override
         public void setup(ServerLevel level, ServerPlayer player, BlockPos o) {
             TestRig.clearArea(level, o);
-            TestRig.resetPlayer(level, player, o, new ItemStack(Items.OBSIDIAN, 10), new ItemStack(Items.COBBLESTONE, 4),
+            TestRig.resetPlayer(level, player, o, new ItemStack(Items.OBSIDIAN, 10), new ItemStack(Items.COBBLESTONE, 16),
                     new ItemStack(Items.FLINT_AND_STEEL));
         }
 

@@ -117,6 +117,13 @@ neoForge {
             // Pack mods run extra dev-only self-checks; the harness switches FML to production mode (see DevTestHarness).
             systemProperty 'alto.devtest.production', 'true'
         }
+        // Dedicated server WITHOUT Alto (client-only proof): offline mode, 127.0.0.1 only, see scripts/alto/server-join-test.ps1.
+        bareServer {
+            server()
+            gameDirectory = new File(testenvDir, 'run-server')
+            loadedMods = []
+            programArgument '--nogui'
+        }
         configureEach {
             // Marker so scripts/alto/test-client.ps1 can find (and only ever stop) its own test clients.
             jvmArgument "-Dalto.testclient=${name}"

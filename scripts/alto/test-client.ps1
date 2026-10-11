@@ -20,7 +20,7 @@
 
 param(
     [ValidateSet('client', 'packClient')] [string] $Run = 'packClient',
-    [ValidateSet('boot', 'world')] [string] $Mode = 'boot',
+    [ValidateSet('boot', 'world', 'join')] [string] $Mode = 'boot',
     [string] $Commands = '',
     [int] $TimeoutMinutes = 20,
     [string] $GameMode = 'survival',
@@ -93,7 +93,7 @@ while (-not $verdict) {
     if (Test-Path $report) {
         $lines = Get-Content $report
         $last = $lines[-1]
-        if ($last -match '^(BOOT OK|WORLD OK)') { $verdict = 'PASS' } else { $verdict = 'FAIL' }
+        if ($last -match '^(BOOT OK|WORLD OK|JOIN OK)') { $verdict = 'PASS' } else { $verdict = 'FAIL' }
         $reasons += "harness: $last"
         break
     }

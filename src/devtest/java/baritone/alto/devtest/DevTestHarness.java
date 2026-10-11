@@ -128,7 +128,21 @@ public final class DevTestHarness {
             }
             return;
         }
-        if (!mode.equals("world")) {
+        if (!mode.equals("world") && !mode.equals("join")) {
+            return;
+        }
+        if (!worldRequested && mode.equals("join")) {
+            // alto.devtest=join: connect to a dedicated server that does NOT have Alto (client-only proof).
+            if (mc.screen instanceof TitleScreen title && mc.getOverlay() == null) {
+                worldRequested = true;
+                mc.options.pauseOnLostFocus = false;
+                String addr = System.getProperty("alto.devtest.server", "127.0.0.1:25599");
+                report.add("title screen reached, mods loaded=" + ModList.get().size() + "; joining " + addr);
+                net.minecraft.client.gui.screens.ConnectScreen.startConnecting(title, mc,
+                        net.minecraft.client.multiplayer.resolver.ServerAddress.parseString(addr),
+                        new net.minecraft.client.multiplayer.ServerData("Alto join test", addr, net.minecraft.client.multiplayer.ServerData.Type.OTHER),
+                        false, null);
+            }
             return;
         }
         if (!worldRequested) {
@@ -158,7 +172,8 @@ public final class DevTestHarness {
             }
             return;
         }
-        if (mc.player == null || mc.level == null || mc.getSingleplayerServer() == null) {
+        if (mc.player == null || mc.level == null || mode.equals("world") && mc.getSingleplayerServer() == null
+                || mode.equals("join") && mc.getConnection() == null) {
             return;
         }
         ticksInWorld++;
@@ -183,6 +198,14 @@ public final class DevTestHarness {
                     report.add("  -> FAILED: " + t);
                     LOG.error("[alto-devtest] command failed", t);
                 }
+            }
+            return;
+        }
+        if (mode.equals("join")) {
+            if (ticksInWorld > 400) {
+                boolean remote = !mc.isLocalServer() && mc.getConnection() != null && mc.getConnection().getConnection().isConnected();
+                finish(mc, remote ? "JOIN OK after " + (System.nanoTime() - startNanos) / 1_000_000_000L
+                        + " s: still connected to the server without Alto after 20 s in game" : "JOIN FAILED: not connected");
             }
             return;
         }

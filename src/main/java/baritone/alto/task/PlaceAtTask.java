@@ -59,6 +59,10 @@ public final class PlaceAtTask extends AltoTask {
         this.label = label;
     }
 
+    public BlockPos pos() {
+        return pos;
+    }
+
     public PlaceAtTask standingAt(int y) {
         this.standY = y;
         return this;

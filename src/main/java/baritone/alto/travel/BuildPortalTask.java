@@ -54,6 +54,8 @@ public final class BuildPortalTask extends AltoTask {
 
     private static final ItemKey OBSIDIAN = McItems.key(Items.OBSIDIAN);
     private static final ItemKey FLINT_AND_STEEL = McItems.key(Items.FLINT_AND_STEEL);
+    /** Throwaway blocks kept for towering up to the top of the frame. */
+    private static final int SCAFFOLD = 6;
 
     private Phase phase = Phase.MATERIALS;
     private AltoTask sub;
@@ -61,7 +63,6 @@ public final class BuildPortalTask extends AltoTask {
     private Direction.Axis axis;
     private final List<AltoTask> placements = new ArrayList<>();
     private int ticks;
-    private Boolean savedAllowPlace;
 
     public BuildPortalTask(Alto alto) {
         super(alto);
@@ -105,7 +106,8 @@ public final class BuildPortalTask extends AltoTask {
             case MATERIALS: {
                 var inv = ctx.player().getInventory();
                 int obsidian = McItems.count(inv, Items.OBSIDIAN);
-                int corners = Math.min(4, throwawayCount());
+                // Corners may be throwaway blocks, but Baritone also needs a few to tower up for the top of the frame.
+                int corners = throwawayCount() >= 4 + SCAFFOLD ? 4 : 0;
                 int needObsidian = 10 + (4 - corners);
                 ItemCounts target = new ItemCounts();
                 if (obsidian < needObsidian) {
@@ -130,14 +132,12 @@ public final class BuildPortalTask extends AltoTask {
                     return Step.failure("no flat, clear 4x5 spot for a portal within 6 blocks");
                 }
                 planPlacements();
-                holdPlacing(true);
                 phase = Phase.PLACE;
                 return Step.stay();
             }
             case PLACE: {
                 detail("building the frame (" + (14 - placements.size()) + "/14)");
                 if (placements.isEmpty()) {
-                    holdPlacing(false);
                     phase = Phase.LIGHT;
                     return Step.stay();
                 }
@@ -219,7 +219,7 @@ public final class BuildPortalTask extends AltoTask {
     private void planPlacements() {
         Direction along = axis == Direction.Axis.X ? Direction.EAST : Direction.SOUTH;
         Predicate<Item> obsidian = i -> i == Items.OBSIDIAN;
-        Predicate<Item> corner = throwawayCount() >= 4 ? throwaway().and(i -> i != Items.OBSIDIAN) : obsidian;
+        Predicate<Item> corner = throwawayCount() >= 4 + SCAFFOLD ? throwaway().and(i -> i != Items.OBSIDIAN) : obsidian;
         // Bottom corners, bottom row, the two sides from the bottom up, top corners, top row: every block rests on one placed before.
         placements.add(stand(new PlaceAtTask(alto, base, corner, "a corner block")));
         placements.add(stand(new PlaceAtTask(alto, base.relative(along, 3), corner, "a corner block")));
@@ -236,24 +236,11 @@ public final class BuildPortalTask extends AltoTask {
     }
 
     private AltoTask stand(PlaceAtTask t) {
-        return t.standingAt(base.getY());
-    }
-
-    /** No scaffolding while the frame is built: the corner blocks are throwaway blocks Baritone would use up. */
-    private void holdPlacing(boolean hold) {
-        var allow = Baritone.settings().allowPlace;
-        if (hold && savedAllowPlace == null) {
-            savedAllowPlace = allow.value;
-            allow.value = false;
-        } else if (!hold && savedAllowPlace != null) {
-            allow.value = savedAllowPlace;
-            savedAllowPlace = null;
-        }
+        return t.pos().getY() <= base.getY() + 1 ? t.standingAt(base.getY()) : t;
     }
 
     @Override
     public void cancel() {
-        holdPlacing(false);
         if (sub != null) {
             sub.cancel();
         }

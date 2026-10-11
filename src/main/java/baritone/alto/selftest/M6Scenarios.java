@@ -189,7 +189,8 @@ final class M6Scenarios {
                 }
                 case 1 -> {
                     Minecraft.getInstance().setScreen(null);
-                    alto.baritone().getCommandManager().execute("goto " + o.getX() + " " + o.getY() + " " + (o.getZ() + 10));
+                    alto.baritone().getCommandManager().execute("goto " + o.getX() + " " + o.getY() + " " + (o.getZ() + 300));
+                    mark = ticks - 30; // look at the HUD 10 ticks after starting the walk
                     return Verdict.RUNNING;
                 }
                 default -> {
