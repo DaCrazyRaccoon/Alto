@@ -109,6 +109,13 @@ public final class DevTestHarness {
             finish(mc, "LAUNCH FAILED: " + error);
             return;
         }
+        logScreenChanges(mc);
+        if (mc.screen != null && mc.screen.getClass().getSimpleName().contains("Welcome")) {
+            // First-launch welcome screens of pack mods (e.g. Create Deep Seas) would sit over the test world.
+            LOG.info("[alto-devtest] closing welcome screen {}", mc.screen.getClass().getName());
+            mc.setScreen(null);
+            return;
+        }
         if (mc.screen instanceof AccessibilityOnboardingScreen) {
             mc.options.onboardingAccessibilityFinished();
             mc.setScreen(new TitleScreen(true));
@@ -191,6 +198,25 @@ public final class DevTestHarness {
             LOG.info("[alto-devtest] FMLLoader.production set to true (simulating the real game for pack mods)");
         } catch (ReflectiveOperationException | RuntimeException e) {
             LOG.warn("[alto-devtest] could not simulate production mode", e);
+        }
+    }
+
+    private String lastScreen = "";
+    private long lastScreenNanos = System.nanoTime();
+    private boolean stuckReported;
+
+    /** Logs every screen change and reports a screen that blocks the run for more than two minutes. */
+    private void logScreenChanges(Minecraft mc) {
+        String now = mc.screen == null ? "none" : mc.screen.getClass().getName();
+        if (!now.equals(lastScreen)) {
+            LOG.info("[alto-devtest] screen: {}", now);
+            lastScreen = now;
+            lastScreenNanos = System.nanoTime();
+            stuckReported = false;
+        } else if (!stuckReported && mc.screen != null && mc.getOverlay() == null
+                && System.nanoTime() - lastScreenNanos > 120_000_000_000L && !(mc.screen instanceof TitleScreen)) {
+            stuckReported = true;
+            LOG.warn("[alto-devtest] STUCK on screen {} for 2 minutes", now);
         }
     }
 

@@ -30,7 +30,8 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $source = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).ProviderPath
-$testenv = (Resolve-Path (Join-Path $source '..\testenv')).ProviderPath
+$testenvCandidates = @((Join-Path $source '..\testenv'), (Join-Path $source '..\..\testenv'))
+$testenv = (Resolve-Path ($testenvCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1)).ProviderPath
 $gameDir = if ($Run -eq 'packClient') { Join-Path $testenv 'run-pack' } else { Join-Path $testenv 'run-dev' }
 $task = if ($Run -eq 'packClient') { 'preparePackRun runPackClient' } else { 'prepareDevRun runClient' }
 $resultFile = Join-Path $testenv "launch-check-$Run.txt"
@@ -54,7 +55,8 @@ $fatalPatterns = @(
     'ModLoadingException',
     'Exception in thread "Render thread"',
     'Encountered an unexpected exception',
-    '\[alto-devtest\] LAUNCH FAILED'
+    '\[alto-devtest\] LAUNCH FAILED',
+    '\[alto-devtest\] STUCK on screen'
 )
 
 function Get-TestClientProcesses([datetime] $since) {

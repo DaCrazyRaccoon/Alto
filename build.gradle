@@ -28,6 +28,10 @@ plugins {
 }
 
 version = "${baritone_version}-alto.${alto_version}"
+
+// Test environment folder (copy of the pack, run folders). The repo can also be checked out one level deeper
+// (Alto/work/<name>) so test runs can use a frozen snapshot while development continues in Alto/source.
+def testenvDir = [new File(rootDir, '../testenv'), new File(rootDir, '../../testenv')].find { it.isDirectory() } ?: new File(rootDir, '../testenv')
 group = maven_group
 
 base {
@@ -101,13 +105,13 @@ neoForge {
         // Dev client with only Baritone (no Create, no EMI): soft-dependency test.
         client {
             client()
-            gameDirectory = project.file(findProperty('alto_run_dir') ?: '../testenv/run-dev')
+            gameDirectory = (findProperty('alto_run_dir') ? project.file(findProperty('alto_run_dir')) : new File(testenvDir, 'run-dev'))
             loadedMods = [mods.baritoe, mods.alto_devtest]
         }
         // Dev client with a COPY of the pack's mods/configs (see preparePackRun). Never the real instance.
         packClient {
             client()
-            gameDirectory = project.file('../testenv/run-pack')
+            gameDirectory = new File(testenvDir, 'run-pack')
             loadedMods = [mods.baritoe, mods.alto_devtest]
             jvmArguments.addAll('-Xmx8G', '-Xms2G')
             // Pack mods run extra dev-only self-checks; the harness switches FML to production mode (see DevTestHarness).
@@ -193,7 +197,7 @@ def seedOptions = { File dir ->
 }
 
 tasks.register('prepareDevRun') {
-    doLast { seedOptions(project.file(findProperty('alto_run_dir') ?: '../testenv/run-dev')) }
+    doLast { seedOptions((findProperty('alto_run_dir') ? project.file(findProperty('alto_run_dir')) : new File(testenvDir, 'run-dev'))) }
 }
 
 // Jars left out of DEV pack runs: Sinytra Connector cannot find the "clean" Minecraft jar inside a
@@ -203,9 +207,9 @@ tasks.register('prepareDevRun') {
 def devPackExclude = (findProperty('alto_pack_exclude')
         ?: 'connector-*.jar,Axiom-*.jar,IrisExtension-*.jar,continuity-*.jar').toString().split(',').collect { it.trim() }
 
-tasks.register('preparePackRun', Sync) {
-    def packDir = project.file('../testenv/pack')
-    def runDir = project.file('../testenv/run-pack')
+tasks.register('preparePackRun', Copy) {
+    def packDir = new File(testenvDir, 'pack')
+    def runDir = new File(testenvDir, 'run-pack')
     from(new File(packDir, 'mods')) { into 'mods'; exclude devPackExclude }
     from(new File(packDir, 'config')) { into 'config' }
     from(new File(packDir, 'kubejs')) { into 'kubejs' }
@@ -220,13 +224,12 @@ tasks.register('preparePackRun', Sync) {
             }
         }
     }
-    // Keep what the game creates at runtime (worlds, logs, options, Baritone data).
-    preserve {
-        include 'saves/**', 'logs/**', 'crash-reports/**', 'options.txt', 'baritone/**', 'screenshots/**',
-                'alto-devtest-report.txt', 'mods/.connector/**', '*.json', '*.dat', '*.txt', 'local/**', 'data/**',
-                'xaero/**', 'journeymap/**', 'shaderpacks/**', 'resourcepacks/**', 'schematics/**'
-    }
+    // Copy (not sync): files the mods create on their first start (first-run markers, client configs) stay,
+    // like in a real instance after its first launch. Excluded jars are removed explicitly below.
     doLast {
+        devPackExclude.each { pattern ->
+            project.fileTree(new File(runDir, 'mods')) { include pattern }.each { it.delete() }
+        }
         seedOptions(runDir)
         // Make the test window impossible to confuse with the real game: retitle it in the RUN copy only.
         def kube = new File(runDir, 'kubejs/config/client.json')

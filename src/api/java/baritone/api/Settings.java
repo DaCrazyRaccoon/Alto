@@ -1791,6 +1791,12 @@ public final class Settings {
     public final Setting<Integer> altoBuilderSupplyBatch = new Setting<>(128);
 
     /**
+     * Storage: let Alto take from and deposit into any container it has seen, not only containers inside your storage
+     * zones (#home zone). Off by default so Alto never touches someone else's chest on a server.
+     */
+    public final Setting<Boolean> altoStorageAnywhere = new Setting<>(false);
+
+    /**
      * Allow #selftest to change the world (it builds test setups around you). Only works in singleplayer, and only
      * in worlds whose name starts with "alto_test" unless you add "confirm" to the command.
      */

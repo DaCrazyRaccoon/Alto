@@ -84,6 +84,14 @@ public final class StationManager {
         return new ArrayList<>(BaritoneAPI.getProvider().getWorldScanner().scanChunkRadius(ctx, List.of(block), 64, -1, chunks));
     }
 
+    /** Distance to the nearest loaded ender chest block (infinite if none within 64 blocks). */
+    public double nearestEnderChestDistance() {
+        IPlayerContext ctx = alto.ctx();
+        List<BlockPos> found = BaritoneAPI.getProvider().getWorldScanner().scanChunkRadius(ctx, List.of(Blocks.ENDER_CHEST), 8, -1, 4);
+        BlockPos feet = ctx.playerFeet();
+        return found.stream().mapToDouble(p -> Math.sqrt(p.distSqr(feet))).min().orElse(Double.POSITIVE_INFINITY);
+    }
+
     public static boolean hasOpenFace(Level level, BlockPos pos) {
         for (Direction d : Direction.values()) {
             BlockState n = level.getBlockState(pos.relative(d));
