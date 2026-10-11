@@ -99,16 +99,16 @@ is about to break, and eat when you are hungry. Each helper has an on/off settin
 
 ### Progress and settings
 
-Press **H** for a small progress display. `#alto settings` (or Mods > Baritone > Config) opens the settings screen.
+Press **H** for a small progress display. `#alto settings` (or Mods > Alto > Config) opens the settings screen.
 
 ![The settings screen](docs/images/settings.jpg)
 *The settings screen: every Alto setting in groups, with search and a reset button for each.*
 
 ### Scripts
 
-Make scripts with blocks in the script editor (`alto-script-editor.html`, works offline in any browser), save them
-to `.minecraft/baritone/alto/scripts/`, and run them with `#script run <name>`. Alto asks before a new script runs
-for the first time.
+Make scripts with blocks in the script editor (`alto-editor/dist/alto-script-editor.html`, works offline in any
+browser), save them to `.minecraft/baritone/alto/scripts/`, and run them with `#script run <name>`. Alto asks before
+a new script runs for the first time.
 
 ![The script editor](docs/images/editor.jpg)
 *The script editor with an example script. The right side lists problems and what the script is allowed to do.*
