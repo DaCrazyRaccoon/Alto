@@ -82,6 +82,11 @@ public final class SupplyRun {
         return last;
     }
 
+    /** A build just started and its supply run comes in a moment (the builder's own supply waits for it). */
+    public boolean hasPending() {
+        return pending != null;
+    }
+
     /** BuilderProcess.build hook (also called when Alto resumes a build after a supply job: ignored then). */
     public void onBuildStarted(BuilderProcess builder) {
         if (!alto.enabled() || !Baritone.settings().altoSupplyRuns.value) {
@@ -181,6 +186,9 @@ public final class SupplyRun {
     public boolean startRun(ShoppingList list, String name) {
         if (alto.storage().zones().isEmpty() && !Baritone.settings().altoStorageAnywhere.value) {
             return false;
+        }
+        if (alto.process().busy()) {
+            return false; // another Alto job is running; the builder's own supply covers what is still missing
         }
         int free = McItems.freeSlots(alto.ctx().player().getInventory()) - KEEP_FREE_SLOTS;
         ItemCounts run = list.supplyRun(free, k -> McItems.item(k).getDefaultMaxStackSize());

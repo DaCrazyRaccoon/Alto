@@ -70,8 +70,8 @@ public final class BuilderSupply {
         if (!alto.enabled() || !Baritone.settings().altoBuilderSupply.value || missing == null || missing.isEmpty()) {
             return false;
         }
-        if (alto.process().busy()) {
-            return true; // a run is already going; the builder just waits
+        if (alto.process().busy() || alto.supplyRun().hasPending()) {
+            return true; // a run is already going (or the build's supply run is about to start); the builder waits
         }
         String id = builder.altoBuildName();
         if (!id.equals(buildId)) {
