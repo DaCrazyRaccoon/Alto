@@ -217,7 +217,7 @@ public final class VehicleTasks {
      * the rest.
      */
     public static final class BoatTask extends AltoTask {
-        private enum Phase { FIND, PLACE, BOARD, STEER, OFF, PICKUP, WALK }
+        private enum Phase { FIND, PLACE, BOARD, STEER, OFF, PICKUP, COLLECT, WALK }
 
         private final int x;
         private final int z;
@@ -228,6 +228,7 @@ public final class VehicleTasks {
         private int ticks;
         private int blocked;
         private int tries;
+        private int boatsBefore;
 
         public BoatTask(Alto alto, int x, int z) {
             super(alto);
@@ -367,8 +368,12 @@ public final class VehicleTasks {
                 case PICKUP: {
                     detail("picking the boat up");
                     if (boat.isRemoved()) {
-                        phase = Phase.WALK; // it dropped as an item next to us; Baritone picks up items it walks over
+                        phase = Phase.COLLECT; // it dropped as an item: go and get it
+                        ticks = 0;
                         return Step.stay();
+                    }
+                    if (ticks == 0) {
+                        boatsBefore = boatItems(p);
                     }
                     if (++ticks > 20 * 20) {
                         AltoLog.chat("Could not pick the boat up again; it is left at " + boat.blockPosition().toShortString() + ".");
@@ -386,6 +391,26 @@ public final class VehicleTasks {
                         p.swing(InteractionHand.MAIN_HAND);
                     }
                     return Step.stay();
+                }
+                case COLLECT: {
+                    detail("collecting the boat");
+                    if (boatItems(p) > boatsBefore) {
+                        phase = Phase.WALK;
+                        return Step.stay();
+                    }
+                    Optional<net.minecraft.world.entity.item.ItemEntity> drop = ctx.world().getEntitiesOfClass(
+                                    net.minecraft.world.entity.item.ItemEntity.class, p.getBoundingBox().inflate(8),
+                                    e -> e.getItem().getItem() instanceof BoatItem)
+                            .stream().min(Comparator.comparingDouble(e -> e.distanceToSqr(p)));
+                    if (++ticks > 20 * 20 || drop.isEmpty() && ticks > 40) {
+                        AltoLog.chat("Could not collect the boat item.");
+                        phase = Phase.WALK;
+                        return Step.stay();
+                    }
+                    if (drop.isEmpty() || drop.get().distanceToSqr(p) < 1.0) {
+                        return Step.stay(); // the server hands it over when we touch it
+                    }
+                    return Step.walk(new baritone.api.pathing.goals.GoalBlock(drop.get().blockPosition()));
                 }
                 case WALK: {
                     GoalXZ goal = new GoalXZ(x, z);
@@ -419,6 +444,16 @@ public final class VehicleTasks {
             in.setInputForceState(Input.MOVE_LEFT, false);
             in.setInputForceState(Input.MOVE_RIGHT, false);
             in.setInputForceState(Input.MOVE_FORWARD, false);
+        }
+
+        private static int boatItems(LocalPlayer p) {
+            int n = 0;
+            for (int i = 0; i < p.getInventory().getContainerSize(); i++) {
+                if (p.getInventory().getItem(i).getItem() instanceof BoatItem) {
+                    n += p.getInventory().getItem(i).getCount();
+                }
+            }
+            return n;
         }
 
         private static int boatSlot(LocalPlayer p) {

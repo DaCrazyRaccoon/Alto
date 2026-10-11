@@ -280,7 +280,7 @@ final class M2Scenarios {
                 items.add(new ItemStack(Items.COBBLESTONE, 64));
             }
             TestRig.resetPlayer(level, player, o, items.toArray(new ItemStack[0]));
-            pile(level, o, Blocks.OAK_LOG);
+            pile(level, o, Blocks.STRIPPED_OAK_LOG); // never generated naturally: #mine stays in the test area
         }
 
         @Override
@@ -291,7 +291,7 @@ final class M2Scenarios {
             rig.setting(TestRig.settings().altoKeepItems, new ArrayList<>());
             zone(alto, o);
             alto.selfTests().allowUpkeep(true);
-            alto.baritone().getCommandManager().execute("mine minecraft:oak_log");
+            alto.baritone().getCommandManager().execute("mine minecraft:stripped_oak_log");
         }
 
         @Override
@@ -451,7 +451,7 @@ final class M2Scenarios {
 
         @Override
         public String description() {
-            return "nearly broken stone pickaxe in hand while mining andesite, with cobblestone and sticks: crafts a new stone pickaxe";
+            return "nearly broken stone pickaxe in hand while mining polished andesite, with cobblestone and sticks: crafts a new stone pickaxe";
         }
 
         @Override
@@ -466,7 +466,7 @@ final class M2Scenarios {
             worn.setDamageValue(worn.getMaxDamage() - 3);
             TestRig.resetPlayer(level, player, o, worn, new ItemStack(Items.COBBLESTONE, 3), new ItemStack(Items.STICK, 2),
                     new ItemStack(Items.CRAFTING_TABLE, 1));
-            pile(level, o, Blocks.ANDESITE);
+            pile(level, o, Blocks.POLISHED_ANDESITE); // never generated naturally
             player.getInventory().selected = 0;
         }
 
@@ -476,7 +476,7 @@ final class M2Scenarios {
             rig.setting(TestRig.settings().altoToolMaxTier, "stone");
             Minecraft.getInstance().player.getInventory().selected = 0;
             alto.selfTests().allowUpkeep(true);
-            alto.baritone().getCommandManager().execute("mine minecraft:andesite");
+            alto.baritone().getCommandManager().execute("mine minecraft:polished_andesite");
         }
 
         @Override

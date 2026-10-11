@@ -196,6 +196,11 @@ public final class PickupStationTask extends AltoTask {
             return Step.stay(); // the drop may not have arrived on the client yet
         }
         ItemEntity nearest = drops.stream().min(Comparator.comparingDouble(e -> e.distanceToSqr(ctx.player()))).orElseThrow();
+        if (nearest.getY() < pos.getY() - 2) {
+            pctx.forgetStation(kind);
+            AltoLog.warn("The dropped " + kind.displayName + " fell away; not digging after it.");
+            return Step.success("broken, drop fell away");
+        }
         if (nearest.distanceToSqr(ctx.player()) < 1.0) {
             return Step.stay(); // pickup happens on the server; wait for the inventory update
         }

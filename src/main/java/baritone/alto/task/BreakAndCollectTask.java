@@ -132,6 +132,9 @@ public final class BreakAndCollectTask extends AltoTask {
                     return Step.stay();
                 }
                 ItemEntity nearest = drops.stream().min(Comparator.comparingDouble(e -> e.distanceToSqr(ctx.player()))).orElseThrow();
+                if (nearest.getY() < pos.getY() - 2) {
+                    return Step.failure("the dropped " + label + " fell away; not digging after it");
+                }
                 if (nearest.distanceToSqr(ctx.player()) < 1.0) {
                     return Step.stay();
                 }

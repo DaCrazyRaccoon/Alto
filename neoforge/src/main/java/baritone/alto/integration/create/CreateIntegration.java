@@ -56,6 +56,9 @@ public final class CreateIntegration implements AltoIntegration {
         alto.addFilterAccess(new CreateFilterAccess());
         // Material lists: Create knows what its blocks cost (belts, shafts, copycats...) and handles vanilla specials.
         alto.supplyRun().addRequirementSource(CreateIntegration::requirement);
+        // Moving platforms, trains, elevators, stock keepers.
+        alto.addTickListener(CreateTravel::tickPlatform);
+        CreateCommands.register(alto);
     }
 
     static baritone.alto.core.ItemCounts requirement(net.minecraft.world.level.block.state.BlockState state) {

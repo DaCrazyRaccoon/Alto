@@ -104,6 +104,7 @@ public final class Alto {
     private final ItemPicker picker;
     private final PortalManager portals;
     private final SupplyRun supplyRun;
+    private final baritone.alto.task.PlatformPauseProcess platformPause;
     private final List<FilterAccess> filterAccess = new CopyOnWriteArrayList<>();
     private final VanillaRecipeSource vanillaRecipes = new VanillaRecipeSource();
     private final BuilderSupply builderSupply;
@@ -134,6 +135,7 @@ public final class Alto {
         this.picker = new ItemPicker(this);
         this.portals = new PortalManager(this);
         this.supplyRun = new SupplyRun(this);
+        this.platformPause = new baritone.alto.task.PlatformPauseProcess(baritone);
         // Vanilla fallback: the item in the inventory slot under the mouse (integrations such as EMI come first).
         this.picker.addProvider((mx, my) -> net.minecraft.client.Minecraft.getInstance().screen
                 instanceof net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<?> s && s.getSlotUnderMouse() != null
@@ -152,6 +154,7 @@ public final class Alto {
     public static Alto create(Baritone baritone) {
         Alto alto = new Alto(baritone);
         baritone.getPathingControlManager().registerProcess(alto.process);
+        baritone.getPathingControlManager().registerProcess(alto.platformPause);
         baritone.getGameEventHandler().registerEventListener(alto.new Listener());
         AltoCommands.registerAll(baritone, alto);
         Integrations.initAll(alto);
@@ -191,6 +194,11 @@ public final class Alto {
 
     public StorageManager storage() {
         return storage;
+    }
+
+    /** Integrations that see moving contraptions report here every tick (extra 8). */
+    public baritone.alto.task.PlatformPauseProcess platformPause() {
+        return platformPause;
     }
 
     public SupplyRun supplyRun() {
