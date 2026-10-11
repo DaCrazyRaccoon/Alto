@@ -145,11 +145,9 @@ public final class DevTestHarness {
             }
             photoTicks = 0;
             photoCamera = mc.options.getCameraType();
-            // Clean pictures: no chat (except for the safety stop, whose message is the point) and no pop-ups.
+            // Clean pictures: no chat (Alto's HUD shows what is going on) and no pop-ups.
             photoChat = mc.options.chatVisibility().get();
-            if (!String.valueOf(photoNow[0]).contains("safety")) {
-                mc.options.chatVisibility().set(net.minecraft.world.entity.player.ChatVisiblity.HIDDEN);
-            }
+            mc.options.chatVisibility().set(net.minecraft.world.entity.player.ChatVisiblity.HIDDEN);
             mc.getToasts().clear();
             mc.options.setCameraType((Boolean) photoNow[1] ? net.minecraft.client.CameraType.THIRD_PERSON_BACK : net.minecraft.client.CameraType.FIRST_PERSON);
             return;

@@ -95,7 +95,7 @@ is about to break, and eat when you are hungry. Each helper has an on/off settin
 - Paths never break machines, chests, signs or train tracks (setting `altoProtectMachines`).
 
 ![A safety stop](docs/images/safety.jpg)
-*Health dropped while mining: Alto paused everything and says how to continue (`#resume`) or stop (`#stop`).*
+*Health dropped while mining: everything paused, and the HUD (top left) shows why. `#resume` continues, `#stop` ends the job.*
 
 ### Progress and settings
 

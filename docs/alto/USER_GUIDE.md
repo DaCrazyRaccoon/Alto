@@ -111,9 +111,6 @@ harvest by right-clicking, like tomatoes, are left alone. When you run out of se
 With `altoBuildPortals` on (off by default), Alto builds and lights a portal when it knows none. It needs 10
 obsidian, a flint and steel, and some cobblestone.
 
-![A portal built by Alto](../images/portal.jpg)
-*With `altoBuildPortals` on, Alto built and lit this portal and went through it to the nether.*
-
 ![Crossing water by boat](../images/boat.jpg)
 *`#boat <x> <z>`: Alto placed its boat, crosses the water, and picks the boat up on the other side.*
 
@@ -127,7 +124,7 @@ obsidian, a flint and steel, and some cobblestone.
 - **Progress HUD** (H key, or `#alto hud`): what the script, Alto and Baritone are doing right now.
 
 ![A safety stop](../images/safety.jpg)
-*Health dropped while mining: Alto paused everything and says how to continue (`#resume`) or stop (`#stop`).*
+*Health dropped while mining: everything paused, and the HUD (top left) shows why. `#resume` continues, `#stop` ends the job.*
 
 ## Settings
 
@@ -199,9 +196,6 @@ Also:
 
 ![Setting a deployer's filter](../images/create-filter.jpg)
 *`#filter iron_ingot` while looking at a deployer: the filter is set and the ingot stays in your inventory.*
-
-![Walking around a running drill](../images/create-hazard.jpg)
-*A running mechanical drill stands in the way. Baritone keeps two blocks away from it instead of brushing past.*
 
 ## EMI
 
