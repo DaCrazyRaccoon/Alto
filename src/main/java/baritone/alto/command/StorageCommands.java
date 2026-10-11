@@ -27,6 +27,9 @@ import baritone.alto.storage.FetchTask;
 import baritone.alto.storage.KeepList;
 import baritone.alto.storage.StorageIndex;
 import baritone.alto.storage.Zones;
+import baritone.alto.storage.ZoneScanTask;
+import baritone.alto.task.ShulkerTask;
+import baritone.alto.mc.RegistryExport;
 import baritone.alto.task.AltoTask;
 import baritone.alto.task.Job;
 import baritone.alto.task.SequenceTask;
@@ -155,6 +158,12 @@ final class StorageCommands {
                     alto.storage().zonesChanged();
                     return;
                 }
+                case "scan": {
+                    String name = args.getString();
+                    Zones.Zone z = zones.zone(name).orElseThrow(() -> new CommandInvalidStateException("No zone named '" + name + "'"));
+                    alto.startJob(Job.of(new ZoneScanTask(alto, z), "command"));
+                    return;
+                }
                 case "rules": {
                     String name = args.getString();
                     Zones.Zone z = zones.zone(name).orElseThrow(() -> new CommandInvalidStateException("No zone named '" + name + "'"));
@@ -201,7 +210,7 @@ final class StorageCommands {
             }
             String sub = args.getString();
             if (sub.equalsIgnoreCase("zone") && args.hasExactlyOne()) {
-                return Stream.of("add", "remove", "rules", "list");
+                return Stream.of("add", "remove", "rules", "scan", "list");
             }
             if (sub.equalsIgnoreCase("storage") && args.hasExactlyOne()) {
                 return args.tabCompleteDatatype(ItemById.INSTANCE);
@@ -225,6 +234,7 @@ final class StorageCommands {
                     "> home zone add <name> [x1 y1 z1 x2 y2 z2] - zone from corners or the current #sel selection",
                     "> home zone remove <name>",
                     "> home zone rules <name> [item ...] - only these items are deposited there (none = everything)",
+                    "> home zone scan <name> - open every container in the zone once so Alto knows what is inside",
                     "> home storage [item] - what is stored where"
             );
         }
@@ -317,6 +327,108 @@ final class StorageCommands {
         public List<String> getLongDesc() {
             return Arrays.asList("Deposits everything except the keep-list (altoKeepItems, tools, food) into your storage zones.",
                     "Zones with rules only receive matching items.", "", "Usage:", "> deposit");
+        }
+    }
+
+    static final class ShulkerCommand extends Command {
+        private final Alto alto;
+
+        ShulkerCommand(IBaritone baritone, Alto alto) {
+            super(baritone, "shulker");
+            this.alto = alto;
+        }
+
+        @Override
+        public void execute(String label, IArgConsumer args) throws CommandException {
+            AltoCommands.requireEnabled();
+            String op = args.hasAny() ? args.getString().toLowerCase(Locale.ROOT) : "";
+            switch (op) {
+                case "unpack": {
+                    Item item = args.getDatatypeFor(ItemById.INSTANCE);
+                    int count = args.hasAny() ? args.getAs(Integer.class) : 64;
+                    ItemKey key = McItems.key(item);
+                    alto.startJob(Job.of(new ShulkerTask(alto, ShulkerTask.Mode.UNPACK, key::equals, key.shortName(), count, p -> false), "command"));
+                    return;
+                }
+                case "pack": {
+                    java.util.function.Predicate<ItemKey> keep = KeepList.keep(new ItemCounts());
+                    java.util.function.Predicate<ItemKey> match;
+                    String what;
+                    if (args.hasAny()) {
+                        ItemKey key = McItems.key(args.getDatatypeFor(ItemById.INSTANCE));
+                        match = key::equals;
+                        what = key.shortName();
+                    } else {
+                        match = k -> !keep.test(k);
+                        what = "everything except the keep-list";
+                    }
+                    alto.startJob(Job.of(new ShulkerTask(alto, ShulkerTask.Mode.PACK, match, what, -1, p -> false), "command"));
+                    return;
+                }
+                default:
+                    getLongDesc().forEach(this::logDirect);
+            }
+        }
+
+        @Override
+        public Stream<String> tabComplete(String label, IArgConsumer args) throws CommandException {
+            if (args.hasExactlyOne()) {
+                return Stream.of("unpack", "pack");
+            }
+            args.getString();
+            return args.hasExactlyOne() ? args.tabCompleteDatatype(ItemById.INSTANCE) : Stream.empty();
+        }
+
+        @Override
+        public String getShortDesc() {
+            return "Use a carried shulker box (Alto)";
+        }
+
+        @Override
+        public List<String> getLongDesc() {
+            return Arrays.asList("Places a carried shulker box, takes items out or puts items in, and picks it up again.",
+                    "Shulker boxes keep their contents when broken, so nothing is lost.", "",
+                    "Usage:",
+                    "> shulker unpack <item> [count] - take items out of the box that holds them",
+                    "> shulker pack [item] - put that item (or everything except the keep-list) into the emptiest box");
+        }
+    }
+
+    static final class ExportRegistryCommand extends Command {
+        private final Alto alto;
+
+        ExportRegistryCommand(IBaritone baritone, Alto alto) {
+            super(baritone, "export-registry");
+            this.alto = alto;
+        }
+
+        @Override
+        public void execute(String label, IArgConsumer args) throws CommandException {
+            args.requireMax(0);
+            java.nio.file.Path file = alto.directory().resolve("alto-registry.json");
+            try {
+                int n = RegistryExport.write(file);
+                logDirect("Wrote " + n + " items and blocks to " + file.toAbsolutePath()
+                        + " - load it in the script editor (Load registry...) for item and block pickers.");
+            } catch (java.io.IOException e) {
+                throw new CommandInvalidStateException("Could not write " + file + ": " + e.getMessage());
+            }
+        }
+
+        @Override
+        public Stream<String> tabComplete(String label, IArgConsumer args) {
+            return Stream.empty();
+        }
+
+        @Override
+        public String getShortDesc() {
+            return "Write all item/block ids and names for the script editor (Alto)";
+        }
+
+        @Override
+        public List<String> getLongDesc() {
+            return Arrays.asList("Writes baritone/alto/alto-registry.json with every item and block of your modpack and its",
+                    "display name. The offline script editor loads it for its item and block pickers.", "", "Usage:", "> export-registry");
         }
     }
 }

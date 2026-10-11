@@ -59,6 +59,8 @@ public final class AltoCommands {
         commands.add(new StorageCommands.HomeCommand(baritone, alto));
         commands.add(new StorageCommands.FetchCommand(baritone, alto));
         commands.add(new StorageCommands.DepositCommand(baritone, alto));
+        commands.add(new StorageCommands.ShulkerCommand(baritone, alto));
+        commands.add(new StorageCommands.ExportRegistryCommand(baritone, alto));
         commands.forEach(baritone.getCommandManager().getRegistry()::register);
     }
 
