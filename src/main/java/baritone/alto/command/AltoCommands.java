@@ -66,6 +66,7 @@ public final class AltoCommands {
         commands.add(new FilterCommands.MarkCommand(baritone, alto));
         commands.add(new FilterCommands.PickCommand(baritone, alto));
         commands.add(new FilterCommands.UseOnCommand(baritone, alto));
+        commands.add(new CorpseCommand(baritone, alto));
         commands.forEach(baritone.getCommandManager().getRegistry()::register);
     }
 
@@ -131,6 +132,46 @@ public final class AltoCommands {
                     "> craft <item> [count] - craft count (default 1) more of item",
                     "> plan <item> [count] - only show the plan"
             );
+        }
+    }
+
+    /** #corpse — take your items back from your own corpse (Corpse mod). */
+    static final class CorpseCommand extends Command {
+        private final Alto alto;
+
+        CorpseCommand(IBaritone baritone, Alto alto) {
+            super(baritone, "corpse");
+            this.alto = alto;
+        }
+
+        @Override
+        public void execute(String label, IArgConsumer args) throws CommandException {
+            requireEnabled();
+            args.requireMax(0);
+            if (!alto.corpseSupport()) {
+                throw new CommandInvalidStateException("The Corpse mod is not installed (or altoCorpse is false)");
+            }
+            if (alto.nearestOwnCorpse().isEmpty()) {
+                throw new CommandInvalidStateException("No corpse of yours with items is loaded nearby");
+            }
+            alto.startJob(Job.of(new baritone.alto.task.RecoverCorpseTask(alto), "command"));
+        }
+
+        @Override
+        public Stream<String> tabComplete(String label, IArgConsumer args) {
+            return Stream.empty();
+        }
+
+        @Override
+        public String getShortDesc() {
+            return "Walk to your corpse and take your items back (Alto, Corpse mod)";
+        }
+
+        @Override
+        public List<String> getLongDesc() {
+            return Arrays.asList("Finds your own nearest corpse that still has items (it must be loaded, i.e. within view),",
+                    "walks there, opens it with a normal right-click and shift-clicks the items into your inventory.",
+                    "Stops when your inventory is full.", "", "Usage:", "> corpse");
         }
     }
 

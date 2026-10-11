@@ -69,6 +69,7 @@ public final class SelfTests {
         this.alto = alto;
         M1Scenarios.register(this);
         M2Scenarios.register(this);
+        M3Scenarios.register(this);
     }
 
     public void register(String name, Supplier<Scenario> factory) {

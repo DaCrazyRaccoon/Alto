@@ -75,6 +75,8 @@ public final class StorageRecorder {
     private ContainerRecord.Key partner;
     private BlockPos pos;
     private int open;
+    /** Ticks since the use key was last held: a menu opened by a hotkey (backpack, toolbox) is not the block you look at. */
+    private int sinceUse = 1000;
 
     StorageRecorder(Alto alto, StorageManager manager) {
         this.alto = alto;
@@ -99,6 +101,7 @@ public final class StorageRecorder {
         if (p == null || !Baritone.settings().altoEnabled.value) {
             return;
         }
+        sinceUse = Minecraft.getInstance().options.keyUse.isDown() ? 0 : Math.min(1000, sinceUse + 1);
         AbstractContainerMenu menu = p.containerMenu;
         if (menu == p.inventoryMenu) {
             lastMenu = null;
@@ -133,9 +136,12 @@ public final class StorageRecorder {
             return;
         }
         BlockPos candidate = null;
-        if (expected != null && expectedAge < 200) {
+        java.util.Optional<BlockPos> own = ContainerAdapters.forMenu(menu).blockPos(menu);
+        if (own.isPresent()) {
+            candidate = own.get(); // the menu knows its block
+        } else if (expected != null && expectedAge < 200) {
             candidate = expected;
-        } else {
+        } else if (sinceUse <= 10) {
             HitResult hit = Minecraft.getInstance().hitResult;
             if (hit instanceof BlockHitResult bhr && hit.getType() == HitResult.Type.BLOCK) {
                 candidate = bhr.getBlockPos();
@@ -165,8 +171,8 @@ public final class StorageRecorder {
         }
         pos = candidate;
         key = new ContainerRecord.Key(dim, candidate.getX(), candidate.getY(), candidate.getZ());
-        if (block instanceof ChestBlock && state.hasProperty(ChestBlock.TYPE) && state.getValue(ChestBlock.TYPE) != ChestType.SINGLE) {
-            BlockPos other = candidate.relative(ChestBlock.getConnectedDirection(state));
+        BlockPos other = connectedChest(level, candidate, state);
+        if (other != null) {
             ContainerRecord.Key otherKey = new ContainerRecord.Key(dim, other.getX(), other.getY(), other.getZ());
             // Canonical key: the lower coordinate, so both halves always map to the same record.
             if (other.asLong() < candidate.asLong()) {
@@ -176,6 +182,28 @@ public final class StorageRecorder {
                 partner = otherKey;
             }
         }
+    }
+
+    /**
+     * The other half of a double chest (vanilla, or any modded chest with the same "type"/"facing" properties such as
+     * Sophisticated Storage), or null. Both halves are stored under one canonical key so contents count once.
+     */
+    static BlockPos connectedChest(Level level, BlockPos pos, BlockState state) {
+        ChestType type = null;
+        net.minecraft.core.Direction facing = null;
+        for (net.minecraft.world.level.block.state.properties.Property<?> prop : state.getProperties()) {
+            Object v = state.getValue(prop);
+            if (prop.getName().equals("type") && v instanceof ChestType t) {
+                type = t;
+            } else if (prop.getName().equals("facing") && v instanceof net.minecraft.core.Direction d && d.getAxis().isHorizontal()) {
+                facing = d;
+            }
+        }
+        if (type == null || type == ChestType.SINGLE || facing == null) {
+            return null;
+        }
+        BlockPos other = pos.relative(type == ChestType.LEFT ? facing.getClockWise() : facing.getCounterClockWise());
+        return level.getBlockState(other).getBlock() == state.getBlock() ? other : null;
     }
 
     /** Does this menu plausibly belong to this block? */

@@ -18,10 +18,13 @@
 package baritone.alto.container.mc;
 
 import baritone.alto.container.SlotRole;
+import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
+
+import java.util.Optional;
 
 /**
  * Teaches Alto how to read one kind of container menu. Small on purpose: most modded containers need only
@@ -56,6 +59,14 @@ public interface ContainerAdapter {
     /** How many of this item the slot can hold. */
     default int maxStackOf(Slot slot, ItemStack stack) {
         return slot.getMaxStackSize(stack);
+    }
+
+    /**
+     * The block this menu belongs to, when the menu itself knows it (many modded menus do). Used instead of guessing
+     * from the crosshair. Empty = unknown.
+     */
+    default Optional<BlockPos> blockPos(AbstractContainerMenu menu) {
+        return Optional.empty();
     }
 
     /** May the STORAGE slots of this menu be recorded in the storage index? */

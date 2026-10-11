@@ -109,6 +109,7 @@ public final class Alto {
     private final List<Consumer<Alto>> tickListeners = new CopyOnWriteArrayList<>();
     private final List<Supplier<Map<ItemKey, String>>> recipePreferences = new CopyOnWriteArrayList<>();
     private final List<Function<ItemKey, String>> recipeHints = new CopyOnWriteArrayList<>();
+    private volatile Supplier<java.util.Optional<net.minecraft.world.entity.Entity>> corpseLocator = java.util.Optional::empty;
 
     private Alto(Baritone baritone) {
         this.baritone = baritone;
@@ -316,6 +317,19 @@ public final class Alto {
     }
 
     // ------------------------------------------------------------------------------------------ extension hooks
+
+    /** Finds your nearest own corpse (Corpse integration). */
+    public void setCorpseLocator(Supplier<java.util.Optional<net.minecraft.world.entity.Entity>> locator) {
+        corpseLocator = locator;
+    }
+
+    public java.util.Optional<net.minecraft.world.entity.Entity> nearestOwnCorpse() {
+        return corpseLocator.get();
+    }
+
+    public boolean corpseSupport() {
+        return Integrations.isActive("Corpse");
+    }
 
     /** Preferred recipe ids per output item (e.g. EMI recipe tree defaults). */
     public void addRecipePreferences(Supplier<Map<ItemKey, String>> source) {

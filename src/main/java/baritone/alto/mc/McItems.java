@@ -162,6 +162,40 @@ public final class McItems {
     }
 
     /** Number of completely empty main+hotbar slots. */
+    /**
+     * A hotbar slot that is safe to hold while right-clicking a container: modded blocks react to some held items
+     * (a Sophisticated Storage tier upgrade or dye changes the chest, a Create wrench rotates blocks, a bucket fills).
+     * Prefers the current slot if it is empty, a block or a tool; then an empty slot; then any block or tool.
+     */
+    public static int safeHotbarSlot(Inventory inv) {
+        if (isSafeToHold(inv.getItem(inv.selected))) {
+            return inv.selected;
+        }
+        for (int i = 0; i < 9; i++) {
+            if (inv.getItem(i).isEmpty()) {
+                return i;
+            }
+        }
+        for (int i = 0; i < 9; i++) {
+            if (isSafeToHold(inv.getItem(i))) {
+                return i;
+            }
+        }
+        return inv.selected;
+    }
+
+    static boolean isSafeToHold(net.minecraft.world.item.ItemStack stack) {
+        if (stack.isEmpty()) {
+            return true;
+        }
+        net.minecraft.world.item.Item item = stack.getItem();
+        String ns = BuiltInRegistries.ITEM.getKey(item).getNamespace();
+        if (ns.startsWith("sophisticated") || isShulkerBox(stack)) {
+            return false;
+        }
+        return item instanceof net.minecraft.world.item.BlockItem || item instanceof net.minecraft.world.item.TieredItem;
+    }
+
     public static int freeSlots(Inventory inv) {
         int n = 0;
         for (ItemStack s : inv.items) {

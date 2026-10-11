@@ -68,6 +68,7 @@ public final class ContainerSession {
     private final IPlayerContext ctx;
     private State state = State.IDLE;
     private BlockPos target;
+    private net.minecraft.world.entity.Entity entityTarget;
     private Predicate<AbstractContainerMenu> expected = m -> true;
     private String label = "container";
     private int containerId = -1;
@@ -90,12 +91,19 @@ public final class ContainerSession {
 
     /** Starts opening the block at {@code pos}. The caller must already stand within reach. */
     public void openBlock(BlockPos pos, String label, Predicate<AbstractContainerMenu> expected) {
+        this.entityTarget = null;
         this.target = pos;
         this.label = label;
         this.expected = expected;
         this.state = State.AIMING;
         this.openBackoff = new Backoff(10, 80, Math.max(1, Baritone.settings().altoMaxRetries.value));
         this.waitTicks = 0;
+    }
+
+    /** Starts opening an entity's menu (a corpse, a chest minecart) with a normal right-click. Caller stands within reach. */
+    public void openEntity(net.minecraft.world.entity.Entity entity, String label, Predicate<AbstractContainerMenu> expected) {
+        openBlock(entity.blockPosition(), label, expected);
+        this.entityTarget = entity;
     }
 
     /** Uses the player's own inventory menu (2x2 crafting grid). Optionally shows the inventory screen. */
@@ -146,6 +154,9 @@ public final class ContainerSession {
             p.closeContainer();
             return Status.WORKING;
         }
+        if (entityTarget != null) {
+            return tickAimEntity(p);
+        }
         double reach = ctx.playerController().getBlockReachDistance();
         Optional<Rotation> rot = RotationUtils.reachable(ctx, target, reach);
         if (rot.isEmpty()) {
@@ -166,6 +177,11 @@ public final class ContainerSession {
         if (!alto.pacer().ready(Pacer.Kind.CONTAINER_OPEN) || !alto.pacer().ready(Pacer.Kind.BLOCK_USE)) {
             return Status.WORKING;
         }
+        int safe = baritone.alto.mc.McItems.safeHotbarSlot(p.getInventory());
+        if (safe != p.getInventory().selected) {
+            p.getInventory().selected = safe; // the held item must not interact with the container block
+            return Status.WORKING;
+        }
         alto.pacer().tryAcquire(Pacer.Kind.CONTAINER_OPEN);
         alto.pacer().tryAcquire(Pacer.Kind.BLOCK_USE);
         InteractionResult r = ctx.playerController().processRightClickBlock(p, ctx.world(), InteractionHand.MAIN_HAND, bhr);
@@ -174,6 +190,51 @@ public final class ContainerSession {
         }
         alto.storage().recorder().expect(target);
         AltoLog.debug("use " + label + " at " + target.toShortString() + " -> " + r);
+        state = State.OPENING;
+        waitTicks = 0;
+        return Status.WORKING;
+    }
+
+    private Status tickAimEntity(LocalPlayer p) {
+        net.minecraft.world.entity.Entity e = entityTarget;
+        if (e.isRemoved()) {
+            return fail("the " + label + " is gone");
+        }
+        net.minecraft.world.phys.Vec3 center = e.getBoundingBox().getCenter();
+        if (p.getEyePosition().distanceTo(center) > p.entityInteractionRange()) {
+            return fail("the " + label + " is out of reach");
+        }
+        alto.baritone().getLookBehavior().updateTarget(RotationUtils.calcRotationFromVec3d(p.getEyePosition(), center, ctx.playerRotations()), true);
+        HitResult hit = Minecraft.getInstance().hitResult;
+        if (!(hit instanceof net.minecraft.world.phys.EntityHitResult ehr) || ehr.getEntity() != e) {
+            if (++waitTicks > 40) {
+                return fail("could not aim at the " + label);
+            }
+            return Status.WORKING;
+        }
+        if (!stationary(p) || p.isShiftKeyDown()) {
+            return Status.WORKING;
+        }
+        if (!alto.pacer().ready(Pacer.Kind.CONTAINER_OPEN) || !alto.pacer().ready(Pacer.Kind.BLOCK_USE)) {
+            return Status.WORKING;
+        }
+        int safe = baritone.alto.mc.McItems.safeHotbarSlot(p.getInventory());
+        if (safe != p.getInventory().selected) {
+            p.getInventory().selected = safe;
+            return Status.WORKING;
+        }
+        alto.pacer().tryAcquire(Pacer.Kind.CONTAINER_OPEN);
+        alto.pacer().tryAcquire(Pacer.Kind.BLOCK_USE);
+        // Same order as a normal right-click on an entity (Minecraft.startUseItem): interactAt, then interact.
+        net.minecraft.client.multiplayer.MultiPlayerGameMode gm = Minecraft.getInstance().gameMode;
+        InteractionResult r = gm.interactAt(p, e, ehr, InteractionHand.MAIN_HAND);
+        if (!r.consumesAction()) {
+            r = gm.interact(p, e, InteractionHand.MAIN_HAND);
+        }
+        if (r.shouldSwing()) {
+            p.swing(InteractionHand.MAIN_HAND);
+        }
+        AltoLog.debug("use " + label + " (entity) -> " + r);
         state = State.OPENING;
         waitTicks = 0;
         return Status.WORKING;
@@ -309,7 +370,7 @@ public final class ContainerSession {
             state = State.CLOSED;
             return Status.DONE;
         }
-        if (state == State.OPEN && menuStillOpen() && target != null) {
+        if (state == State.OPEN && menuStillOpen() && target != null && entityTarget == null) {
             alto.storage().recorder().recordNow();
         }
         if (state == State.OPEN && menuStillOpen() && !p.containerMenu.getCarried().isEmpty()) {
