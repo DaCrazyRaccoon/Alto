@@ -226,6 +226,9 @@ jar {
         exclude 'META-INF/MANIFEST.MF', 'META-INF/*.SF', 'META-INF/*.RSA', 'META-INF/*.DSA'
     }
     from('LICENSE') { into 'META-INF' rename { 'LICENSE-baritone.txt' } }
+    // What the LGPL asks of anyone who gives this jar to others (share the source), and the changelog.
+    from('docs/alto/LICENSE-NOTE.md') { into 'META-INF' rename { 'ALTO-LICENSE-NOTE.md' } }
+    from('docs/alto/CHANGELOG.md') { into 'META-INF' rename { 'ALTO-CHANGELOG.md' } }
     manifest {
         attributes(
                 'Implementation-Title': 'Baritone (Alto fork)',
