@@ -51,6 +51,11 @@ public final class SpotFinder {
      * @param forbidden positions that must stay free (the build area, a farm...); may be {@code p -> false}
      */
     public static Optional<Spot> find(IPlayerContext ctx, Predicate<BlockPos> forbidden) {
+        return find(ctx, forbidden, false);
+    }
+
+    /** @param needAirAbove the block must open upwards (shulker boxes, chests) */
+    public static Optional<Spot> find(IPlayerContext ctx, Predicate<BlockPos> forbidden, boolean needAirAbove) {
         Level level = ctx.world();
         BlockPos feet = ctx.playerFeet();
         double reach = ctx.playerController().getBlockReachDistance();
@@ -64,7 +69,7 @@ public final class SpotFinder {
         }
         candidates.sort(Comparator.comparingDouble((BlockPos p) -> preference(feet, p)).thenComparing(BlockPos::asLong));
         for (BlockPos p : candidates) {
-            if (!usable(level, ctx, feet, p, forbidden)) {
+            if (!usable(level, ctx, feet, p, forbidden) || needAirAbove && !level.getBlockState(p.above()).isAir()) {
                 continue;
             }
             BlockPos support = p.below();

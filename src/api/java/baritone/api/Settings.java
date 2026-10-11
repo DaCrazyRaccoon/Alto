@@ -1868,6 +1868,81 @@ public final class Settings {
     public final Setting<Boolean> altoRestock = new Setting<>(true);
 
     /**
+     * Shulker boxes: let Alto place carried shulker boxes to take items out or pack items in, then pick them up again.
+     */
+    public final Setting<Boolean> altoShulkers = new Setting<>(true);
+
+    /**
+     * Auto-eat: eat from altoFoodItems when hunger drops to altoEatBelowHunger or lower. Off by default.
+     */
+    public final Setting<Boolean> altoAutoEat = new Setting<>(false);
+
+    /**
+     * Auto-eat only while Baritone is working on a job (not while you play by hand).
+     */
+    public final Setting<Boolean> altoAutoEatOnlyWhileBotting = new Setting<>(true);
+
+    /**
+     * Auto-eat: hunger level (0-20) at or below which Alto eats.
+     */
+    public final Setting<Integer> altoEatBelowHunger = new Setting<>(14);
+
+    /**
+     * Auto-eat: foods Alto may eat, in order of preference. No rare or harmful foods by default.
+     */
+    public final Setting<List<Item>> altoFoodItems = new Setting<>(new ArrayList<>(Arrays.asList(
+            net.minecraft.world.item.Items.BREAD,
+            net.minecraft.world.item.Items.COOKED_BEEF,
+            net.minecraft.world.item.Items.COOKED_PORKCHOP,
+            net.minecraft.world.item.Items.COOKED_MUTTON,
+            net.minecraft.world.item.Items.COOKED_CHICKEN,
+            net.minecraft.world.item.Items.COOKED_SALMON,
+            net.minecraft.world.item.Items.COOKED_COD,
+            net.minecraft.world.item.Items.COOKED_RABBIT,
+            net.minecraft.world.item.Items.BAKED_POTATO,
+            net.minecraft.world.item.Items.CARROT,
+            net.minecraft.world.item.Items.APPLE,
+            net.minecraft.world.item.Items.MELON_SLICE,
+            net.minecraft.world.item.Items.SWEET_BERRIES,
+            net.minecraft.world.item.Items.COOKIE,
+            net.minecraft.world.item.Items.PUMPKIN_PIE,
+            net.minecraft.world.item.Items.DRIED_KELP
+    )));
+
+    /**
+     * Tool upkeep: when the tool in use is nearly broken and no other usable tool of that kind is carried, fetch or
+     * craft a replacement (never above altoToolMaxTier; never from never-consume items).
+     */
+    public final Setting<Boolean> altoToolUpkeep = new Setting<>(true);
+
+    /**
+     * Tool upkeep: a tool counts as nearly broken at this many uses left.
+     */
+    public final Setting<Integer> altoToolMinDurability = new Setting<>(10);
+
+    /**
+     * Tool upkeep: best tool tier Alto may make or fetch: wooden, stone, iron, diamond or netherite.
+     */
+    public final Setting<String> altoToolMaxTier = new Setting<>("iron");
+
+    /**
+     * Compress while gathering: when the inventory is nearly full, craft items following altoCompressRules
+     * (for example nuggets into ingots). Off by default because it changes your items.
+     */
+    public final Setting<Boolean> altoCompress = new Setting<>(false);
+
+    /**
+     * Compress rules as "from->to" (9 of from make one to). Rules for items that do not exist are ignored.
+     */
+    public final Setting<List<String>> altoCompressRules = new Setting<>(new ArrayList<>(Arrays.asList(
+            "minecraft:iron_nugget->minecraft:iron_ingot",
+            "minecraft:gold_nugget->minecraft:gold_ingot",
+            "create:copper_nugget->minecraft:copper_ingot",
+            "create:zinc_nugget->create:zinc_ingot",
+            "create:brass_nugget->create:brass_ingot"
+    )));
+
+    /**
      * Allow #selftest to change the world (it builds test setups around you). Only works in singleplayer, and only
      * in worlds whose name starts with "alto_test" unless you add "confirm" to the command.
      */

@@ -44,6 +44,9 @@ import baritone.alto.task.AltoTask;
 import baritone.alto.task.Job;
 import baritone.alto.task.PlanContext;
 import baritone.alto.task.Step;
+import baritone.alto.task.GatherTask;
+import baritone.alto.task.ShulkerTask;
+import baritone.alto.upkeep.Upkeep;
 import baritone.api.Settings;
 import baritone.api.event.events.PacketEvent;
 import baritone.api.event.events.TickEvent;
@@ -88,6 +91,7 @@ public final class Alto {
     private final AltoProcess process;
     private final StationManager stations;
     private final StorageManager storage;
+    private Upkeep upkeep;
     private final VanillaRecipeSource vanillaRecipes = new VanillaRecipeSource();
     private final BuilderSupply builderSupply;
     private final SelfTests selfTests;
@@ -112,8 +116,12 @@ public final class Alto {
         this.selfTests = new SelfTests(this);
         addStepTaskFactory((step, pctx) -> step instanceof PlanStep.Fetch f
                 ? new FetchTask(this, ContainerRecord.Key.parse(f.storageId()), f.item(), f.count()) : null);
+        addStepTaskFactory((step, pctx) -> step instanceof PlanStep.UnpackShulker u
+                ? new ShulkerTask(this, ShulkerTask.Mode.UNPACK, u.item()::equals,
+                u.item().shortName(), u.count(), pctx.forbiddenArea) : null);
+        this.upkeep = new Upkeep(this);
         addStepTaskFactory((step, pctx) -> step instanceof PlanStep.Gather g
-                ? new baritone.alto.task.GatherTask(this, g.item(), g.count(), g.blocks()) : null);
+                ? new GatherTask(this, g.item(), g.count(), g.blocks()) : null);
     }
 
     /** Called once from the {@code Baritone} constructor. */

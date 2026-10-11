@@ -77,6 +77,17 @@ public final class SelfTests {
         return new ArrayList<>(scenarios.keySet());
     }
 
+    private boolean allowUpkeep;
+
+    /** Scenarios that test the automatic helpers switch them on; all others run with the helpers quiet. */
+    public void allowUpkeep(boolean allow) {
+        this.allowUpkeep = allow;
+    }
+
+    public boolean allowUpkeep() {
+        return allowUpkeep;
+    }
+
     public boolean running() {
         return current != null || !queue.isEmpty();
     }
@@ -169,6 +180,7 @@ public final class SelfTests {
     private void finish(Scenario.Verdict v) {
         Scenario s = current;
         current = null;
+        allowUpkeep = false;
         try {
             s.cleanup(alto);
         } catch (Throwable t) {
