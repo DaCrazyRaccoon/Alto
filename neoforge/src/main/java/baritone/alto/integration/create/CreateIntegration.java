@@ -54,6 +54,22 @@ public final class CreateIntegration implements AltoIntegration {
         alto.hazards().setRotatingCondition((level, be) -> be instanceof KineticBlockEntity k && k.getSpeed() != 0);
         alto.hazards().setAirCurrent(CreateIntegration::airCurrentPoints);
         alto.addFilterAccess(new CreateFilterAccess());
+        // Material lists: Create knows what its blocks cost (belts, shafts, copycats...) and handles vanilla specials.
+        alto.supplyRun().addRequirementSource(CreateIntegration::requirement);
+    }
+
+    static baritone.alto.core.ItemCounts requirement(net.minecraft.world.level.block.state.BlockState state) {
+        var r = com.simibubi.create.content.schematics.requirement.ItemRequirement.of(state, null);
+        if (r.isInvalid()) {
+            return null; // not known to Create: use Alto's own rule
+        }
+        baritone.alto.core.ItemCounts out = new baritone.alto.core.ItemCounts();
+        for (var sr : r.getRequiredItems()) {
+            if (sr.usage == com.simibubi.create.content.schematics.requirement.ItemRequirement.ItemUseType.CONSUME && !sr.stack.isEmpty()) {
+                out.add(baritone.alto.mc.McItems.key(sr.stack.getItem()), sr.stack.getCount());
+            }
+        }
+        return out;
     }
 
     /** Points along a running fan's air current (every 2 blocks), so paths avoid being pushed or burned. */

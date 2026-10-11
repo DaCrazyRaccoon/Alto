@@ -47,6 +47,7 @@ final class M4Scenarios {
         tests.register("farm-seeds", FarmSeeds::new);
         tests.register("minecart", MinecartRide::new);
         tests.register("boat", BoatTrip::new);
+        tests.register("supply-build", SupplyBuild::new);
     }
 
     // ------------------------------------------------------------------------------------------ portal travel
@@ -355,6 +356,115 @@ final class M4Scenarios {
         @Override
         public void cleanup(Alto alto) {
             alto.baritone().getPathingBehavior().cancelEverything();
+        }
+    }
+
+    // ------------------------------------------------------------------------------------------ supply run
+
+    static final class SupplyBuild extends Scenario {
+        private final TestRig rig = new TestRig();
+        private int phase;
+        private BlockPos origin;
+
+        @Override
+        public String name() {
+            return "supply-build";
+        }
+
+        @Override
+        public String description() {
+            return "#build a 3x2x3 .nbt schematic with an empty inventory: shopping list, supply run from a zone chest, build";
+        }
+
+        @Override
+        public int timeoutSeconds() {
+            return 150;
+        }
+
+        @Override
+        public void setup(ServerLevel level, ServerPlayer player, BlockPos o) {
+            TestRig.clearArea(level, o);
+            M2Scenarios.chest(level, o.offset(-4, 0, 1), new ItemStack(Items.STONE_BRICKS, 20), new ItemStack(Items.GLASS, 20));
+            TestRig.resetPlayer(level, player, o);
+            origin = o.offset(-1, 0, 5);
+        }
+
+        /** A vanilla structure file: bottom layer stone bricks, top layer glass. */
+        static void writeSchematic(java.nio.file.Path file) throws java.io.IOException {
+            net.minecraft.nbt.CompoundTag root = new net.minecraft.nbt.CompoundTag();
+            net.minecraft.nbt.ListTag size = new net.minecraft.nbt.ListTag();
+            for (int v : new int[]{3, 2, 3}) {
+                size.add(net.minecraft.nbt.IntTag.valueOf(v));
+            }
+            root.put("size", size);
+            net.minecraft.nbt.ListTag palette = new net.minecraft.nbt.ListTag();
+            for (String n : new String[]{"minecraft:stone_bricks", "minecraft:glass"}) {
+                net.minecraft.nbt.CompoundTag e = new net.minecraft.nbt.CompoundTag();
+                e.putString("Name", n);
+                palette.add(e);
+            }
+            root.put("palette", palette);
+            net.minecraft.nbt.ListTag blocks = new net.minecraft.nbt.ListTag();
+            for (int x = 0; x < 3; x++) {
+                for (int y = 0; y < 2; y++) {
+                    for (int z = 0; z < 3; z++) {
+                        net.minecraft.nbt.CompoundTag b = new net.minecraft.nbt.CompoundTag();
+                        net.minecraft.nbt.ListTag pos = new net.minecraft.nbt.ListTag();
+                        pos.add(net.minecraft.nbt.IntTag.valueOf(x));
+                        pos.add(net.minecraft.nbt.IntTag.valueOf(y));
+                        pos.add(net.minecraft.nbt.IntTag.valueOf(z));
+                        b.put("pos", pos);
+                        b.putInt("state", y);
+                        blocks.add(b);
+                    }
+                }
+            }
+            root.put("blocks", blocks);
+            root.putInt("DataVersion", net.minecraft.SharedConstants.getCurrentVersion().getDataVersion().getVersion());
+            java.nio.file.Files.createDirectories(file.getParent());
+            net.minecraft.nbt.NbtIo.writeCompressed(root, file);
+        }
+
+        @Override
+        public void start(Alto alto, BlockPos o) {
+            rig.setting(TestRig.settings().altoSupplyRuns, true);
+            try {
+                writeSchematic(Minecraft.getInstance().gameDirectory.toPath().resolve("schematics").resolve("alto_supply_test.nbt"));
+            } catch (java.io.IOException e) {
+                throw new IllegalStateException("could not write the test schematic", e);
+            }
+            M2Scenarios.zone(alto, o);
+            alto.startJob(Job.of(new ZoneScanTask(alto, alto.storage().zones().zone("alto_selftest").orElseThrow()), "selftest"));
+        }
+
+        @Override
+        public Verdict check(Alto alto, BlockPos o, int ticks) {
+            if (phase == 0) {
+                if (ticks < 5 || alto.process().busy()) {
+                    return Verdict.RUNNING;
+                }
+                alto.baritone().getCommandManager().execute("build alto_supply_test.nbt " + origin.getX() + " " + origin.getY() + " " + origin.getZ());
+                phase = 1;
+                return Verdict.RUNNING;
+            }
+            Level level = Minecraft.getInstance().level;
+            int bricks = M1Scenarios.countIn(level, origin, origin.offset(2, 0, 2), Blocks.STONE_BRICKS);
+            int glass = M1Scenarios.countIn(level, origin.offset(0, 1, 0), origin.offset(2, 1, 2), Blocks.GLASS);
+            if (alto.baritone().getBuilderProcess().isActive() || alto.process().busy() || ticks < 40) {
+                return Verdict.RUNNING;
+            }
+            var list = alto.supplyRun().last();
+            String s = "stone bricks " + bricks + "/9, glass " + glass + "/9, shopping list " + (list == null ? "none"
+                    : list.lines().size() + " material(s), " + list.totalMissing() + " missing");
+            return bricks == 9 && glass == 9 && list != null && list.lines().size() == 2 && list.totalMissing() == 0
+                    ? Verdict.pass(s) : Verdict.fail(s);
+        }
+
+        @Override
+        public void cleanup(Alto alto) {
+            alto.baritone().getPathingBehavior().cancelEverything();
+            M2Scenarios.removeZone(alto);
+            rig.restore();
         }
     }
 }

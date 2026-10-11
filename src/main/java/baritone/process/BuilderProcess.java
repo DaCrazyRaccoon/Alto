@@ -170,6 +170,7 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
         this.numRepeats = 0;
         this.observedCompleted = new LongOpenHashSet();
         this.incorrectPositions = null;
+        baritone.getAlto().supplyRun().onBuildStarted(this); // ALTO FORK: material list, supply run from storage
     }
 
     public void resume() {
@@ -1011,6 +1012,35 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
             return null;
         }
         return new Object[]{name, realSchematic != null ? realSchematic : schematic, origin};
+    }
+
+    /**
+     * ALTO FORK: block states still to place (positions whose current state differs from the schematic; unloaded
+     * positions count as missing). For the material list and supply runs.
+     */
+    public java.util.Map<BlockState, Integer> altoRemaining() {
+        java.util.Map<BlockState, Integer> out = new java.util.HashMap<>();
+        ISchematic sch = schematic;
+        Vec3i o = origin;
+        if (sch == null || o == null) {
+            return out;
+        }
+        BlockStateInterface bsi = new BlockStateInterface(ctx);
+        for (int x = 0; x < sch.widthX(); x++) {
+            for (int z = 0; z < sch.lengthZ(); z++) {
+                for (int y = 0; y < sch.heightY(); y++) {
+                    BlockState current = bsi.get0(o.getX() + x, o.getY() + y, o.getZ() + z);
+                    if (!sch.inSchematic(x, y, z, current)) {
+                        continue;
+                    }
+                    BlockState desired = sch.desiredState(x, y, z, current, approxPlaceable == null ? Collections.emptyList() : approxPlaceable);
+                    if (desired != null && !desired.isAir() && desired != current) {
+                        out.merge(desired, 1, Integer::sum);
+                    }
+                }
+            }
+        }
+        return out;
     }
 
     public void altoResume(Object[] snapshot) {

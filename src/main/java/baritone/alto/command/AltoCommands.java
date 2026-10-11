@@ -28,6 +28,12 @@ import baritone.alto.planner.Plan;
 import baritone.alto.task.Job;
 import baritone.alto.task.PlanContext;
 import baritone.alto.task.PlanTask;
+import baritone.alto.task.RecoverCorpseTask;
+import baritone.alto.supply.ShoppingList;
+import baritone.api.command.datatypes.RelativeFile;
+import baritone.api.schematic.IStaticSchematic;
+import baritone.process.BuilderProcess;
+import baritone.utils.schematic.SchematicSystem;
 import baritone.api.IBaritone;
 import baritone.api.command.Command;
 import baritone.api.command.ICommand;
@@ -71,6 +77,7 @@ public final class AltoCommands {
         commands.add(new TravelCommands.PortalsCommand(baritone, alto));
         commands.add(new TravelCommands.MinecartCommand(baritone, alto));
         commands.add(new TravelCommands.BoatCommand(baritone, alto));
+        commands.add(new MaterialsCommand(baritone, alto));
         commands.forEach(baritone.getCommandManager().getRegistry()::register);
     }
 
@@ -139,6 +146,90 @@ public final class AltoCommands {
         }
     }
 
+    /** #materials — the shopping list of the current build or of a schematic file; "fetch" starts a supply run. */
+    static final class MaterialsCommand extends Command {
+        private final Alto alto;
+
+        MaterialsCommand(IBaritone baritone, Alto alto) {
+            super(baritone, "materials");
+            this.alto = alto;
+        }
+
+        @Override
+        public void execute(String label, IArgConsumer args) throws CommandException {
+            requireEnabled();
+            ShoppingList list;
+            String title;
+            if (args.hasAny() && !args.peekString().equalsIgnoreCase("fetch")) {
+                java.io.File dir = new java.io.File(ctx.minecraft().gameDirectory, "schematics");
+                java.io.File file = args.getDatatypePost(RelativeFile.INSTANCE, dir).getAbsoluteFile();
+                var format = SchematicSystem.INSTANCE.getByFile(file);
+                if (format.isEmpty()) {
+                    throw new CommandInvalidStateException("Unknown schematic file " + file.getName());
+                }
+                IStaticSchematic sch;
+                try (var in = new java.io.FileInputStream(file)) {
+                    sch = format.get().parse(in);
+                } catch (Exception e) {
+                    throw new CommandInvalidStateException("Could not read " + file.getName() + ": " + e.getMessage());
+                }
+                java.util.Map<net.minecraft.world.level.block.state.BlockState, Integer> states = new java.util.HashMap<>();
+                var air = net.minecraft.world.level.block.Blocks.AIR.defaultBlockState();
+                for (int x = 0; x < sch.widthX(); x++) {
+                    for (int y = 0; y < sch.heightY(); y++) {
+                        for (int z = 0; z < sch.lengthZ(); z++) {
+                            if (sch.inSchematic(x, y, z, air)) {
+                                var s = sch.desiredState(x, y, z, air, java.util.Collections.emptyList());
+                                if (s != null && !s.isAir()) {
+                                    states.merge(s, 1, Integer::sum);
+                                }
+                            }
+                        }
+                    }
+                }
+                list = alto.supplyRun().listFor(states);
+                title = "Materials for " + file.getName();
+            } else if (baritone.getBuilderProcess().isActive()) {
+                list = alto.supplyRun().listFor(((BuilderProcess) baritone.getBuilderProcess()).altoRemaining());
+                title = "Materials still needed for the current build";
+            } else if (alto.supplyRun().last() != null) {
+                list = alto.supplyRun().last();
+                title = "Materials of the last build";
+            } else {
+                throw new CommandInvalidStateException("No build running; give a schematic file name");
+            }
+            alto.supplyRun().report(list, title);
+            if (args.hasAny() && args.getString().equalsIgnoreCase("fetch")) {
+                if (!alto.supplyRun().startRun(list, "Supply run")) {
+                    logDirect("Nothing to fetch from your storage zones.");
+                }
+            }
+        }
+
+        @Override
+        public Stream<String> tabComplete(String label, IArgConsumer args) throws CommandException {
+            if (args.hasExactlyOne()) {
+                return Stream.concat(Stream.of("fetch"), RelativeFile.tabComplete(args,
+                        new java.io.File(ctx.minecraft().gameDirectory, "schematics")));
+            }
+            return Stream.empty();
+        }
+
+        @Override
+        public String getShortDesc() {
+            return "Shopping list for a build or schematic (Alto)";
+        }
+
+        @Override
+        public List<String> getLongDesc() {
+            return Arrays.asList("Lists the materials a build still needs: carried, in your storage zones, and missing",
+                    "(written in full to baritone/alto/shopping-list.txt). When a #build starts, Alto does this by itself",
+                    "and fetches what your storage has (altoSupplyRuns).", "",
+                    "Usage:", "> materials - the current build", "> materials <file> - a schematic in the schematics folder",
+                    "> materials [file] fetch - also fetch what fits from storage");
+        }
+    }
+
     /** #corpse — take your items back from your own corpse (Corpse mod). */
     static final class CorpseCommand extends Command {
         private final Alto alto;
@@ -158,7 +249,7 @@ public final class AltoCommands {
             if (alto.nearestOwnCorpse().isEmpty()) {
                 throw new CommandInvalidStateException("No corpse of yours with items is loaded nearby");
             }
-            alto.startJob(Job.of(new baritone.alto.task.RecoverCorpseTask(alto), "command"));
+            alto.startJob(Job.of(new RecoverCorpseTask(alto), "command"));
         }
 
         @Override
