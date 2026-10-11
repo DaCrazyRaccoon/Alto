@@ -127,7 +127,10 @@ public final class StorageManager {
         }
         ensureLoaded();
         recorder.tick();
-        if (++ticks % 600 == 0) {
+        if (++ticks % 40 == 0) {
+            forgetVanished();
+        }
+        if (ticks % 600 == 0) {
             save();
         }
     }
@@ -153,6 +156,37 @@ public final class StorageManager {
             index = new StorageIndex();
             zones = new Zones();
             dir = dir.resolveSibling(id + "-recovered");
+        }
+    }
+
+    /**
+     * Forgets containers (and remembered stations) in loaded chunks near you whose block is gone or different.
+     * Baritone only reports changes of blocks it tracks, so a broken chest would otherwise stay in the index.
+     */
+    void forgetVanished() {
+        var level = alto.ctx().world();
+        var p = alto.ctx().player();
+        if (level == null || p == null) {
+            return;
+        }
+        String dim = dimension();
+        java.util.List<ContainerRecord.Key> gone = new java.util.ArrayList<>();
+        for (ContainerRecord r : index.all()) {
+            if (r.key.isEnder() || !r.key.dimension().equals(dim) || r.blockId == null || r.blockId.isEmpty()) {
+                continue;
+            }
+            net.minecraft.core.BlockPos pos = new net.minecraft.core.BlockPos(r.key.x(), r.key.y(), r.key.z());
+            if (pos.distSqr(p.blockPosition()) > 96 * 96 || !level.isLoaded(pos)) {
+                continue;
+            }
+            String now = net.minecraft.core.registries.BuiltInRegistries.BLOCK.getKey(level.getBlockState(pos).getBlock()).toString();
+            if (!now.equals(r.blockId)) {
+                gone.add(r.key);
+            }
+        }
+        for (ContainerRecord.Key k : gone) {
+            index.remove(k);
+            AltoLog.debug("forgot " + k.id() + " (the block there changed)");
         }
     }
 
