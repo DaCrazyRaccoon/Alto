@@ -78,6 +78,14 @@ public class PathingControlManager implements IPathingControlManager {
         return Optional.ofNullable(inControlThisTick);
     }
 
+    /**
+     * ALTO FORK: the process that was in control on the previous tick. Unlike {@link #mostRecentInControl()} this is
+     * also valid while processes are asked {@code isActive()} (inControlThisTick is reset before that).
+     */
+    public Optional<IBaritoneProcess> inControlLastTick() {
+        return Optional.ofNullable(inControlLastTick);
+    }
+
     @Override
     public Optional<PathingCommand> mostRecentCommand() {
         return Optional.ofNullable(command);

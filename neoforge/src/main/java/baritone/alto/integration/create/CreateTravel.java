@@ -201,6 +201,7 @@ final class CreateTravel {
         private int tries;
         private boolean leftStart;
         private boolean boardOnly;
+        private Vec3 lastCarriagePos;
 
         /** Script block board_vehicle train_seat: sit on a free seat of a train stopped near you. */
         static TrainTask boardOnly(Alto alto) {
@@ -327,7 +328,9 @@ final class CreateTravel {
                     if (p.blockPosition().distSqr(from) > 48 * 48) {
                         leftStart = true;
                     }
-                    still = c.getDeltaMovement().lengthSqr() < 1.0E-4 ? still + 1 : 0;
+                    // the carriage's own position: a stopped train no longer moves (its motion value can lag behind)
+                    still = lastCarriagePos != null && c.position().distanceToSqr(lastCarriagePos) < 1.0E-6 ? still + 1 : 0;
+                    lastCarriagePos = c.position();
                     if (still > 40 && p.blockPosition().distSqr(to) < 24 * 24) {
                         phase = Phase.OFF;
                         ticks = 0;

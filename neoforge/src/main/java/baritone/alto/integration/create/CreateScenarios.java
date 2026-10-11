@@ -90,6 +90,7 @@ final class CreateScenarios {
         t.register("create-platform", Platform::new);
         t.register("create-elevator", Elevator::new);
         t.register("create-order", Order::new);
+        t.register("create-train", TrainRide::new);
     }
 
     static ServerPlayer serverPlayer(ServerLevel level) {
@@ -293,9 +294,28 @@ final class CreateScenarios {
             return null;
         }
 
+        /** Where the platform block is now (x offset from the origin along the trench), or null. */
+        private Integer platformX(BlockPos o) {
+            return TestRig.onServer(sl -> {
+                for (int x = -3; x <= 3; x++) {
+                    if (sl.getBlockState(o.offset(x, -1, 4)).is(AllBlocks.ANDESITE_CASING.get())) {
+                        return x;
+                    }
+                }
+                return null;
+            }, null);
+        }
+
         @Override
         public Verdict check(Alto alto, BlockPos o, int ticks) {
             LocalPlayer p = Minecraft.getInstance().player;
+            if (phase < 2 && ticks % 5 == 0) {
+                AbstractContraptionEntity c = carrierUnder(p);
+                baritone.alto.AltoLog.info("create-platform t" + ticks + " phase " + phase + ": player " + p.position().subtract(Vec3.atLowerCornerOf(o))
+                        + " onGround " + p.onGround() + ", on contraption " + (c != null) + ", moving " + alto.platformPause().onMovingPlatform()
+                        + ", pause active " + alto.platformPause().isActive() + ", in control " + alto.baritone().getPathingControlManager().mostRecentInControl().map(Object::toString).orElse("-")
+                        + ", contraptions " + CreateTravel.contraptions(p.level()).size());
+            }
             switch (phase) {
                 case 0 -> {
                     if (alto.platformPause().onMovingPlatform()) {
@@ -340,10 +360,10 @@ final class CreateScenarios {
                     if (!arrived(alto, goal)) {
                         return Verdict.RUNNING;
                     }
-                    BlockPos moved = o.offset(1, -1, 4);
-                    boolean platformMoved = TestRig.onServer(sl -> sl.getBlockState(moved).is(AllBlocks.ANDESITE_CASING.get()), false);
+                    Integer endX = platformX(o);
+                    boolean platformMoved = endX != null && endX == 1;
                     String s = "rode " + movingTicks + " ticks, Baritone paused " + pausedTicks + " of them, drift on the platform "
-                            + String.format("%.2f", maxDrift) + " blocks, platform ended at +3 x: " + platformMoved + ", then reached the goal"
+                            + String.format("%.2f", maxDrift) + " blocks, platform moved from x-2 to x" + (endX == null ? "?" : (endX >= 0 ? "+" : "") + endX) + ", then reached the goal"
                             + (flipped ? " (motor flipped)" : "");
                     return movingTicks >= 20 && pausedTicks >= 15 && maxDrift < 0.6 && platformMoved ? Verdict.pass(s) : Verdict.fail(s);
                 }
@@ -576,6 +596,234 @@ final class CreateScenarios {
             if (Minecraft.getInstance().screen != null) {
                 Minecraft.getInstance().player.closeContainer();
             }
+        }
+    }
+
+    // ------------------------------------------------------------------------------------------ train
+
+    /**
+     * A real Create railway: a straight track, stations AltoA and AltoB 30 blocks apart, a one-bogey carriage with
+     * forward controls, a villager conductor and two free seats, assembled at AltoA. Its schedule waits at AltoA for
+     * one player passenger, then drives to AltoB. {@code #train AltoA -> AltoB} must walk to AltoA, board a free
+     * seat (not the conductor's), ride, get off at AltoB and walk to the station.
+     */
+    static final class TrainRide extends Scenario {
+        private static final int X0 = -14;
+        private static final int X1 = 42;
+        private static final int Z0 = -4;
+        private static final int Z1 = 7;
+        private static final int TOP = 12;
+        private BlockPos origin;
+        private BlockPos stationA;
+        private BlockPos stationB;
+        private UUID trainId;
+        private int phase;
+        private int mark;
+        private boolean boarded;
+        private int maxX = Integer.MIN_VALUE;
+        private String lastMissing = "";
+
+        @Override
+        public String name() {
+            return "create-train";
+        }
+
+        @Override
+        public String description() {
+            return "#train AltoA -> AltoB on a real Create railway (stations 30 blocks apart, a train with a conductor whose "
+                    + "schedule waits for a player passenger): walk to AltoA, board a free seat, ride, get off at AltoB";
+        }
+
+        @Override
+        public int timeoutSeconds() {
+            return 150;
+        }
+
+        /** A walled, cleared corridor along +X (bigger than the normal test area). Server thread. */
+        private static void clearCorridor(ServerLevel level, BlockPos o) {
+            BlockState stone = Blocks.STONE.defaultBlockState();
+            for (int x = X0 - 1; x <= X1 + 1; x++) {
+                for (int z = Z0 - 1; z <= Z1 + 1; z++) {
+                    boolean wall = x == X0 - 1 || x == X1 + 1 || z == Z0 - 1 || z == Z1 + 1;
+                    for (int y = -3; y <= -1; y++) {
+                        level.setBlock(o.offset(x, y, z), y == -1 && !wall ? Blocks.SMOOTH_STONE.defaultBlockState() : stone, Block.UPDATE_CLIENTS);
+                    }
+                    for (int y = 0; y <= TOP; y++) {
+                        level.setBlock(o.offset(x, y, z), wall ? stone : Blocks.AIR.defaultBlockState(), Block.UPDATE_CLIENTS);
+                    }
+                    BlockPos above = o.offset(x, TOP + 1, z);
+                    BlockState top = level.getBlockState(above);
+                    if (!top.isAir() && (!top.getFluidState().isEmpty() || top.getBlock() instanceof net.minecraft.world.level.block.FallingBlock)) {
+                        level.setBlock(above, stone, Block.UPDATE_CLIENTS);
+                    }
+                }
+            }
+            net.minecraft.world.phys.AABB box = new net.minecraft.world.phys.AABB(o.offset(X0 - 2, -3, Z0 - 2).getCenter(), o.offset(X1 + 2, TOP + 2, Z1 + 2).getCenter());
+            level.getEntitiesOfClass(net.minecraft.world.entity.Entity.class, box, e -> !(e instanceof net.minecraft.world.entity.player.Player))
+                    .forEach(net.minecraft.world.entity.Entity::discard);
+        }
+
+        /** A station block next to the track, aimed at the track beside it (what placing it with a track selected does). */
+        private static void station(ServerLevel level, BlockPos pos, BlockPos track) {
+            set(level, pos, AllBlocks.TRACK_STATION.getDefaultState());
+            if (level.getBlockEntity(pos) instanceof com.simibubi.create.content.trains.station.StationBlockEntity be) {
+                net.minecraft.nbt.CompoundTag tag = be.saveWithoutMetadata(level.registryAccess());
+                tag.put("TargetTrack", net.minecraft.nbt.NbtUtils.writeBlockPos(track.subtract(pos)));
+                tag.putBoolean("TargetDirection", false); // trains assemble towards -X and stop here driving +X
+                be.loadWithComponents(tag, level.registryAccess());
+            }
+        }
+
+        @Override
+        public void setup(ServerLevel level, ServerPlayer player, BlockPos o) {
+            origin = o;
+            clearCorridor(level, o);
+            for (int x = X0 + 2; x <= X1 - 2; x++) {
+                set(level, o.offset(x, 0, 3), AllBlocks.TRACK.getDefaultState().setValue(TrackBlock.SHAPE, TrackShape.XO));
+            }
+            stationA = o.offset(2, 0, 2);
+            stationB = o.offset(32, 0, 2);
+            station(level, stationA, stationA.south());
+            station(level, stationB, stationB.south());
+            // The carriage: bogey right behind AltoA's track, casing deck, controls facing the assembly direction,
+            // the conductor's seat in front of them and two free seats.
+            set(level, o.offset(1, 1, 3), AllBlocks.SMALL_BOGEY.getDefaultState().setValue(BlockStateProperties.HORIZONTAL_AXIS, Direction.Axis.X));
+            for (int x = -2; x <= 1; x++) {
+                set(level, o.offset(x, 2, 3), AllBlocks.ANDESITE_CASING.getDefaultState());
+            }
+            set(level, o.offset(-1, 3, 3), AllBlocks.TRAIN_CONTROLS.getDefaultState().setValue(BlockStateProperties.HORIZONTAL_FACING, Direction.WEST));
+            BlockPos conductorSeat = o.offset(-2, 3, 3);
+            set(level, conductorSeat, AllBlocks.SEATS.get(DyeColor.RED).getDefaultState());
+            set(level, o.offset(0, 3, 3), AllBlocks.SEATS.get(DyeColor.WHITE).getDefaultState());
+            set(level, o.offset(1, 3, 3), AllBlocks.SEATS.get(DyeColor.WHITE).getDefaultState());
+            level.addFreshEntity(new SuperGlueEntity(level, SuperGlueEntity.span(o.offset(-2, 1, 3), o.offset(1, 3, 3))));
+            Villager conductor = EntityType.VILLAGER.create(level);
+            if (conductor != null) {
+                conductor.setNoAi(true);
+                conductor.moveTo(conductorSeat.getX() + 0.5, conductorSeat.getY(), conductorSeat.getZ() + 0.5, 0f, 0f);
+                level.addFreshEntity(conductor);
+                SeatBlock.sitDown(level, conductorSeat, conductor);
+            }
+            TestRig.resetPlayer(level, player, o);
+            player.teleportTo(level, o.getX() + 0.5, o.getY(), o.getZ() - 2.5, 0f, 10f);
+        }
+
+        @Override
+        public void start(Alto alto, BlockPos o) {
+        }
+
+        /** Server thread: assemble at AltoA and give the train its schedule. Null when done, else what is missing. */
+        private String assemble(ServerLevel sl) {
+            if (!(sl.getBlockEntity(stationA) instanceof com.simibubi.create.content.trains.station.StationBlockEntity a)
+                    || !(sl.getBlockEntity(stationB) instanceof com.simibubi.create.content.trains.station.StationBlockEntity b)) {
+                return "no station block entities";
+            }
+            if (a.getStation() == null || b.getStation() == null) {
+                return "stations not on the track graph yet";
+            }
+            a.updateName("AltoA");
+            b.updateName("AltoB");
+            if (a.getStation().getPresentTrain() == null) {
+                a.enterAssemblyMode(null);
+                a.assemble(Minecraft.getInstance().player.getUUID());
+            }
+            var train = a.getStation().getPresentTrain();
+            if (train == null) {
+                var tag = a.saveWithoutMetadata(sl.registryAccess());
+                return "assembly failed: " + (tag.contains("LastException") ? tag.get("LastException") : "no message") + ", station tag keys " + tag.getAllKeys();
+            }
+            a.exitAssemblyMode();
+            trainId = train.id;
+            var waitHere = new com.simibubi.create.content.trains.schedule.destination.DestinationInstruction();
+            waitHere.getData().putString("Text", "AltoA");
+            var passenger = new com.simibubi.create.content.trains.schedule.condition.PlayerPassengerCondition();
+            passenger.getData().putInt("Count", 1);
+            var goThere = new com.simibubi.create.content.trains.schedule.destination.DestinationInstruction();
+            goThere.getData().putString("Text", "AltoB");
+            var delay = new com.simibubi.create.content.trains.schedule.condition.ScheduledDelay();
+            var schedule = new com.simibubi.create.content.trains.schedule.Schedule();
+            java.util.List<java.util.List<com.simibubi.create.content.trains.schedule.condition.ScheduleWaitCondition>> waitForPlayer = new java.util.ArrayList<>();
+            waitForPlayer.add(new java.util.ArrayList<>(java.util.List.of(passenger)));
+            java.util.List<java.util.List<com.simibubi.create.content.trains.schedule.condition.ScheduleWaitCondition>> waitAtB = new java.util.ArrayList<>();
+            waitAtB.add(new java.util.ArrayList<>(java.util.List.of(delay)));
+            schedule.entries.add(new com.simibubi.create.content.trains.schedule.ScheduleEntry(waitHere, waitForPlayer));
+            schedule.entries.add(new com.simibubi.create.content.trains.schedule.ScheduleEntry(goThere, waitAtB));
+            schedule.cyclic = false;
+            train.runtime.setSchedule(schedule, false);
+            return null;
+        }
+
+        @Override
+        public Verdict check(Alto alto, BlockPos o, int ticks) {
+            LocalPlayer p = Minecraft.getInstance().player;
+            switch (phase) {
+                case 0 -> {
+                    if (ticks % 10 != 0) {
+                        return Verdict.RUNNING;
+                    }
+                    String missing = TestRig.onServer(this::assemble, "server unavailable");
+                    if (missing == null) {
+                        phase = 1;
+                        mark = ticks;
+                    } else {
+                        if (!missing.equals(lastMissing)) {
+                            baritone.alto.AltoLog.info("create-train setup: " + missing);
+                            lastMissing = missing;
+                        }
+                        if (ticks > 300) {
+                            return Verdict.fail("could not set up the train: " + missing);
+                        }
+                    }
+                    return Verdict.RUNNING;
+                }
+                case 1 -> {
+                    // wait until the client knows both station names (the track graph is synced to clients)
+                    if (CreateTravel.station(p.level(), "AltoA").isPresent() && CreateTravel.station(p.level(), "AltoB").isPresent()) {
+                        alto.baritone().getCommandManager().execute("train AltoA -> AltoB");
+                        phase = 2;
+                        return Verdict.RUNNING;
+                    }
+                    return ticks - mark > 200 ? Verdict.fail("the station names never reached the client") : Verdict.RUNNING;
+                }
+                default -> {
+                    if (p.getVehicle() instanceof com.simibubi.create.content.trains.entity.CarriageContraptionEntity) {
+                        boarded = true;
+                    }
+                    maxX = Math.max(maxX, p.blockPosition().getX() - o.getX());
+                    if (ticks % 40 == 0) {
+                        baritone.alto.AltoLog.info("create-train t" + ticks + ": " + alto.process().jobLine() + ", player at "
+                                + p.blockPosition().subtract(o).toShortString() + ", riding " + (p.getVehicle() != null));
+                    }
+                    if (ticks < 10 || alto.process().busy()) {
+                        return Verdict.RUNNING;
+                    }
+                    String result = alto.process().lastResult();
+                    double toB = Math.sqrt(p.blockPosition().distSqr(stationB));
+                    String s = result + "; boarded " + boarded + ", rode to x+" + maxX + ", " + String.format("%.1f", toB) + " blocks from AltoB";
+                    return result.startsWith("done") && boarded && toB <= 4.5 ? Verdict.pass(s) : Verdict.fail(s);
+                }
+            }
+        }
+
+        @Override
+        public void cleanup(Alto alto) {
+            alto.baritone().getPathingBehavior().cancelEverything();
+            alto.baritone().getInputOverrideHandler().clearAllKeys();
+            UUID id = trainId;
+            BlockPos o = origin;
+            TestRig.onServer(sl -> {
+                if (id != null) {
+                    var train = com.simibubi.create.Create.RAILWAYS.trains.get(id);
+                    if (train != null) {
+                        train.invalid = true; // removed on the next railway tick
+                    }
+                }
+                if (o != null) {
+                    sl.getEntitiesOfClass(com.simibubi.create.content.trains.entity.CarriageContraptionEntity.class,
+                            new net.minecraft.world.phys.AABB(o).inflate(64)).forEach(net.minecraft.world.entity.Entity::discard);
+                }
+                return true;
+            }, false);
         }
     }
 }

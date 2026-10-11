@@ -53,7 +53,7 @@ public final class PlatformPauseProcess extends BaritoneProcessHelper {
     @Override
     public boolean isActive() {
         return onMovingPlatform && Baritone.settings().altoEnabled.value && Baritone.settings().altoMovingPlatforms.value
-                && baritone.getPathingControlManager().mostRecentInControl().isPresent(); // only while some job runs
+                && baritone.getPathingControlManager().inControlLastTick().isPresent(); // only while some job runs
     }
 
     @Override
