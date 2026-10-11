@@ -1,0 +1,2029 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:alto:script:1",
+  "title": "Alto script, version 1",
+  "description": "Structure of an Alto script file (*.alto.json). The schema checks shape, field names, literal ranges and id formats; Alto's validator additionally checks names and references, static types, recursion, break placement and the loop guard. Reference: docs/alto/SCRIPT_LANGUAGE.md.",
+  "$comment": "Kept in sync with baritone.alto.script.lang (ActionType, Fields, Limits) by SchemaTest.",
+  "type": "object",
+  "properties": {
+    "format": {
+      "const": "alto-script"
+    },
+    "version": {
+      "const": 1
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100,
+      "pattern": "\\S"
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 4000
+    },
+    "variables": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/variable"
+      }
+    },
+    "procedures": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/procedure"
+      }
+    },
+    "events": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/handler"
+      }
+    }
+  },
+  "required": [
+    "format",
+    "version",
+    "name",
+    "events"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "name": {
+      "description": "Name of a variable, procedure or parameter: a letter or _, then letters, digits or _.",
+      "type": "string",
+      "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+      "maxLength": 64
+    },
+    "id": {
+      "description": "Item or block id, lower case. The namespace is optional and defaults to minecraft.",
+      "type": "string",
+      "pattern": "^([a-z0-9_.-]+:)?[a-z0-9_./-]+$",
+      "maxLength": 200,
+      "examples": [
+        "minecraft:oak_planks",
+        "oak_planks",
+        "create:shaft"
+      ]
+    },
+    "fileName": {
+      "description": "Plain file name inside Alto's schematics folder: no folders, no '..', not starting with a dot or space.",
+      "type": "string",
+      "pattern": "^(?![ .])(?!.*\\.\\.)[A-Za-z0-9 _.()+-]*[A-Za-z0-9_.()+-]$",
+      "maxLength": 128
+    },
+    "placeName": {
+      "description": "Name of a home, storage zone or train station.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64,
+      "pattern": "\\S"
+    },
+    "face": {
+      "enum": [
+        "up",
+        "down",
+        "north",
+        "south",
+        "east",
+        "west"
+      ]
+    },
+    "where": {
+      "description": "Default: inventory.",
+      "enum": [
+        "inventory",
+        "storage"
+      ]
+    },
+    "stationKind": {
+      "enum": [
+        "crafting_table",
+        "furnace",
+        "blast_furnace",
+        "smoker"
+      ]
+    },
+    "vehicleKind": {
+      "enum": [
+        "boat",
+        "minecart",
+        "train_seat",
+        "nearest"
+      ]
+    },
+    "anyValue": {
+      "description": "A number, a string, true/false or an expression object.",
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "string",
+          "maxLength": 1000
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "$ref": "#/$defs/exprObject"
+        }
+      ]
+    },
+    "numberValue": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "$ref": "#/$defs/exprObject"
+        }
+      ]
+    },
+    "booleanValue": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "$ref": "#/$defs/exprObject"
+        }
+      ]
+    },
+    "stringValue": {
+      "anyOf": [
+        {
+          "type": "string",
+          "maxLength": 1000
+        },
+        {
+          "$ref": "#/$defs/exprObject"
+        }
+      ]
+    },
+    "idValue": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/id"
+        },
+        {
+          "$ref": "#/$defs/exprObject"
+        }
+      ]
+    },
+    "coordinate": {
+      "anyOf": [
+        {
+          "type": "integer",
+          "minimum": -30000000,
+          "maximum": 30000000
+        },
+        {
+          "$ref": "#/$defs/exprObject"
+        }
+      ]
+    },
+    "count": {
+      "anyOf": [
+        {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100000
+        },
+        {
+          "$ref": "#/$defs/exprObject"
+        }
+      ]
+    },
+    "idList": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/idValue"
+      }
+    },
+    "body": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/statement"
+      }
+    },
+    "target_coords": {
+      "type": "object",
+      "description": "A block position; dimension defaults to the current one.",
+      "properties": {
+        "type": {
+          "const": "coords"
+        },
+        "x": {
+          "$ref": "#/$defs/coordinate"
+        },
+        "y": {
+          "$ref": "#/$defs/coordinate"
+        },
+        "z": {
+          "$ref": "#/$defs/coordinate"
+        },
+        "dimension": {
+          "$ref": "#/$defs/id"
+        }
+      },
+      "required": [
+        "type",
+        "x",
+        "y",
+        "z"
+      ],
+      "additionalProperties": false
+    },
+    "target_home": {
+      "type": "object",
+      "description": "A home set in Alto; without a name the default home.",
+      "properties": {
+        "type": {
+          "const": "home"
+        },
+        "name": {
+          "$ref": "#/$defs/placeName"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "additionalProperties": false
+    },
+    "target_storage_zone": {
+      "type": "object",
+      "description": "A named storage zone of Alto's storage index.",
+      "properties": {
+        "type": {
+          "const": "storage_zone"
+        },
+        "name": {
+          "$ref": "#/$defs/placeName"
+        }
+      },
+      "required": [
+        "type",
+        "name"
+      ],
+      "additionalProperties": false
+    },
+    "target_portal": {
+      "type": "object",
+      "description": "The nearest known portal (walk next to it).",
+      "properties": {
+        "type": {
+          "const": "portal"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "additionalProperties": false
+    },
+    "target": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/target_coords"
+        },
+        {
+          "$ref": "#/$defs/target_home"
+        },
+        {
+          "$ref": "#/$defs/target_storage_zone"
+        },
+        {
+          "$ref": "#/$defs/target_portal"
+        }
+      ]
+    },
+    "block_goto": {
+      "type": "object",
+      "description": "Walk to a target.",
+      "properties": {
+        "block": {
+          "const": "goto"
+        },
+        "target": {
+          "$ref": "#/$defs/target"
+        }
+      },
+      "required": [
+        "block",
+        "target"
+      ],
+      "additionalProperties": false
+    },
+    "block_mine": {
+      "type": "object",
+      "description": "Mine until count more of the block (or of blocks that drop the item) are collected.",
+      "properties": {
+        "block": {
+          "const": "mine"
+        },
+        "block_or_item": {
+          "$ref": "#/$defs/idValue"
+        },
+        "count": {
+          "$ref": "#/$defs/count"
+        }
+      },
+      "required": [
+        "block",
+        "block_or_item",
+        "count"
+      ],
+      "additionalProperties": false
+    },
+    "block_build": {
+      "type": "object",
+      "description": "Build a schematic from Alto's schematics folder with its origin at x, y, z.",
+      "properties": {
+        "block": {
+          "const": "build"
+        },
+        "schematic": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/fileName"
+            },
+            {
+              "$ref": "#/$defs/exprObject"
+            }
+          ]
+        },
+        "x": {
+          "$ref": "#/$defs/coordinate"
+        },
+        "y": {
+          "$ref": "#/$defs/coordinate"
+        },
+        "z": {
+          "$ref": "#/$defs/coordinate"
+        }
+      },
+      "required": [
+        "block",
+        "schematic",
+        "x",
+        "y",
+        "z"
+      ],
+      "additionalProperties": false
+    },
+    "block_fill": {
+      "type": "object",
+      "description": "Fill the box between two corners (inclusive) with a block ('block' is the block type key, so the block to place is 'material').",
+      "properties": {
+        "block": {
+          "const": "fill"
+        },
+        "material": {
+          "$ref": "#/$defs/idValue"
+        },
+        "x1": {
+          "$ref": "#/$defs/coordinate"
+        },
+        "y1": {
+          "$ref": "#/$defs/coordinate"
+        },
+        "z1": {
+          "$ref": "#/$defs/coordinate"
+        },
+        "x2": {
+          "$ref": "#/$defs/coordinate"
+        },
+        "y2": {
+          "$ref": "#/$defs/coordinate"
+        },
+        "z2": {
+          "$ref": "#/$defs/coordinate"
+        }
+      },
+      "required": [
+        "block",
+        "material",
+        "x1",
+        "y1",
+        "z1",
+        "x2",
+        "y2",
+        "z2"
+      ],
+      "additionalProperties": false
+    },
+    "block_farm": {
+      "type": "object",
+      "description": "One harvest-and-replant pass over nearby crops.",
+      "properties": {
+        "block": {
+          "const": "farm"
+        },
+        "range": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 256
+            },
+            {
+              "$ref": "#/$defs/exprObject"
+            }
+          ]
+        },
+        "crops": {
+          "$ref": "#/$defs/idList"
+        }
+      },
+      "required": [
+        "block"
+      ],
+      "additionalProperties": false
+    },
+    "block_craft": {
+      "type": "object",
+      "description": "Craft count more of an item.",
+      "properties": {
+        "block": {
+          "const": "craft"
+        },
+        "item": {
+          "$ref": "#/$defs/idValue"
+        },
+        "count": {
+          "$ref": "#/$defs/count"
+        }
+      },
+      "required": [
+        "block",
+        "item",
+        "count"
+      ],
+      "additionalProperties": false
+    },
+    "block_smelt": {
+      "type": "object",
+      "description": "Smelt until count more of the result item (e.g. iron_ingot) are made.",
+      "properties": {
+        "block": {
+          "const": "smelt"
+        },
+        "item": {
+          "$ref": "#/$defs/idValue"
+        },
+        "count": {
+          "$ref": "#/$defs/count"
+        }
+      },
+      "required": [
+        "block",
+        "item",
+        "count"
+      ],
+      "additionalProperties": false
+    },
+    "block_fetch": {
+      "type": "object",
+      "description": "Take count of an item out of known storage.",
+      "properties": {
+        "block": {
+          "const": "fetch"
+        },
+        "item": {
+          "$ref": "#/$defs/idValue"
+        },
+        "count": {
+          "$ref": "#/$defs/count"
+        }
+      },
+      "required": [
+        "block",
+        "item",
+        "count"
+      ],
+      "additionalProperties": false
+    },
+    "block_deposit": {
+      "type": "object",
+      "description": "Put inventory items into storage; except = keep these, only = deposit only these.",
+      "properties": {
+        "block": {
+          "const": "deposit"
+        },
+        "except": {
+          "$ref": "#/$defs/idList"
+        },
+        "only": {
+          "$ref": "#/$defs/idList"
+        }
+      },
+      "required": [
+        "block"
+      ],
+      "additionalProperties": false
+    },
+    "block_eat": {
+      "type": "object",
+      "description": "Eat food from the inventory until no longer hungry.",
+      "properties": {
+        "block": {
+          "const": "eat"
+        }
+      },
+      "required": [
+        "block"
+      ],
+      "additionalProperties": false
+    },
+    "block_wait": {
+      "type": "object",
+      "description": "Wait some seconds (0 = until the next tick).",
+      "properties": {
+        "block": {
+          "const": "wait"
+        },
+        "seconds": {
+          "anyOf": [
+            {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 86400
+            },
+            {
+              "$ref": "#/$defs/exprObject"
+            }
+          ]
+        }
+      },
+      "required": [
+        "block",
+        "seconds"
+      ],
+      "additionalProperties": false
+    },
+    "block_message": {
+      "type": "object",
+      "description": "Show a message to you only (never sent to the server).",
+      "properties": {
+        "block": {
+          "const": "message"
+        },
+        "text": {
+          "$ref": "#/$defs/anyValue"
+        }
+      },
+      "required": [
+        "block",
+        "text"
+      ],
+      "additionalProperties": false
+    },
+    "block_command": {
+      "type": "object",
+      "description": "Run a Baritone command (literal text, without '/'); only runs when it is on the allowed commands list.",
+      "properties": {
+        "block": {
+          "const": "command"
+        },
+        "command": {
+          "type": "string",
+          "maxLength": 256,
+          "pattern": "^[\\s#]*[^\\s#/]"
+        }
+      },
+      "required": [
+        "block",
+        "command"
+      ],
+      "additionalProperties": false
+    },
+    "block_send_chat": {
+      "type": "object",
+      "description": "Send a real chat message as you; refused unless scripts may chat (setting).",
+      "properties": {
+        "block": {
+          "const": "send_chat"
+        },
+        "text": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 256
+            },
+            {
+              "$ref": "#/$defs/exprObject"
+            }
+          ]
+        }
+      },
+      "required": [
+        "block",
+        "text"
+      ],
+      "additionalProperties": false
+    },
+    "block_use_item_on_block": {
+      "type": "object",
+      "description": "Right-click a block face while holding an item.",
+      "properties": {
+        "block": {
+          "const": "use_item_on_block"
+        },
+        "item": {
+          "$ref": "#/$defs/idValue"
+        },
+        "x": {
+          "$ref": "#/$defs/coordinate"
+        },
+        "y": {
+          "$ref": "#/$defs/coordinate"
+        },
+        "z": {
+          "$ref": "#/$defs/coordinate"
+        },
+        "face": {
+          "$ref": "#/$defs/face"
+        }
+      },
+      "required": [
+        "block",
+        "item",
+        "x",
+        "y",
+        "z",
+        "face"
+      ],
+      "additionalProperties": false
+    },
+    "block_set_filter": {
+      "type": "object",
+      "description": "Set the filter of a block (e.g. a Create deployer) to an item; face optional.",
+      "properties": {
+        "block": {
+          "const": "set_filter"
+        },
+        "x": {
+          "$ref": "#/$defs/coordinate"
+        },
+        "y": {
+          "$ref": "#/$defs/coordinate"
+        },
+        "z": {
+          "$ref": "#/$defs/coordinate"
+        },
+        "face": {
+          "$ref": "#/$defs/face"
+        },
+        "item": {
+          "$ref": "#/$defs/idValue"
+        }
+      },
+      "required": [
+        "block",
+        "x",
+        "y",
+        "z",
+        "item"
+      ],
+      "additionalProperties": false
+    },
+    "block_place_station": {
+      "type": "object",
+      "description": "Place a work station from the inventory.",
+      "properties": {
+        "block": {
+          "const": "place_station"
+        },
+        "kind": {
+          "$ref": "#/$defs/stationKind"
+        }
+      },
+      "required": [
+        "block",
+        "kind"
+      ],
+      "additionalProperties": false
+    },
+    "block_pickup_station": {
+      "type": "object",
+      "description": "Pick up a work station Alto placed.",
+      "properties": {
+        "block": {
+          "const": "pickup_station"
+        },
+        "kind": {
+          "$ref": "#/$defs/stationKind"
+        }
+      },
+      "required": [
+        "block",
+        "kind"
+      ],
+      "additionalProperties": false
+    },
+    "block_board_vehicle": {
+      "type": "object",
+      "description": "Board a vehicle.",
+      "properties": {
+        "block": {
+          "const": "board_vehicle"
+        },
+        "kind": {
+          "$ref": "#/$defs/vehicleKind"
+        }
+      },
+      "required": [
+        "block",
+        "kind"
+      ],
+      "additionalProperties": false
+    },
+    "block_ride_train": {
+      "type": "object",
+      "description": "Ride a Create train between two named stations.",
+      "properties": {
+        "block": {
+          "const": "ride_train"
+        },
+        "from_station": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/placeName"
+            },
+            {
+              "$ref": "#/$defs/exprObject"
+            }
+          ]
+        },
+        "to_station": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/placeName"
+            },
+            {
+              "$ref": "#/$defs/exprObject"
+            }
+          ]
+        }
+      },
+      "required": [
+        "block",
+        "from_station",
+        "to_station"
+      ],
+      "additionalProperties": false
+    },
+    "block_leave_vehicle": {
+      "type": "object",
+      "description": "Get out of the current vehicle.",
+      "properties": {
+        "block": {
+          "const": "leave_vehicle"
+        }
+      },
+      "required": [
+        "block"
+      ],
+      "additionalProperties": false
+    },
+    "block_take_portal": {
+      "type": "object",
+      "description": "Go through a portal and wait for the new dimension.",
+      "properties": {
+        "block": {
+          "const": "take_portal"
+        }
+      },
+      "required": [
+        "block"
+      ],
+      "additionalProperties": false
+    },
+    "block_stop": {
+      "type": "object",
+      "description": "End the script.",
+      "properties": {
+        "block": {
+          "const": "stop"
+        }
+      },
+      "required": [
+        "block"
+      ],
+      "additionalProperties": false
+    },
+    "block_repeat": {
+      "type": "object",
+      "description": "Run the body a number of times (0 skips it).",
+      "properties": {
+        "block": {
+          "const": "repeat"
+        },
+        "times": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100000
+            },
+            {
+              "$ref": "#/$defs/exprObject"
+            }
+          ]
+        },
+        "body": {
+          "$ref": "#/$defs/body"
+        }
+      },
+      "required": [
+        "block",
+        "times",
+        "body"
+      ],
+      "additionalProperties": false
+    },
+    "block_repeat_until": {
+      "type": "object",
+      "description": "Repeat the body until the condition is true (checked before every pass).",
+      "properties": {
+        "block": {
+          "const": "repeat_until"
+        },
+        "condition": {
+          "$ref": "#/$defs/booleanValue"
+        },
+        "body": {
+          "$ref": "#/$defs/body"
+        }
+      },
+      "required": [
+        "block",
+        "condition",
+        "body"
+      ],
+      "additionalProperties": false
+    },
+    "block_forever": {
+      "type": "object",
+      "description": "Repeat the body until break or stop; needs safety stops enabled.",
+      "properties": {
+        "block": {
+          "const": "forever"
+        },
+        "body": {
+          "$ref": "#/$defs/body"
+        }
+      },
+      "required": [
+        "block",
+        "body"
+      ],
+      "additionalProperties": false
+    },
+    "block_if": {
+      "type": "object",
+      "description": "Run 'then' when the condition is true, else 'else'.",
+      "properties": {
+        "block": {
+          "const": "if"
+        },
+        "condition": {
+          "$ref": "#/$defs/booleanValue"
+        },
+        "then": {
+          "$ref": "#/$defs/body"
+        },
+        "else": {
+          "$ref": "#/$defs/body"
+        }
+      },
+      "required": [
+        "block",
+        "condition",
+        "then"
+      ],
+      "additionalProperties": false
+    },
+    "block_wait_until": {
+      "type": "object",
+      "description": "Wait until the condition is true; the run fails after timeout_seconds.",
+      "properties": {
+        "block": {
+          "const": "wait_until"
+        },
+        "condition": {
+          "$ref": "#/$defs/booleanValue"
+        },
+        "timeout_seconds": {
+          "anyOf": [
+            {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 86400
+            },
+            {
+              "$ref": "#/$defs/exprObject"
+            }
+          ]
+        }
+      },
+      "required": [
+        "block",
+        "condition"
+      ],
+      "additionalProperties": false
+    },
+    "block_break": {
+      "type": "object",
+      "description": "Leave the innermost loop.",
+      "properties": {
+        "block": {
+          "const": "break"
+        }
+      },
+      "required": [
+        "block"
+      ],
+      "additionalProperties": false
+    },
+    "block_call": {
+      "type": "object",
+      "description": "Call a procedure; args maps every parameter name to a value.",
+      "properties": {
+        "block": {
+          "const": "call"
+        },
+        "procedure": {
+          "$ref": "#/$defs/name"
+        },
+        "args": {
+          "type": "object",
+          "propertyNames": {
+            "$ref": "#/$defs/name"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/anyValue"
+          }
+        }
+      },
+      "required": [
+        "block",
+        "procedure"
+      ],
+      "additionalProperties": false
+    },
+    "block_set_var": {
+      "type": "object",
+      "description": "Set a variable (same type as its initial value).",
+      "properties": {
+        "block": {
+          "const": "set_var"
+        },
+        "name": {
+          "$ref": "#/$defs/name"
+        },
+        "value": {
+          "$ref": "#/$defs/anyValue"
+        }
+      },
+      "required": [
+        "block",
+        "name",
+        "value"
+      ],
+      "additionalProperties": false
+    },
+    "block_change_var": {
+      "type": "object",
+      "description": "Add delta to a number variable.",
+      "properties": {
+        "block": {
+          "const": "change_var"
+        },
+        "name": {
+          "$ref": "#/$defs/name"
+        },
+        "delta": {
+          "$ref": "#/$defs/numberValue"
+        }
+      },
+      "required": [
+        "block",
+        "name",
+        "delta"
+      ],
+      "additionalProperties": false
+    },
+    "statement": {
+      "description": "A block: {\"block\": \"<type>\", ...fields}.",
+      "oneOf": [
+        {
+          "$ref": "#/$defs/block_goto"
+        },
+        {
+          "$ref": "#/$defs/block_mine"
+        },
+        {
+          "$ref": "#/$defs/block_build"
+        },
+        {
+          "$ref": "#/$defs/block_fill"
+        },
+        {
+          "$ref": "#/$defs/block_farm"
+        },
+        {
+          "$ref": "#/$defs/block_craft"
+        },
+        {
+          "$ref": "#/$defs/block_smelt"
+        },
+        {
+          "$ref": "#/$defs/block_fetch"
+        },
+        {
+          "$ref": "#/$defs/block_deposit"
+        },
+        {
+          "$ref": "#/$defs/block_eat"
+        },
+        {
+          "$ref": "#/$defs/block_wait"
+        },
+        {
+          "$ref": "#/$defs/block_message"
+        },
+        {
+          "$ref": "#/$defs/block_command"
+        },
+        {
+          "$ref": "#/$defs/block_send_chat"
+        },
+        {
+          "$ref": "#/$defs/block_use_item_on_block"
+        },
+        {
+          "$ref": "#/$defs/block_set_filter"
+        },
+        {
+          "$ref": "#/$defs/block_place_station"
+        },
+        {
+          "$ref": "#/$defs/block_pickup_station"
+        },
+        {
+          "$ref": "#/$defs/block_board_vehicle"
+        },
+        {
+          "$ref": "#/$defs/block_ride_train"
+        },
+        {
+          "$ref": "#/$defs/block_leave_vehicle"
+        },
+        {
+          "$ref": "#/$defs/block_take_portal"
+        },
+        {
+          "$ref": "#/$defs/block_stop"
+        },
+        {
+          "$ref": "#/$defs/block_repeat"
+        },
+        {
+          "$ref": "#/$defs/block_repeat_until"
+        },
+        {
+          "$ref": "#/$defs/block_forever"
+        },
+        {
+          "$ref": "#/$defs/block_if"
+        },
+        {
+          "$ref": "#/$defs/block_wait_until"
+        },
+        {
+          "$ref": "#/$defs/block_break"
+        },
+        {
+          "$ref": "#/$defs/block_call"
+        },
+        {
+          "$ref": "#/$defs/block_set_var"
+        },
+        {
+          "$ref": "#/$defs/block_change_var"
+        }
+      ]
+    },
+    "expr_var": {
+      "type": "object",
+      "description": "Value of a script variable.",
+      "properties": {
+        "expr": {
+          "const": "var"
+        },
+        "name": {
+          "$ref": "#/$defs/name"
+        }
+      },
+      "required": [
+        "expr",
+        "name"
+      ],
+      "additionalProperties": false
+    },
+    "expr_param": {
+      "type": "object",
+      "description": "Value of a parameter of the enclosing procedure.",
+      "properties": {
+        "expr": {
+          "const": "param"
+        },
+        "name": {
+          "$ref": "#/$defs/name"
+        }
+      },
+      "required": [
+        "expr",
+        "name"
+      ],
+      "additionalProperties": false
+    },
+    "expr_item_count": {
+      "type": "object",
+      "description": "How many of an item are in the inventory or in known storage (number).",
+      "properties": {
+        "expr": {
+          "const": "item_count"
+        },
+        "item": {
+          "$ref": "#/$defs/idValue"
+        },
+        "where": {
+          "$ref": "#/$defs/where"
+        }
+      },
+      "required": [
+        "expr",
+        "item"
+      ],
+      "additionalProperties": false
+    },
+    "expr_position": {
+      "type": "object",
+      "description": "The player's block position on one axis (number).",
+      "properties": {
+        "expr": {
+          "const": "position"
+        },
+        "axis": {
+          "enum": [
+            "x",
+            "y",
+            "z"
+          ]
+        }
+      },
+      "required": [
+        "expr",
+        "axis"
+      ],
+      "additionalProperties": false
+    },
+    "expr_block_at": {
+      "type": "object",
+      "description": "Block id at a position, e.g. minecraft:stone (string).",
+      "properties": {
+        "expr": {
+          "const": "block_at"
+        },
+        "x": {
+          "$ref": "#/$defs/coordinate"
+        },
+        "y": {
+          "$ref": "#/$defs/coordinate"
+        },
+        "z": {
+          "$ref": "#/$defs/coordinate"
+        }
+      },
+      "required": [
+        "expr",
+        "x",
+        "y",
+        "z"
+      ],
+      "additionalProperties": false
+    },
+    "expr_random": {
+      "type": "object",
+      "description": "Random whole number from min to max inclusive.",
+      "properties": {
+        "expr": {
+          "const": "random"
+        },
+        "min": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": -1000000000,
+              "maximum": 1000000000
+            },
+            {
+              "$ref": "#/$defs/exprObject"
+            }
+          ]
+        },
+        "max": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": -1000000000,
+              "maximum": 1000000000
+            },
+            {
+              "$ref": "#/$defs/exprObject"
+            }
+          ]
+        }
+      },
+      "required": [
+        "expr",
+        "min",
+        "max"
+      ],
+      "additionalProperties": false
+    },
+    "expr_join": {
+      "type": "object",
+      "description": "Joins the parts into one string.",
+      "properties": {
+        "expr": {
+          "const": "join"
+        },
+        "parts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/anyValue"
+          }
+        }
+      },
+      "required": [
+        "expr",
+        "parts"
+      ],
+      "additionalProperties": false
+    },
+    "expr_health": {
+      "type": "object",
+      "description": "Health points, 20 = full (number).",
+      "properties": {
+        "expr": {
+          "const": "health"
+        }
+      },
+      "required": [
+        "expr"
+      ],
+      "additionalProperties": false
+    },
+    "expr_hunger": {
+      "type": "object",
+      "description": "Food level 0..20 (number).",
+      "properties": {
+        "expr": {
+          "const": "hunger"
+        }
+      },
+      "required": [
+        "expr"
+      ],
+      "additionalProperties": false
+    },
+    "expr_time_of_day": {
+      "type": "object",
+      "description": "Day time in ticks 0..23999 (number).",
+      "properties": {
+        "expr": {
+          "const": "time_of_day"
+        }
+      },
+      "required": [
+        "expr"
+      ],
+      "additionalProperties": false
+    },
+    "expr_dimension": {
+      "type": "object",
+      "description": "Dimension id (string).",
+      "properties": {
+        "expr": {
+          "const": "dimension"
+        }
+      },
+      "required": [
+        "expr"
+      ],
+      "additionalProperties": false
+    },
+    "expr_inventory_full": {
+      "type": "object",
+      "description": "Whether no inventory slot is free (boolean).",
+      "properties": {
+        "expr": {
+          "const": "inventory_full"
+        }
+      },
+      "required": [
+        "expr"
+      ],
+      "additionalProperties": false
+    },
+    "expr_add": {
+      "type": "object",
+      "description": "Math on two numbers.",
+      "properties": {
+        "expr": {
+          "const": "add"
+        },
+        "a": {
+          "$ref": "#/$defs/numberValue"
+        },
+        "b": {
+          "$ref": "#/$defs/numberValue"
+        }
+      },
+      "required": [
+        "expr",
+        "a",
+        "b"
+      ],
+      "additionalProperties": false
+    },
+    "expr_sub": {
+      "type": "object",
+      "description": "Math on two numbers.",
+      "properties": {
+        "expr": {
+          "const": "sub"
+        },
+        "a": {
+          "$ref": "#/$defs/numberValue"
+        },
+        "b": {
+          "$ref": "#/$defs/numberValue"
+        }
+      },
+      "required": [
+        "expr",
+        "a",
+        "b"
+      ],
+      "additionalProperties": false
+    },
+    "expr_mul": {
+      "type": "object",
+      "description": "Math on two numbers.",
+      "properties": {
+        "expr": {
+          "const": "mul"
+        },
+        "a": {
+          "$ref": "#/$defs/numberValue"
+        },
+        "b": {
+          "$ref": "#/$defs/numberValue"
+        }
+      },
+      "required": [
+        "expr",
+        "a",
+        "b"
+      ],
+      "additionalProperties": false
+    },
+    "expr_div": {
+      "type": "object",
+      "description": "Math on two numbers.",
+      "properties": {
+        "expr": {
+          "const": "div"
+        },
+        "a": {
+          "$ref": "#/$defs/numberValue"
+        },
+        "b": {
+          "$ref": "#/$defs/numberValue"
+        }
+      },
+      "required": [
+        "expr",
+        "a",
+        "b"
+      ],
+      "additionalProperties": false
+    },
+    "expr_mod": {
+      "type": "object",
+      "description": "Math on two numbers.",
+      "properties": {
+        "expr": {
+          "const": "mod"
+        },
+        "a": {
+          "$ref": "#/$defs/numberValue"
+        },
+        "b": {
+          "$ref": "#/$defs/numberValue"
+        }
+      },
+      "required": [
+        "expr",
+        "a",
+        "b"
+      ],
+      "additionalProperties": false
+    },
+    "expr_min": {
+      "type": "object",
+      "description": "Math on two numbers.",
+      "properties": {
+        "expr": {
+          "const": "min"
+        },
+        "a": {
+          "$ref": "#/$defs/numberValue"
+        },
+        "b": {
+          "$ref": "#/$defs/numberValue"
+        }
+      },
+      "required": [
+        "expr",
+        "a",
+        "b"
+      ],
+      "additionalProperties": false
+    },
+    "expr_max": {
+      "type": "object",
+      "description": "Math on two numbers.",
+      "properties": {
+        "expr": {
+          "const": "max"
+        },
+        "a": {
+          "$ref": "#/$defs/numberValue"
+        },
+        "b": {
+          "$ref": "#/$defs/numberValue"
+        }
+      },
+      "required": [
+        "expr",
+        "a",
+        "b"
+      ],
+      "additionalProperties": false
+    },
+    "expr_eq": {
+      "type": "object",
+      "description": "Compares two values of the same type (boolean).",
+      "properties": {
+        "expr": {
+          "const": "eq"
+        },
+        "a": {
+          "$ref": "#/$defs/anyValue"
+        },
+        "b": {
+          "$ref": "#/$defs/anyValue"
+        }
+      },
+      "required": [
+        "expr",
+        "a",
+        "b"
+      ],
+      "additionalProperties": false
+    },
+    "expr_neq": {
+      "type": "object",
+      "description": "Compares two values of the same type (boolean).",
+      "properties": {
+        "expr": {
+          "const": "neq"
+        },
+        "a": {
+          "$ref": "#/$defs/anyValue"
+        },
+        "b": {
+          "$ref": "#/$defs/anyValue"
+        }
+      },
+      "required": [
+        "expr",
+        "a",
+        "b"
+      ],
+      "additionalProperties": false
+    },
+    "expr_lt": {
+      "type": "object",
+      "description": "Compares two numbers (boolean).",
+      "properties": {
+        "expr": {
+          "const": "lt"
+        },
+        "a": {
+          "$ref": "#/$defs/numberValue"
+        },
+        "b": {
+          "$ref": "#/$defs/numberValue"
+        }
+      },
+      "required": [
+        "expr",
+        "a",
+        "b"
+      ],
+      "additionalProperties": false
+    },
+    "expr_lte": {
+      "type": "object",
+      "description": "Compares two numbers (boolean).",
+      "properties": {
+        "expr": {
+          "const": "lte"
+        },
+        "a": {
+          "$ref": "#/$defs/numberValue"
+        },
+        "b": {
+          "$ref": "#/$defs/numberValue"
+        }
+      },
+      "required": [
+        "expr",
+        "a",
+        "b"
+      ],
+      "additionalProperties": false
+    },
+    "expr_gt": {
+      "type": "object",
+      "description": "Compares two numbers (boolean).",
+      "properties": {
+        "expr": {
+          "const": "gt"
+        },
+        "a": {
+          "$ref": "#/$defs/numberValue"
+        },
+        "b": {
+          "$ref": "#/$defs/numberValue"
+        }
+      },
+      "required": [
+        "expr",
+        "a",
+        "b"
+      ],
+      "additionalProperties": false
+    },
+    "expr_gte": {
+      "type": "object",
+      "description": "Compares two numbers (boolean).",
+      "properties": {
+        "expr": {
+          "const": "gte"
+        },
+        "a": {
+          "$ref": "#/$defs/numberValue"
+        },
+        "b": {
+          "$ref": "#/$defs/numberValue"
+        }
+      },
+      "required": [
+        "expr",
+        "a",
+        "b"
+      ],
+      "additionalProperties": false
+    },
+    "expr_and": {
+      "type": "object",
+      "description": "Logic on two booleans (short-circuit).",
+      "properties": {
+        "expr": {
+          "const": "and"
+        },
+        "a": {
+          "$ref": "#/$defs/booleanValue"
+        },
+        "b": {
+          "$ref": "#/$defs/booleanValue"
+        }
+      },
+      "required": [
+        "expr",
+        "a",
+        "b"
+      ],
+      "additionalProperties": false
+    },
+    "expr_or": {
+      "type": "object",
+      "description": "Logic on two booleans (short-circuit).",
+      "properties": {
+        "expr": {
+          "const": "or"
+        },
+        "a": {
+          "$ref": "#/$defs/booleanValue"
+        },
+        "b": {
+          "$ref": "#/$defs/booleanValue"
+        }
+      },
+      "required": [
+        "expr",
+        "a",
+        "b"
+      ],
+      "additionalProperties": false
+    },
+    "expr_abs": {
+      "type": "object",
+      "description": "One-number math.",
+      "properties": {
+        "expr": {
+          "const": "abs"
+        },
+        "a": {
+          "$ref": "#/$defs/numberValue"
+        }
+      },
+      "required": [
+        "expr",
+        "a"
+      ],
+      "additionalProperties": false
+    },
+    "expr_round": {
+      "type": "object",
+      "description": "One-number math.",
+      "properties": {
+        "expr": {
+          "const": "round"
+        },
+        "a": {
+          "$ref": "#/$defs/numberValue"
+        }
+      },
+      "required": [
+        "expr",
+        "a"
+      ],
+      "additionalProperties": false
+    },
+    "expr_not": {
+      "type": "object",
+      "description": "Boolean not.",
+      "properties": {
+        "expr": {
+          "const": "not"
+        },
+        "a": {
+          "$ref": "#/$defs/booleanValue"
+        }
+      },
+      "required": [
+        "expr",
+        "a"
+      ],
+      "additionalProperties": false
+    },
+    "exprObject": {
+      "description": "An expression object: {\"expr\": \"<kind>\", ...fields}.",
+      "oneOf": [
+        {
+          "$ref": "#/$defs/expr_var"
+        },
+        {
+          "$ref": "#/$defs/expr_param"
+        },
+        {
+          "$ref": "#/$defs/expr_item_count"
+        },
+        {
+          "$ref": "#/$defs/expr_position"
+        },
+        {
+          "$ref": "#/$defs/expr_block_at"
+        },
+        {
+          "$ref": "#/$defs/expr_random"
+        },
+        {
+          "$ref": "#/$defs/expr_join"
+        },
+        {
+          "$ref": "#/$defs/expr_health"
+        },
+        {
+          "$ref": "#/$defs/expr_hunger"
+        },
+        {
+          "$ref": "#/$defs/expr_time_of_day"
+        },
+        {
+          "$ref": "#/$defs/expr_dimension"
+        },
+        {
+          "$ref": "#/$defs/expr_inventory_full"
+        },
+        {
+          "$ref": "#/$defs/expr_add"
+        },
+        {
+          "$ref": "#/$defs/expr_sub"
+        },
+        {
+          "$ref": "#/$defs/expr_mul"
+        },
+        {
+          "$ref": "#/$defs/expr_div"
+        },
+        {
+          "$ref": "#/$defs/expr_mod"
+        },
+        {
+          "$ref": "#/$defs/expr_min"
+        },
+        {
+          "$ref": "#/$defs/expr_max"
+        },
+        {
+          "$ref": "#/$defs/expr_eq"
+        },
+        {
+          "$ref": "#/$defs/expr_neq"
+        },
+        {
+          "$ref": "#/$defs/expr_lt"
+        },
+        {
+          "$ref": "#/$defs/expr_lte"
+        },
+        {
+          "$ref": "#/$defs/expr_gt"
+        },
+        {
+          "$ref": "#/$defs/expr_gte"
+        },
+        {
+          "$ref": "#/$defs/expr_and"
+        },
+        {
+          "$ref": "#/$defs/expr_or"
+        },
+        {
+          "$ref": "#/$defs/expr_abs"
+        },
+        {
+          "$ref": "#/$defs/expr_round"
+        },
+        {
+          "$ref": "#/$defs/expr_not"
+        }
+      ]
+    },
+    "event_on_start": {
+      "type": "object",
+      "description": "Runs once when the script starts.",
+      "properties": {
+        "event": {
+          "const": "on_start"
+        },
+        "body": {
+          "$ref": "#/$defs/body"
+        }
+      },
+      "required": [
+        "event",
+        "body"
+      ],
+      "additionalProperties": false
+    },
+    "event_on_chat": {
+      "type": "object",
+      "description": "Runs when you type the trigger in chat (only text you type yourself; case and surrounding spaces ignored).",
+      "properties": {
+        "event": {
+          "const": "on_chat"
+        },
+        "trigger": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^\\s*[^\\s/]"
+        },
+        "body": {
+          "$ref": "#/$defs/body"
+        }
+      },
+      "required": [
+        "event",
+        "trigger",
+        "body"
+      ],
+      "additionalProperties": false
+    },
+    "event_on_inventory_full": {
+      "type": "object",
+      "description": "Runs when the inventory becomes full.",
+      "properties": {
+        "event": {
+          "const": "on_inventory_full"
+        },
+        "body": {
+          "$ref": "#/$defs/body"
+        }
+      },
+      "required": [
+        "event",
+        "body"
+      ],
+      "additionalProperties": false
+    },
+    "event_on_health_below": {
+      "type": "object",
+      "description": "Runs when health drops below the number.",
+      "properties": {
+        "event": {
+          "const": "on_health_below"
+        },
+        "health": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 1024
+        },
+        "body": {
+          "$ref": "#/$defs/body"
+        }
+      },
+      "required": [
+        "event",
+        "health",
+        "body"
+      ],
+      "additionalProperties": false
+    },
+    "event_on_item_below": {
+      "type": "object",
+      "description": "Runs when the count of an item drops below the number.",
+      "properties": {
+        "event": {
+          "const": "on_item_below"
+        },
+        "item": {
+          "$ref": "#/$defs/id"
+        },
+        "count": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100000
+        },
+        "where": {
+          "$ref": "#/$defs/where"
+        },
+        "body": {
+          "$ref": "#/$defs/body"
+        }
+      },
+      "required": [
+        "event",
+        "item",
+        "count",
+        "body"
+      ],
+      "additionalProperties": false
+    },
+    "event_every": {
+      "type": "object",
+      "description": "Runs every N seconds (the first time N seconds after the start).",
+      "properties": {
+        "event": {
+          "const": "every"
+        },
+        "seconds": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 86400
+        },
+        "body": {
+          "$ref": "#/$defs/body"
+        }
+      },
+      "required": [
+        "event",
+        "seconds",
+        "body"
+      ],
+      "additionalProperties": false
+    },
+    "handler": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/event_on_start"
+        },
+        {
+          "$ref": "#/$defs/event_on_chat"
+        },
+        {
+          "$ref": "#/$defs/event_on_inventory_full"
+        },
+        {
+          "$ref": "#/$defs/event_on_health_below"
+        },
+        {
+          "$ref": "#/$defs/event_on_item_below"
+        },
+        {
+          "$ref": "#/$defs/event_every"
+        }
+      ]
+    },
+    "variable": {
+      "type": "object",
+      "description": "A global variable; its initial value fixes its type.",
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/name"
+        },
+        "initial": {
+          "type": [
+            "number",
+            "string",
+            "boolean"
+          ],
+          "maxLength": 1000
+        }
+      },
+      "required": [
+        "name",
+        "initial"
+      ],
+      "additionalProperties": false
+    },
+    "param": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/name"
+        },
+        "type": {
+          "enum": [
+            "number",
+            "string",
+            "boolean",
+            "item",
+            "block"
+          ]
+        }
+      },
+      "required": [
+        "name",
+        "type"
+      ],
+      "additionalProperties": false
+    },
+    "procedure": {
+      "type": "object",
+      "description": "A custom block (\"My Block\"). Procedures cannot call themselves, directly or indirectly.",
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/name"
+        },
+        "params": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/param"
+          }
+        },
+        "body": {
+          "$ref": "#/$defs/body"
+        }
+      },
+      "required": [
+        "name",
+        "body"
+      ],
+      "additionalProperties": false
+    }
+  }
+}
