@@ -52,7 +52,7 @@ public final class TestRig {
     public static void clearArea(ServerLevel level, BlockPos o) {
         for (int x = X0; x <= X1; x++) {
             for (int z = Z0; z <= Z1; z++) {
-                level.setBlock(o.offset(x, -1, z), Blocks.STONE.defaultBlockState(), Block.UPDATE_CLIENTS);
+                level.setBlock(o.offset(x, -1, z), Blocks.SMOOTH_STONE.defaultBlockState(), Block.UPDATE_CLIENTS);
                 for (int y = 0; y <= Y1; y++) {
                     level.setBlock(o.offset(x, y, z), Blocks.AIR.defaultBlockState(), Block.UPDATE_CLIENTS);
                 }

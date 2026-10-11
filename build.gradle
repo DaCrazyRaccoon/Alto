@@ -125,6 +125,8 @@ neoForge {
             systemProperty 'alto.devtest.commands', (findProperty('alto_devtest_commands') ?: '').toString()
             systemProperty 'alto.devtest.timeout', (findProperty('alto_devtest_timeout') ?: '900').toString()
             systemProperty 'alto.devtest.gamemode', (findProperty('alto_devtest_gamemode') ?: 'survival').toString()
+            // The test client never captures the mouse cursor (dev harness mixin); -Palto_devtest_grab=true to allow.
+            systemProperty 'alto.devtest.nograb', (findProperty('alto_devtest_grab') == 'true' ? 'false' : 'true')
         }
     }
 }
@@ -221,13 +223,22 @@ jar {
 // copied read-only from the Prism instance; nothing here ever writes to the Prism folder.
 // ---------------------------------------------------------------------------------------------
 def seedOptions = { File dir ->
-    // Fresh game dirs open the accessibility onboarding screen and pause on focus loss;
-    // pre-seed both so automated runs are not blocked. Existing options are never overwritten.
+    // Test game folders only: no accessibility onboarding screen (it would block automated runs), no pause when
+    // the window is not focused, narrator off, and ALL SOUND MUTED (the user asked for no music from test runs).
+    // These keys are (re)set on every run; other options are kept.
+    def wanted = [onboardAccessibility: 'false', pauseOnLostFocus: 'false', narrator: '0',
+                  soundCategory_master: '0.0', soundCategory_music: '0.0', soundCategory_record: '0.0']
     def options = new File(dir, 'options.txt')
-    if (!options.exists()) {
-        dir.mkdirs()
-        options.text = ['onboardAccessibility:false', 'pauseOnLostFocus:false', 'narrator:0', ''].join(System.lineSeparator())
+    dir.mkdirs()
+    def lines = options.exists() ? options.readLines('UTF-8') : []
+    def seen = [] as Set
+    lines = lines.collect { line ->
+        def key = line.contains(':') ? line.substring(0, line.indexOf(':')) : null
+        if (key != null && wanted.containsKey(key)) { seen << key; return key + ':' + wanted[key] }
+        return line
     }
+    wanted.each { k, v -> if (!seen.contains(k)) { lines << (k + ':' + v) } }
+    options.setText(lines.join(System.lineSeparator()) + System.lineSeparator(), 'UTF-8')
 }
 
 tasks.register('prepareDevRun') {

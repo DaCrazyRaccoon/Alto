@@ -17,6 +17,7 @@
 
 package baritone.pathing.movement;
 
+import baritone.alto.AltoHooks; // ALTO FORK
 import baritone.Baritone;
 import baritone.api.BaritoneAPI;
 import baritone.api.IBaritone;
@@ -242,7 +243,7 @@ public interface MovementHelper extends ActionCosts, Helper {
                 || block == Blocks.TRIPWIRE
                 || block == Blocks.COBWEB
                 || block == Blocks.VINE
-                || block == Blocks.LADDER
+                || AltoHooks.isLadder(block) // ALTO FORK: modded ladders too
                 || block == Blocks.COCOA
                 || block instanceof AzaleaBlock
                 || block instanceof DoorBlock
@@ -356,7 +357,8 @@ public interface MovementHelper extends ActionCosts, Helper {
                 || block instanceof BaseFireBlock
                 || block == Blocks.END_PORTAL
                 || block == Blocks.COBWEB
-                || block == Blocks.BUBBLE_COLUMN;
+                || block == Blocks.BUBBLE_COLUMN
+                || AltoHooks.avoidWalkingInto(block); // ALTO FORK: hazards (e.g. Create saws, crushing wheels)
     }
 
     /**
@@ -392,10 +394,13 @@ public interface MovementHelper extends ActionCosts, Helper {
         if (block instanceof AzaleaBlock) {
             return YES;
         }
-        if (block == Blocks.LADDER || (isClimbable(block) && Baritone.settings().allowVines.value)) { // TODO reconsider this
+        if (AltoHooks.neverWalkOn(block)) { // ALTO FORK: e.g. Create belts in "avoid" mode
+            return NO;
+        }
+        if (AltoHooks.isLadder(block) || (isClimbable(block) && Baritone.settings().allowVines.value)) { // TODO reconsider this // ALTO FORK: isLadder
             return YES;
         }
-        if (block == Blocks.FARMLAND || block == Blocks.DIRT_PATH || block == Blocks.SOUL_SAND) {
+        if (AltoHooks.isFarmland(block) || block == Blocks.DIRT_PATH || block == Blocks.SOUL_SAND) { // ALTO FORK: modded farmland
             return YES;
         }
         if (block == Blocks.ENDER_CHEST || block == Blocks.CHEST || block == Blocks.TRAPPED_CHEST) {
@@ -527,7 +532,7 @@ public interface MovementHelper extends ActionCosts, Helper {
                 if (!state.getValue(TrapDoorBlock.OPEN) && state.getValue(TrapDoorBlock.HALF) == Half.TOP) {
                     return true;
                 }
-            } else if (block == Blocks.SCAFFOLDING) {
+            } else if (AltoHooks.isScaffolding(block)) { // ALTO FORK: modded scaffolding
                 return true;
             } else if (block instanceof LeavesBlock) {
                 return true;
@@ -571,7 +576,7 @@ public interface MovementHelper extends ActionCosts, Helper {
      * because movements can end/start on these blocks despite them not being canWalkOn.
      */
     static boolean isClimbable(Block block) {
-        return block == Blocks.LADDER
+        return AltoHooks.isLadder(block) // ALTO FORK
             || block == Blocks.VINE
             || block == Blocks.WEEPING_VINES
             || block == Blocks.WEEPING_VINES_PLANT

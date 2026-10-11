@@ -1,0 +1,12 @@
+{
+  "required": true,
+  "package": "baritone.alto.devtest.mixin",
+  "compatibilityLevel": "JAVA_17",
+  "minVersion": "0.8",
+  "client": [
+    "MouseHandlerNoGrabMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

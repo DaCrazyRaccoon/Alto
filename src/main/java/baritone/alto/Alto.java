@@ -47,6 +47,9 @@ import baritone.alto.task.Step;
 import baritone.alto.task.GatherTask;
 import baritone.alto.task.ShulkerTask;
 import baritone.alto.upkeep.Upkeep;
+import baritone.alto.hazard.HazardManager;
+import baritone.alto.integration.FilterAccess;
+import baritone.alto.integration.Integrations;
 import baritone.api.Settings;
 import baritone.api.event.events.PacketEvent;
 import baritone.api.event.events.TickEvent;
@@ -92,6 +95,8 @@ public final class Alto {
     private final StationManager stations;
     private final StorageManager storage;
     private Upkeep upkeep;
+    private final HazardManager hazards;
+    private final List<FilterAccess> filterAccess = new CopyOnWriteArrayList<>();
     private final VanillaRecipeSource vanillaRecipes = new VanillaRecipeSource();
     private final BuilderSupply builderSupply;
     private final SelfTests selfTests;
@@ -114,6 +119,7 @@ public final class Alto {
         this.process = new AltoProcess(baritone, this);
         this.builderSupply = new BuilderSupply(this);
         this.selfTests = new SelfTests(this);
+        this.hazards = new HazardManager(this);
         addStepTaskFactory((step, pctx) -> step instanceof PlanStep.Fetch f
                 ? new FetchTask(this, ContainerRecord.Key.parse(f.storageId()), f.item(), f.count()) : null);
         addStepTaskFactory((step, pctx) -> step instanceof PlanStep.UnpackShulker u
@@ -130,6 +136,8 @@ public final class Alto {
         baritone.getPathingControlManager().registerProcess(alto.process);
         baritone.getGameEventHandler().registerEventListener(alto.new Listener());
         AltoCommands.registerAll(baritone, alto);
+        Integrations.initAll(alto);
+        alto.hazards.reload();
         return alto;
     }
 
@@ -165,6 +173,29 @@ public final class Alto {
 
     public StorageManager storage() {
         return storage;
+    }
+
+    public HazardManager hazards() {
+        return hazards;
+    }
+
+    /** Integrations that know where filter slots are (e.g. Create). */
+    public void addFilterAccess(FilterAccess access) {
+        filterAccess.add(access);
+    }
+
+    /** The first filter access that finds filter slots at {@code pos}, or null. */
+    public FilterAccess filterAccess(net.minecraft.world.level.Level level, net.minecraft.core.BlockPos pos) {
+        for (FilterAccess a : filterAccess) {
+            try {
+                if (!a.slots(level, pos).isEmpty()) {
+                    return a;
+                }
+            } catch (Throwable t) {
+                AltoLog.debug("filter access failed: " + t);
+            }
+        }
+        return null;
     }
 
     public BuilderSupply builderSupply() {

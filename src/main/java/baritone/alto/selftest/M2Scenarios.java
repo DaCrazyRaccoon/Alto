@@ -77,6 +77,17 @@ final class M2Scenarios {
         }
     }
 
+    /** A 4x2x4 pile of blocks at the far end of the test area: a small, local job for the upkeep tests. */
+    static void pile(ServerLevel level, BlockPos o, net.minecraft.world.level.block.Block block) {
+        for (int x = 0; x < 4; x++) {
+            for (int y = 0; y < 2; y++) {
+                for (int z = 0; z < 4; z++) {
+                    level.setBlock(o.offset(x - 2, y, 8 + z), block.defaultBlockState(), 3);
+                }
+            }
+        }
+    }
+
     static void zone(Alto alto, BlockPos o) {
         String dim = alto.storage().dimension();
         alto.storage().zones().putZone(new Zones.Zone(ZONE, dim, o.getX() + TestRig.X0, o.getY() - 1, o.getZ() + TestRig.Z0,
@@ -247,7 +258,7 @@ final class M2Scenarios {
 
         @Override
         public String description() {
-            return "full inventory while exploring: auto-deposit into a zone (keeping tools and food), then restock torches from the zone";
+            return "full inventory while mining a log pile: auto-deposit into a zone (keeping tools and food), then restock torches from the zone";
         }
 
         @Override
@@ -269,6 +280,7 @@ final class M2Scenarios {
                 items.add(new ItemStack(Items.COBBLESTONE, 64));
             }
             TestRig.resetPlayer(level, player, o, items.toArray(new ItemStack[0]));
+            pile(level, o, Blocks.OAK_LOG);
         }
 
         @Override
@@ -279,7 +291,7 @@ final class M2Scenarios {
             rig.setting(TestRig.settings().altoKeepItems, new ArrayList<>());
             zone(alto, o);
             alto.selfTests().allowUpkeep(true);
-            alto.baritone().getCommandManager().execute("explore");
+            alto.baritone().getCommandManager().execute("mine minecraft:oak_log");
         }
 
         @Override
@@ -439,7 +451,7 @@ final class M2Scenarios {
 
         @Override
         public String description() {
-            return "nearly broken stone pickaxe in hand while exploring, with cobblestone and sticks: crafts a new stone pickaxe";
+            return "nearly broken stone pickaxe in hand while mining andesite, with cobblestone and sticks: crafts a new stone pickaxe";
         }
 
         @Override
@@ -454,6 +466,7 @@ final class M2Scenarios {
             worn.setDamageValue(worn.getMaxDamage() - 3);
             TestRig.resetPlayer(level, player, o, worn, new ItemStack(Items.COBBLESTONE, 3), new ItemStack(Items.STICK, 2),
                     new ItemStack(Items.CRAFTING_TABLE, 1));
+            pile(level, o, Blocks.ANDESITE);
             player.getInventory().selected = 0;
         }
 
@@ -463,7 +476,7 @@ final class M2Scenarios {
             rig.setting(TestRig.settings().altoToolMaxTier, "stone");
             Minecraft.getInstance().player.getInventory().selected = 0;
             alto.selfTests().allowUpkeep(true);
-            alto.baritone().getCommandManager().execute("explore");
+            alto.baritone().getCommandManager().execute("mine minecraft:andesite");
         }
 
         @Override

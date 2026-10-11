@@ -17,6 +17,7 @@
 
 package baritone.pathing.movement;
 
+import baritone.alto.AltoHooks; // ALTO FORK
 import baritone.Baritone;
 import baritone.api.IBaritone;
 import baritone.api.pathing.movement.ActionCosts;
@@ -216,6 +217,6 @@ public class CalculationContext {
 
     public boolean isPossiblyProtected(int x, int y, int z) {
         // TODO more protection logic here; see #220
-        return false;
+        return AltoHooks.isProtected(x, y, z); // ALTO FORK: other players' claims (was: return false)
     }
 }

@@ -17,6 +17,7 @@
 
 package baritone.utils.pathing;
 
+import baritone.alto.AltoHooks; // ALTO FORK
 import baritone.Baritone;
 import baritone.api.utils.BetterBlockPos;
 import baritone.api.utils.IPlayerContext;
@@ -60,10 +61,12 @@ public class Avoidance {
     }
 
     public static List<Avoidance> create(IPlayerContext ctx) {
+        // ALTO FORK: hazard areas have their own settings and apply even when 'avoidance' is off
+        List<Avoidance> alto = AltoHooks.extraAvoidances(ctx);
         if (!Baritone.settings().avoidance.value) {
-            return Collections.emptyList();
+            return alto; // ALTO FORK (was: Collections.emptyList())
         }
-        List<Avoidance> res = new ArrayList<>();
+        List<Avoidance> res = new ArrayList<>(alto); // ALTO FORK (was: new ArrayList<>())
         double mobSpawnerCoeff = Baritone.settings().mobSpawnerAvoidanceCoefficient.value;
         double mobCoeff = Baritone.settings().mobAvoidanceCoefficient.value;
         if (mobSpawnerCoeff != 1.0D) {

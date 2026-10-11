@@ -17,6 +17,7 @@
 
 package baritone.pathing.movement.movements;
 
+import baritone.alto.AltoHooks; // ALTO FORK
 import baritone.Baritone;
 import baritone.api.IBaritone;
 import baritone.api.pathing.movement.MovementStatus;
@@ -143,7 +144,7 @@ public class MovementParkour extends Movement {
             BlockState landingOn = context.bsi.get0(destX, y - 1, destZ);
             // farmland needs to be canWalkOn otherwise farm can never work at all, but we want to specifically disallow ending a jump on farmland haha
             // frostwalker works here because we can't jump from possibly unfrozen water
-            if ((landingOn.getBlock() != Blocks.FARMLAND && MovementHelper.canWalkOn(context, destX, y - 1, destZ, landingOn))
+            if ((!AltoHooks.isFarmland(landingOn.getBlock()) && MovementHelper.canWalkOn(context, destX, y - 1, destZ, landingOn))
                     || (Math.min(16, context.frostWalker + 2) >= i && MovementHelper.canUseFrostWalker(context, landingOn))
             ) {
                 if (checkOvershootSafety(context.bsi, destX + xDiff, y, destZ + zDiff)) {
@@ -272,7 +273,7 @@ public class MovementParkour extends Movement {
         MovementHelper.moveTowards(ctx, state, dest);
         if (ctx.playerFeet().equals(dest)) {
             Block d = BlockStateInterface.getBlock(ctx, dest);
-            if (d == Blocks.VINE || d == Blocks.LADDER) {
+            if (d == Blocks.VINE || AltoHooks.isLadder(d)) { // ALTO FORK
                 // it physically hurt me to add support for parkour jumping onto a vine
                 // but i did it anyway
                 return state.setStatus(MovementStatus.SUCCESS);

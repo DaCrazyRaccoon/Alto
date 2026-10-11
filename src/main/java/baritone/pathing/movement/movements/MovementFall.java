@@ -17,6 +17,7 @@
 
 package baritone.pathing.movement.movements;
 
+import baritone.alto.AltoHooks; // ALTO FORK
 import baritone.api.IBaritone;
 import baritone.api.pathing.movement.MovementStatus;
 import baritone.api.utils.BetterBlockPos;
@@ -171,7 +172,7 @@ public class MovementFall extends Movement {
     private Direction avoid() {
         for (int i = 0; i < 15; i++) {
             BlockState state = ctx.world().getBlockState(ctx.playerFeet().below(i));
-            if (state.getBlock() == Blocks.LADDER) {
+            if (AltoHooks.isLadder(state.getBlock())) { // ALTO FORK
                 return state.getValue(LadderBlock.FACING);
             }
         }

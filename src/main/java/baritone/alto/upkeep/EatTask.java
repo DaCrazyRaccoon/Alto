@@ -97,7 +97,7 @@ public final class EatTask extends AltoTask {
                     ctx.playerController().processRightClick(ctx.player(), ctx.world(), InteractionHand.MAIN_HAND);
                 }
                 ticks++;
-                if (McItems.count(inv, food) < startCount || ctx.player().getFoodData().getFoodLevel() > startFood) {
+                if (McItems.count(inv, food) < startCount) { // eaten (hunger alone can rise by itself, e.g. in peaceful)
                     phase = Phase.RELEASE;
                 }
                 if (ticks > 20 * 6) {

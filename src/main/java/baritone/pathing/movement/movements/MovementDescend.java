@@ -17,6 +17,7 @@
 
 package baritone.pathing.movement.movements;
 
+import baritone.alto.AltoHooks; // ALTO FORK
 import baritone.Baritone;
 import baritone.api.IBaritone;
 import baritone.api.pathing.movement.MovementStatus;
@@ -114,7 +115,7 @@ public class MovementDescend extends Movement {
             return;
         }
 
-        if (destDown.getBlock() == Blocks.LADDER || destDown.getBlock() == Blocks.VINE) {
+        if (AltoHooks.isLadder(destDown.getBlock()) || destDown.getBlock() == Blocks.VINE) { // ALTO FORK
             return;
         }
         if (MovementHelper.canUseFrostWalker(context, destDown)) { // no need to check assumeWalkOnWater

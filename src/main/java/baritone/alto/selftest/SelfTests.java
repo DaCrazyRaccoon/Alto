@@ -63,6 +63,7 @@ public final class SelfTests {
     private int ticks;
     private int phase;
     private long startNanos;
+    private BlockPos baseOrigin;
 
     public SelfTests(Alto alto) {
         this.alto = alto;
@@ -119,6 +120,7 @@ public final class SelfTests {
             return "unknown scenario '" + what + "'; known: " + String.join(", ", scenarios.keySet());
         }
         results.clear();
+        baseOrigin = mc.player.blockPosition();
         queue.addAll(todo);
         deleteFlag();
         AltoLog.chat("Self-test: running " + todo.size() + " scenario(s): " + String.join(", ", todo));
@@ -145,7 +147,7 @@ public final class SelfTests {
         }
         try {
             if (phase == 0) {
-                origin = mc.player.blockPosition();
+                origin = baseOrigin != null ? baseOrigin : mc.player.blockPosition();
                 MinecraftServer server = mc.getSingleplayerServer();
                 server.submit(() -> {
                     ServerPlayer sp = server.getPlayerList().getPlayer(mc.player.getUUID());

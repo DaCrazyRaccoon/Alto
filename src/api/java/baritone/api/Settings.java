@@ -1943,6 +1943,61 @@ public final class Settings {
     )));
 
     /**
+     * Hazards: keep the pathfinder away from dangerous machines and moving contraptions (rules in
+     * baritone/alto/hazards.json, defaults for Create; #alto hazards reload after editing).
+     */
+    public final Setting<Boolean> altoHazards = new Setting<>(true);
+
+    /**
+     * Modded climbables: treat ladder and scaffolding blocks from mods (Create metal ladders, copycat ladders, metal
+     * scaffolding...) like vanilla ladders and scaffolding when pathing.
+     */
+    public final Setting<Boolean> altoCompatClimbables = new Setting<>(true);
+
+    /**
+     * Modded crops: treat modded farmland (e.g. Farmer's Delight rich soil farmland) like farmland and farm modded
+     * crops (#farm).
+     */
+    public final Setting<Boolean> altoCompatCrops = new Setting<>(true);
+
+    /**
+     * Filters: let Alto set the filters of blocks (Create deployers, funnels, tunnels, chutes...) with #filter.
+     */
+    public final Setting<Boolean> altoFilters = new Setting<>(true);
+
+    /**
+     * Integration switch: Create (hazards, filters, elevators, trains, stock keepers). Needs a restart.
+     */
+    public final Setting<Boolean> altoCreate = new Setting<>(true);
+
+    /**
+     * Integration switch: EMI (item picker, favorites, recipe information). Needs a restart.
+     */
+    public final Setting<Boolean> altoEmi = new Setting<>(true);
+
+    /**
+     * Integration switch: Sophisticated Storage and Backpacks. Needs a restart.
+     */
+    public final Setting<Boolean> altoSophisticated = new Setting<>(true);
+
+    /**
+     * Integration switch: Open Parties and Claims. When on, Alto and the pathfinder never break, place or open
+     * containers inside claims you do not belong to. Needs a restart.
+     */
+    public final Setting<Boolean> altoClaims = new Setting<>(true);
+
+    /**
+     * Integration switch: Corpse (#corpse takes your items back from your corpse). Needs a restart.
+     */
+    public final Setting<Boolean> altoCorpse = new Setting<>(true);
+
+    /**
+     * Item picker: after picking an item (EMI or inventory, key "Alto: pick item"), set it as the filter of the marked
+     * blocks right away. When off, Alto only offers the actions in chat.
+     */
+    public final Setting<Boolean> altoPickAutoFilter = new Setting<>(true);
+
+    /**
      * Allow #selftest to change the world (it builds test setups around you). Only works in singleplayer, and only
      * in worlds whose name starts with "alto_test" unless you add "confirm" to the command.
      */

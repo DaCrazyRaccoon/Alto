@@ -8,3 +8,6 @@ modId="alto_devtest"
 version="0.0.0"
 displayName="Alto dev test harness"
 description='''Dev-only: boots the client, creates a throwaway world, runs #selftest, writes a report, quits.'''
+
+[[mixins]]
+config="alto_devtest.mixins.json"
