@@ -285,5 +285,10 @@ class CodecTest {
             many.append(i == 0 ? "" : ",").append("{'block':'eat'}");
         }
         assertTrue(Scripts.codes(onStart(many.toString())).contains(DiagnosticCode.TOO_LARGE));
+
+        // literals count too, so one expression cannot hold an unbounded amount of work
+        String parts = "1,".repeat(Limits.MAX_NODES) + "1";
+        assertTrue(Scripts.codes(onStart("{'block':'message','text':{'expr':'join','parts':[" + parts + "]}}"))
+                .contains(DiagnosticCode.TOO_LARGE));
     }
 }

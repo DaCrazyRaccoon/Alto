@@ -60,7 +60,7 @@ public final class Limits {
     public static final int MAX_SCRIPT_CHARS = 1_000_000;
     /** JSON nesting depth. */
     public static final int MAX_JSON_DEPTH = 100;
-    /** Number of statements plus expression objects in one script. */
+    /** Number of statements plus expressions (objects and literals) in one script; also bounds one expression. */
     public static final int MAX_NODES = 20_000;
 
     private Limits() {

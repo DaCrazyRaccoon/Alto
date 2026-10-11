@@ -429,13 +429,13 @@ final class AstReader {
             error(DiagnosticCode.WRONG_JSON_TYPE, path, "expected a number, a string, true/false or an {\"expr\": ...} object, got an array");
             return null;
         }
+        if (!countNode(path)) {
+            return null;
+        }
         if (e.isJsonPrimitive()) {
             return new Expr.Literal(path, literal(e));
         }
         JsonObject o = e.getAsJsonObject();
-        if (!countNode(path)) {
-            return null;
-        }
         String kind = string(o, path, "expr", true);
         if (kind == null) {
             return null;
@@ -513,7 +513,7 @@ final class AstReader {
         }
         if (!tooLarge) {
             tooLarge = true;
-            error(DiagnosticCode.TOO_LARGE, path, "the script has more than " + Limits.MAX_NODES + " blocks");
+            error(DiagnosticCode.TOO_LARGE, path, "the script has more than " + Limits.MAX_NODES + " blocks and values");
         }
         return false;
     }

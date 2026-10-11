@@ -72,7 +72,8 @@ Rules that apply everywhere:
 * The JSON must be strict: no comments, no trailing commas, no `NaN`, **no duplicate keys**, no `null` values
   (leave an optional field out instead).
 * **Unknown fields are errors** (typos such as `"cout"` are reported with a "did you mean" hint).
-* Size limits: 1,000,000 characters, JSON nesting depth 100, 20,000 blocks and expression objects.
+* Size limits: 1,000,000 characters, JSON nesting depth 100, 20,000 blocks and values (every block, expression
+  object and literal counts; this also bounds the work of a single expression).
 * Field order does not matter; whitespace does not matter.
 
 Every problem is reported with a **path** to where it is, for example `events[0].body[2].times` (the `times` field
@@ -605,7 +606,7 @@ Errors stop a script from running; warnings are shown on the confirmation screen
 | Code                      | Kind    | Meaning                                                                      |
 |---------------------------|---------|------------------------------------------------------------------------------|
 | `json_syntax`             | error   | Not valid strict JSON (also duplicate keys, nesting deeper than 100).        |
-| `too_large`               | error   | More than 1,000,000 characters or 20,000 blocks.                             |
+| `too_large`               | error   | More than 1,000,000 characters or 20,000 blocks and values.                  |
 | `unsupported_format`      | error   | `format` is not `alto-script`.                                               |
 | `unsupported_version`     | error   | `version` is not 1.                                                          |
 | `missing_field`           | error   | A required field is missing.                                                 |
