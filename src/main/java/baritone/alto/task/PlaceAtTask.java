@@ -51,6 +51,8 @@ public final class PlaceAtTask extends AltoTask {
     private MenuGoalTask hotbar;
     /** Where to stand while placing: blocks above head height are reached from the ground (never by pillaring). */
     private Integer standY;
+    /** Where to stand, when only one spot shows the face to click (e.g. inside a portal frame for its top row). */
+    private baritone.api.pathing.goals.Goal standGoal;
 
     public PlaceAtTask(Alto alto, BlockPos pos, Predicate<Item> item, String label) {
         super(alto);
@@ -61,6 +63,11 @@ public final class PlaceAtTask extends AltoTask {
 
     public BlockPos pos() {
         return pos;
+    }
+
+    public PlaceAtTask standingIn(baritone.api.pathing.goals.Goal goal) {
+        this.standGoal = goal;
+        return this;
     }
 
     public PlaceAtTask standingAt(int y) {
@@ -150,6 +157,9 @@ public final class PlaceAtTask extends AltoTask {
         }
         if (calcFailed && ++tries > 3) {
             return Step.failure("cannot get close to " + pos.toShortString());
+        }
+        if (standGoal != null) {
+            return Step.walk(standGoal);
         }
         return Step.walk(new GoalNear(standY == null ? pos : new BlockPos(pos.getX(), standY, pos.getZ()), 2));
     }

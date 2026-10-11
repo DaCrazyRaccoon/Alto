@@ -231,8 +231,11 @@ public final class BuildPortalTask extends AltoTask {
         }
         placements.add(stand(new PlaceAtTask(alto, base.above(4), corner, "a corner block")));
         placements.add(stand(new PlaceAtTask(alto, base.relative(along, 3).above(4), corner, "a corner block")));
-        placements.add(stand(new PlaceAtTask(alto, base.relative(along, 1).above(4), obsidian, "obsidian")));
-        placements.add(stand(new PlaceAtTask(alto, base.relative(along, 2).above(4), obsidian, "obsidian")));
+        // The top row's side faces can only be seen from inside the frame: stand on the bottom row to place it.
+        placements.add(new PlaceAtTask(alto, base.relative(along, 1).above(4), obsidian, "obsidian")
+                .standingIn(new baritone.api.pathing.goals.GoalBlock(base.relative(along, 2).above())));
+        placements.add(new PlaceAtTask(alto, base.relative(along, 2).above(4), obsidian, "obsidian")
+                .standingIn(new baritone.api.pathing.goals.GoalBlock(base.relative(along, 1).above())));
     }
 
     private AltoTask stand(PlaceAtTask t) {
