@@ -133,6 +133,90 @@ public final class TravelCommands {
         }
     }
 
+    static final class MinecartCommand extends Command {
+        private final Alto alto;
+
+        MinecartCommand(IBaritone baritone, Alto alto) {
+            super(baritone, "minecart");
+            this.alto = alto;
+        }
+
+        @Override
+        public void execute(String label, IArgConsumer args) throws CommandException {
+            AltoCommands.requireEnabled();
+            vehiclesOn();
+            args.requireMax(2);
+            Integer x = null;
+            Integer z = null;
+            if (args.hasAny()) {
+                args.requireExactly(2);
+                x = args.getAs(Integer.class);
+                z = args.getAs(Integer.class);
+            }
+            alto.startJob(Job.of(new baritone.alto.travel.VehicleTasks.MinecartTask(alto, x, z), "command"));
+        }
+
+        @Override
+        public Stream<String> tabComplete(String label, IArgConsumer args) {
+            return Stream.empty();
+        }
+
+        @Override
+        public String getShortDesc() {
+            return "Ride the nearest free minecart (Alto)";
+        }
+
+        @Override
+        public List<String> getLongDesc() {
+            return Arrays.asList("Boards the nearest free minecart within 16 blocks, rides it (holding forward like a player),",
+                    "and gets off when it stops for 3 seconds or comes within 3 blocks of x z, then walks the rest.", "",
+                    "Usage:", "> minecart", "> minecart <x> <z>");
+        }
+    }
+
+    static final class BoatCommand extends Command {
+        private final Alto alto;
+
+        BoatCommand(IBaritone baritone, Alto alto) {
+            super(baritone, "boat");
+            this.alto = alto;
+        }
+
+        @Override
+        public void execute(String label, IArgConsumer args) throws CommandException {
+            AltoCommands.requireEnabled();
+            vehiclesOn();
+            args.requireExactly(2);
+            int x = args.getAs(Integer.class);
+            int z = args.getAs(Integer.class);
+            alto.startJob(Job.of(new baritone.alto.travel.VehicleTasks.BoatTask(alto, x, z), "command"));
+        }
+
+        @Override
+        public Stream<String> tabComplete(String label, IArgConsumer args) {
+            return Stream.empty();
+        }
+
+        @Override
+        public String getShortDesc() {
+            return "Go by boat in a straight line towards x z (Alto)";
+        }
+
+        @Override
+        public List<String> getLongDesc() {
+            return Arrays.asList("Uses an empty boat nearby, or places one from your hotbar on water within 8 blocks, steers",
+                    "straight towards x z, gets off at the target or the shore, picks a placed boat up again and walks",
+                    "the rest. No path finding on water: plan routes over open water.", "",
+                    "Usage:", "> boat <x> <z>");
+        }
+    }
+
+    private static void vehiclesOn() throws CommandException {
+        if (!Baritone.settings().altoVehicles.value) {
+            throw new CommandInvalidStateException("Vehicles are switched off (altoVehicles)");
+        }
+    }
+
     static final class PortalsCommand extends Command {
         private final Alto alto;
 

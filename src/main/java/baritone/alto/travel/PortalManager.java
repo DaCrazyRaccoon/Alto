@@ -96,12 +96,7 @@ public final class PortalManager {
         ensureLoaded();
         String dim = level.dimension().location().toString();
         BlockPos feet = p.blockPosition();
-        if (level.getBlockState(feet).is(Blocks.NETHER_PORTAL) || level.getBlockState(feet.above()).is(Blocks.NETHER_PORTAL)) {
-            lastPortal = representative(level, dim, feet);
-            sincePortal = 0;
-        } else {
-            sincePortal++;
-        }
+        // Dimension change first: on arrival you stand in the other side's portal, which must not replace the one you left.
         if (!dim.equals(lastDim)) {
             if (!lastDim.isEmpty() && lastPortal != null && !lastPortal.dim().equals(dim) && sincePortal < 400) {
                 pendingFrom = lastPortal; // arrived through a portal: link it once the new area has loaded
@@ -109,6 +104,12 @@ public final class PortalManager {
             }
             lastDim = dim;
             lastPortal = null;
+        }
+        if (level.getBlockState(feet).is(Blocks.NETHER_PORTAL) || level.getBlockState(feet.above()).is(Blocks.NETHER_PORTAL)) {
+            lastPortal = representative(level, dim, feet);
+            sincePortal = 0;
+        } else {
+            sincePortal++;
         }
         if (pendingFrom != null && ++pendingTicks >= 20) {
             PortalBook.Pos to = nearestPortalBlock(level, dim, feet).orElse(new PortalBook.Pos(dim, feet.getX(), feet.getY(), feet.getZ()));

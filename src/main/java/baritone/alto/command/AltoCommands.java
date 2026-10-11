@@ -69,6 +69,8 @@ public final class AltoCommands {
         commands.add(new CorpseCommand(baritone, alto));
         commands.add(new TravelCommands.TravelCommand(baritone, alto));
         commands.add(new TravelCommands.PortalsCommand(baritone, alto));
+        commands.add(new TravelCommands.MinecartCommand(baritone, alto));
+        commands.add(new TravelCommands.BoatCommand(baritone, alto));
         commands.forEach(baritone.getCommandManager().getRegistry()::register);
     }
 

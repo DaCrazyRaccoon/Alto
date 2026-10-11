@@ -45,6 +45,8 @@ final class M4Scenarios {
     static void register(SelfTests tests) {
         tests.register("portal-travel", PortalTravel::new);
         tests.register("farm-seeds", FarmSeeds::new);
+        tests.register("minecart", MinecartRide::new);
+        tests.register("boat", BoatTrip::new);
     }
 
     // ------------------------------------------------------------------------------------------ portal travel
@@ -228,6 +230,131 @@ final class M4Scenarios {
             alto.baritone().getPathingBehavior().cancelEverything();
             M2Scenarios.removeZone(alto);
             rig.restore();
+        }
+    }
+
+    // ------------------------------------------------------------------------------------------ minecart
+
+    static final class MinecartRide extends Scenario {
+        private BlockPos start;
+        private boolean boarded;
+
+        @Override
+        public String name() {
+            return "minecart";
+        }
+
+        @Override
+        public String description() {
+            return "#minecart: board a cart on a powered line, ride to the end, get off when it stops";
+        }
+
+        @Override
+        public int timeoutSeconds() {
+            return 90;
+        }
+
+        @Override
+        public void setup(ServerLevel level, ServerPlayer player, BlockPos o) {
+            TestRig.clearArea(level, o);
+            start = o.offset(3, 0, 0);
+            level.setBlock(start.offset(0, 0, -1), Blocks.STONE.defaultBlockState(), Block.UPDATE_ALL); // pushes the cart away
+            for (int z = 0; z <= 11; z++) {
+                level.setBlock(start.offset(0, -1, z), Blocks.REDSTONE_BLOCK.defaultBlockState(), Block.UPDATE_ALL);
+                level.setBlock(start.offset(0, 0, z), Blocks.POWERED_RAIL.defaultBlockState(), Block.UPDATE_ALL);
+            }
+            var cart = net.minecraft.world.entity.EntityType.MINECART.create(level);
+            cart.moveTo(start.getX() + 0.5, start.getY() + 0.1, start.getZ() + 0.5);
+            cart.setDeltaMovement(0, 0, 0);
+            level.addFreshEntity(cart);
+            TestRig.resetPlayer(level, player, o);
+        }
+
+        @Override
+        public void start(Alto alto, BlockPos o) {
+            alto.baritone().getCommandManager().execute("minecart");
+        }
+
+        @Override
+        public Verdict check(Alto alto, BlockPos o, int ticks) {
+            var p = Minecraft.getInstance().player;
+            boarded |= p.getVehicle() != null;
+            if (ticks < 5 || alto.process().busy()) {
+                return Verdict.RUNNING;
+            }
+            double moved = p.getZ() - start.getZ();
+            String s = "boarded " + boarded + ", riding now " + (p.getVehicle() != null) + ", carried " + Math.round(moved)
+                    + " blocks; " + alto.process().lastResult();
+            return boarded && p.getVehicle() == null && moved > 6 ? Verdict.pass(s) : Verdict.fail(s);
+        }
+
+        @Override
+        public void cleanup(Alto alto) {
+            alto.baritone().getPathingBehavior().cancelEverything();
+            MinecraftServer server = Minecraft.getInstance().getSingleplayerServer();
+            server.execute(() -> server.overworld().getEntities(net.minecraft.world.entity.EntityType.MINECART, e -> true)
+                    .forEach(e -> e.discard()));
+        }
+    }
+
+    // ------------------------------------------------------------------------------------------ boat
+
+    static final class BoatTrip extends Scenario {
+        private BlockPos target;
+        private boolean boarded;
+
+        @Override
+        public String name() {
+            return "boat";
+        }
+
+        @Override
+        public String description() {
+            return "#boat across a pool: place the boat, steer, get off at the shore, pick the boat up, walk to the target";
+        }
+
+        @Override
+        public int timeoutSeconds() {
+            return 120;
+        }
+
+        @Override
+        public void setup(ServerLevel level, ServerPlayer player, BlockPos o) {
+            TestRig.clearArea(level, o);
+            for (int x = -2; x <= 2; x++) {
+                for (int z = 2; z <= 10; z++) {
+                    level.setBlock(o.offset(x, -1, z), Blocks.WATER.defaultBlockState(), Block.UPDATE_ALL);
+                }
+            }
+            target = o.offset(0, 0, 12);
+            TestRig.resetPlayer(level, player, o, new ItemStack(Items.OAK_BOAT, 1));
+        }
+
+        @Override
+        public void start(Alto alto, BlockPos o) {
+            Minecraft.getInstance().player.getInventory().selected = 0;
+            alto.baritone().getCommandManager().execute("boat " + target.getX() + " " + target.getZ());
+        }
+
+        @Override
+        public Verdict check(Alto alto, BlockPos o, int ticks) {
+            var p = Minecraft.getInstance().player;
+            boarded |= p.getVehicle() instanceof net.minecraft.world.entity.vehicle.Boat;
+            if (ticks < 5 || alto.process().busy()) {
+                return Verdict.RUNNING;
+            }
+            int boats = baritone.alto.mc.McItems.count(p.getInventory(), Items.OAK_BOAT);
+            int left = Minecraft.getInstance().level.getEntitiesOfClass(net.minecraft.world.entity.vehicle.Boat.class,
+                    p.getBoundingBox().inflate(32)).size();
+            boolean there = p.blockPosition().getX() == target.getX() && p.blockPosition().getZ() == target.getZ();
+            String s = "boarded " + boarded + ", at target " + there + ", boat items " + boats + ", boats left in the world " + left
+                    + "; " + alto.process().lastResult();
+            return boarded && there && boats == 1 && left == 0 ? Verdict.pass(s) : Verdict.fail(s);
+        }
+
+        @Override
+        public void cleanup(Alto alto) {
+            alto.baritone().getPathingBehavior().cancelEverything();
         }
     }
 }
