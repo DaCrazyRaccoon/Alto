@@ -36,7 +36,11 @@ const virtualModules = {
 };
 
 export async function buildHtml() {
+  const blocklyVersion = JSON.parse(fs.readFileSync(path.join(root, 'node_modules', 'blockly', 'package.json'), 'utf8')).version;
   const result = await esbuild.build({
+    banner: {
+      js: `/*! Alto Script Editor. Includes Blockly ${blocklyVersion} (Copyright Google LLC and the Blockly authors, Apache License 2.0; full text in the About dialog and THIRD_PARTY_LICENSES.txt). */`,
+    },
     entryPoints: [path.join(root, 'src', 'app', 'entry.js')],
     bundle: true,
     format: 'iife',
