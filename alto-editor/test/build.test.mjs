@@ -16,7 +16,9 @@ test('no http(s) script, link, style or media references', () => {
   const tagRef = /<(script|link|img|iframe|frame|source|audio|video|embed|object|track|image|use)\b[^>]*?\b(src|href|data|xlink:href)\s*=\s*["']?\s*(https?:)?\/\//gi;
   assert.deepEqual(html.match(tagRef) || [], []);
   assert.doesNotMatch(html, /<script\b[^>]*\bsrc\s*=/i, 'all scripts are inline');
-  assert.doesNotMatch(html, /<link\b/i, 'no stylesheets, icons or preloads are linked');
+  const links = html.match(/<link\b[^>]*>/gi) || [];
+  assert.equal(links.length, 1, 'no stylesheets or preloads are linked');
+  assert.match(links[0], /^<link rel="icon" href="data:/, 'only the inline icon (it also stops the browser asking for /favicon.ico)');
   assert.doesNotMatch(html, /@import/i, 'no CSS imports');
   assert.doesNotMatch(html, /url\(\s*["']?\s*(https?:)?\/\//i, 'no CSS urls to the network');
   assert.doesNotMatch(html, /<base\b/i);

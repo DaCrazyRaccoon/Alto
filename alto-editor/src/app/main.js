@@ -388,6 +388,15 @@ const STARTER = {
   events: [{ event: 'on_start', body: [{ block: 'message', text: 'Hello from Alto! Drag blocks from the palette to build your script.' }] }],
 };
 
+/** Scrolls so the first script starts near the top left of the visible workspace. */
+function scrollToStart() {
+  const ws = state.ws;
+  const top = orderedTopBlocks(ws, () => true)[0];
+  if (!top) return;
+  const xy = top.getRelativeToSurfaceXY();
+  ws.scroll(40 - xy.x * ws.scale, 30 - xy.y * ws.scale);
+}
+
 function fitView() {
   const ws = state.ws;
   // blocks render in the next animation frame; sizes are needed now for tidying up and scrolling
@@ -395,11 +404,9 @@ function fitView() {
   ws.cleanUp();
   Blockly.renderManagement.triggerQueuedRenders(ws);
   ws.setScale(0.8);
-  const top = orderedTopBlocks(ws, () => true)[0];
-  if (top) {
-    const xy = top.getRelativeToSurfaceXY();
-    ws.scroll(40 - xy.x * ws.scale, 30 - xy.y * ws.scale);
-  }
+  scrollToStart();
+  // the workspace resizes its scroll area once the rendering settles; scroll again after that
+  Blockly.renderManagement.finishQueuedRenders().then(() => setTimeout(scrollToStart, 50));
 }
 
 function loadParsedScript(script, fileName, notes = []) {
