@@ -1,0 +1,4 @@
+node_modules/
+test-output/
+# the built editor is committed so it can be opened without building (the repository ignores dist/ elsewhere)
+!dist/

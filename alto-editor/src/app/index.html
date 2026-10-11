@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="description" content="Offline block editor for Alto scripts (*.alto.json)">
+<title>Alto Script Editor</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%233b7be0'/%3E%3Cpath d='M0 3a3 3 0 0 1 3-3h13L0 16z' fill='%23c88a00'/%3E%3C/svg%3E">
+<style>/*__CSS__*/</style>
+</head>
+<body>
+<a class="skip-link" href="#palette-search">Skip to the block palette</a>
+<header class="topbar">
+  <h1 class="brand"><span class="logo" aria-hidden="true"></span>Alto Script Editor</h1>
+  <nav class="toolbar" aria-label="Script actions">
+    <div class="group">
+      <button type="button" id="btn-new" title="Start a new script">New</button>
+      <button type="button" id="btn-open" title="Open a .alto.json script or alto-registry.json (Ctrl+O). You can also drop a file onto the page.">Open…</button>
+      <label class="select-wrap"><span class="sr-only">Load an example script</span>
+        <select id="examples"><option value="">Examples…</option></select>
+      </label>
+    </div>
+    <div class="group">
+      <button type="button" id="btn-save" class="primary" title="Write the script into Alto's scripts folder (Ctrl+S)">Save to scripts folder</button>
+      <button type="button" id="btn-download" title="Download the script as a .alto.json file">Download .alto.json</button>
+    </div>
+    <div class="group">
+      <button type="button" id="btn-undo" title="Undo (Ctrl+Z)"><span aria-hidden="true">↶</span> Undo</button>
+      <button type="button" id="btn-redo" title="Redo (Ctrl+Y)"><span aria-hidden="true">↷</span> Redo</button>
+    </div>
+    <div class="group">
+      <button type="button" id="btn-registry" title="Load alto-registry.json (written in game by #export-registry) for item and block names">Load registry…</button>
+      <button type="button" id="btn-theme" aria-pressed="false" title="Switch between light and dark mode">☾ Dark</button>
+      <button type="button" id="btn-about">About</button>
+    </div>
+  </nav>
+</header>
+<div class="scriptbar">
+  <label class="name-field"><span>Script name</span>
+    <input id="script-name" type="text" maxlength="200" spellcheck="false" autocomplete="off">
+  </label>
+  <span class="file-field">File <code id="file-name"></code>
+    <button type="button" id="btn-rename-file" class="link">rename</button>
+  </span>
+  <span id="dirty-status" class="status"></span>
+  <span id="autosave-status" class="status muted" aria-live="polite"></span>
+</div>
+<main class="layout">
+  <section class="work" aria-label="Block workspace">
+    <div class="palette-search">
+      <label for="palette-search" class="sr-only">Search blocks</label>
+      <input id="palette-search" type="search" placeholder="Search blocks (e.g. craft, wait, chat)" autocomplete="off" spellcheck="false">
+    </div>
+    <div id="blockly" class="blockly"></div>
+    <div class="zoom" role="group" aria-label="Workspace view">
+      <button type="button" id="btn-zoom-in" title="Zoom in" aria-label="Zoom in">+</button>
+      <button type="button" id="btn-zoom-out" title="Zoom out" aria-label="Zoom out">−</button>
+      <button type="button" id="btn-zoom-fit" title="Show all blocks" aria-label="Show all blocks">⤢</button>
+      <button type="button" id="btn-cleanup" title="Tidy up: arrange the scripts in a column" aria-label="Tidy up the workspace">≡</button>
+    </div>
+  </section>
+  <aside class="side" aria-label="Script details">
+    <div class="tabs" role="tablist" aria-label="Panels">
+      <button type="button" role="tab" id="tab-problems" data-tab="problems" aria-controls="panel-problems" aria-selected="true">Problems <span id="tab-problems-count" class="badge"></span></button>
+      <button type="button" role="tab" id="tab-script" data-tab="script" aria-controls="panel-script" aria-selected="false" tabindex="-1">Script</button>
+      <button type="button" role="tab" id="tab-json" data-tab="json" aria-controls="panel-json" aria-selected="false" tabindex="-1">JSON</button>
+    </div>
+    <section id="panel-problems" class="panel" role="tabpanel" aria-labelledby="tab-problems">
+      <p id="problem-summary" class="problem-summary" aria-live="polite"></p>
+      <div id="import-notes" class="notes" hidden>
+        <h3>Opened with notes</h3>
+        <ul id="import-notes-list"></ul>
+        <button type="button" id="btn-dismiss-notes" class="small">Dismiss</button>
+      </div>
+      <ul id="problem-list" class="problem-list" aria-label="Errors and warnings"></ul>
+      <h3>What this script may do</h3>
+      <div id="capabilities" class="capabilities"></div>
+      <p class="muted small">Version hash (Alto asks you to confirm again when it changes):<br><code id="hash" class="hash"></code></p>
+      <div class="safety">
+        <h3>Safety</h3>
+        <ul>
+          <li><strong>⚠ send chat as me</strong> and <strong>⚠ run Baritone command</strong> only work when Alto's settings allow them (scripts may chat / the command is on the allowed list); otherwise the run fails.</li>
+          <li><strong>forever</strong> loops only start when Alto's safety stops are enabled.</li>
+          <li>Before the first run Alto shows this summary and the warnings, and asks you to confirm.</li>
+          <li>Scripts cannot run code, read files or use the network: they contain only these blocks.</li>
+        </ul>
+      </div>
+    </section>
+    <section id="panel-script" class="panel" role="tabpanel" aria-labelledby="tab-script" hidden>
+      <label class="field"><span>Description</span>
+        <textarea id="script-description" rows="4" maxlength="4000"></textarea>
+      </label>
+      <h3>Variables</h3>
+      <ul id="variable-list" class="variable-list" aria-label="Variables"></ul>
+      <p id="variables-empty" class="muted">No variables yet.</p>
+      <button type="button" id="btn-add-variable">Make a variable</button>
+      <h3>Custom blocks</h3>
+      <p class="muted">Custom blocks ("My Blocks") bundle steps you use often. Right-click a <em>define</em> block to edit it.</p>
+      <button type="button" id="btn-add-procedure">Make a block</button>
+      <h3>Saving</h3>
+      <p>In game, Alto reads scripts from <code>&lt;minecraft&gt;/baritone/alto/scripts/</code>.</p>
+      <p id="folder-status" class="muted"></p>
+      <button type="button" id="btn-change-folder" hidden>Choose another folder…</button>
+      <h3>Item and block names</h3>
+      <p id="registry-status" class="muted"></p>
+      <button type="button" id="btn-forget-registry" hidden>Forget the loaded registry</button>
+    </section>
+    <section id="panel-json" class="panel" role="tabpanel" aria-labelledby="tab-json" hidden>
+      <div class="json-actions">
+        <button type="button" id="btn-copy-json">Copy JSON</button>
+        <button type="button" id="btn-download-2">Download .alto.json</button>
+      </div>
+      <pre id="json-view" class="json" tabindex="0" aria-label="Script JSON (read only)"></pre>
+    </section>
+  </aside>
+</main>
+<div id="drop-overlay" class="drop-overlay" hidden><div>Drop a <code>.alto.json</code> script or <code>alto-registry.json</code> to open it</div></div>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+<input id="open-file" type="file" accept=".json,application/json" hidden>
+<input id="registry-file" type="file" accept=".json,application/json" hidden>
+<noscript><p class="noscript">The Alto Script Editor needs JavaScript. It runs entirely in this page and uses no network.</p></noscript>
+<script>/*__JS__*/</script>
+</body>
+</html>
