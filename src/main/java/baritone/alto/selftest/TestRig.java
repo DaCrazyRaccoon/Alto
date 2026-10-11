@@ -36,7 +36,8 @@ import java.util.Map;
 
 /**
  * Test fixtures for self-test scenarios (server thread for world/player changes, client thread for settings).
- * The test area is the box x -6..6, y 0..5, z -3..12 around the player's feet, on a stone floor.
+ * The test area is the box x -6..6, y 0..5, z -3..12 around the player's feet, on a stone floor, walled in
+ * (works on flat and on real terrain).
  */
 public final class TestRig {
 
@@ -48,18 +49,34 @@ public final class TestRig {
 
     private final Map<Settings.Setting<?>, Object> saved = new HashMap<>();
 
-    /** Clears the test area to air on a stone floor, removes dropped items. Server thread. */
+    /** Height cleared above the floor, so hills, trees and overhangs of real terrain are out of the way. */
+    public static final int CLEAR_TOP = 24;
+
+    /**
+     * Clears the test area to air on a stone floor, removes dropped items, animals and vehicles. Server thread.
+     * Works on real terrain too: the floor is sealed below (caves), the area is walled in up to {@link #CLEAR_TOP}
+     * (water, lava and animals stay out), and loose or liquid blocks right above it are capped with stone.
+     */
     public static void clearArea(ServerLevel level, BlockPos o) {
-        for (int x = X0; x <= X1; x++) {
-            for (int z = Z0; z <= Z1; z++) {
-                level.setBlock(o.offset(x, -1, z), Blocks.SMOOTH_STONE.defaultBlockState(), Block.UPDATE_CLIENTS);
-                for (int y = 0; y <= Y1; y++) {
-                    level.setBlock(o.offset(x, y, z), Blocks.AIR.defaultBlockState(), Block.UPDATE_CLIENTS);
+        BlockState stone = Blocks.STONE.defaultBlockState();
+        for (int x = X0 - 1; x <= X1 + 1; x++) {
+            for (int z = Z0 - 1; z <= Z1 + 1; z++) {
+                boolean wall = x == X0 - 1 || x == X1 + 1 || z == Z0 - 1 || z == Z1 + 1;
+                level.setBlock(o.offset(x, -3, z), stone, Block.UPDATE_CLIENTS);
+                level.setBlock(o.offset(x, -2, z), stone, Block.UPDATE_CLIENTS);
+                level.setBlock(o.offset(x, -1, z), wall ? stone : Blocks.SMOOTH_STONE.defaultBlockState(), Block.UPDATE_CLIENTS);
+                for (int y = 0; y <= CLEAR_TOP; y++) {
+                    level.setBlock(o.offset(x, y, z), wall ? stone : Blocks.AIR.defaultBlockState(), Block.UPDATE_CLIENTS);
+                }
+                BlockPos above = o.offset(x, CLEAR_TOP + 1, z);
+                BlockState top = level.getBlockState(above);
+                if (!top.isAir() && (!top.getFluidState().isEmpty() || top.getBlock() instanceof net.minecraft.world.level.block.FallingBlock)) {
+                    level.setBlock(above, stone, Block.UPDATE_CLIENTS);
                 }
             }
         }
-        AABB box = new AABB(o.offset(X0 - 2, -2, Z0 - 2).getCenter(), o.offset(X1 + 2, Y1 + 2, Z1 + 2).getCenter());
-        level.getEntitiesOfClass(ItemEntity.class, box).forEach(Entity::discard);
+        AABB box = new AABB(o.offset(X0 - 2, -3, Z0 - 2).getCenter(), o.offset(X1 + 2, CLEAR_TOP + 2, Z1 + 2).getCenter());
+        level.getEntitiesOfClass(Entity.class, box, e -> !(e instanceof net.minecraft.world.entity.player.Player)).forEach(Entity::discard);
     }
 
     /** Survival, full health and food, empty inventory plus the given items, standing at the origin facing +Z. */

@@ -144,8 +144,16 @@ public final class DevTestHarness {
                 rules.getRule(GameRules.RULE_DOMOBSPAWNING).set(false, null);
                 rules.getRule(GameRules.RULE_WEATHER_CYCLE).set(false, null);
                 LevelSettings settings = new LevelSettings(name, type, false, Difficulty.PEACEFUL, true, rules, WorldDataConfiguration.DEFAULT);
-                mc.createWorldOpenFlows().createFreshLevel(name, settings, new WorldOptions(1L, false, false),
-                        ra -> ra.registryOrThrow(Registries.WORLD_PRESET).getHolderOrThrow(WorldPresets.FLAT).value().createWorldDimensions(),
+                // alto.devtest.worldtype=normal: real terrain (default world generation, structures on), random seed
+                // unless alto.devtest.seed is given. Default: a superflat world.
+                boolean normal = "normal".equals(System.getProperty("alto.devtest.worldtype"));
+                String seedProp = System.getProperty("alto.devtest.seed", "");
+                long seed = !seedProp.isEmpty() ? Long.parseLong(seedProp) : normal ? new java.util.Random().nextLong() : 1L;
+                var preset = normal ? WorldPresets.NORMAL : WorldPresets.FLAT;
+                report.add("world type " + (normal ? "normal" : "flat") + ", seed " + seed);
+                LOG.info("[alto-devtest] world type {} seed {}", normal ? "normal" : "flat", seed);
+                mc.createWorldOpenFlows().createFreshLevel(name, settings, new WorldOptions(seed, normal, false),
+                        ra -> ra.registryOrThrow(Registries.WORLD_PRESET).getHolderOrThrow(preset).value().createWorldDimensions(),
                         title);
             }
             return;
@@ -181,7 +189,34 @@ public final class DevTestHarness {
         Path flag = mc.gameDirectory.toPath().resolve("baritone/alto/selftest/finished.flag");
         boolean selftestRequested = System.getProperty("alto.devtest.commands", "").contains("selftest");
         if (!selftestRequested ? ticksInWorld > 300 : Files.exists(flag)) {
-            finish(mc, "WORLD OK after " + (System.nanoTime() - startNanos) / 1_000_000_000L + " s");
+            long secs = (System.nanoTime() - startNanos) / 1_000_000_000L;
+            if (!selftestRequested) {
+                finish(mc, "WORLD OK after " + secs + " s");
+                return;
+            }
+            // Everything must pass: one failed (or missing) scenario fails the whole run.
+            int total = 0;
+            java.util.List<String> failed = new java.util.ArrayList<>();
+            try {
+                var json = com.google.gson.JsonParser.parseString(Files.readString(flag.resolveSibling("last-run.json"))).getAsJsonObject();
+                for (var e : json.getAsJsonArray("results")) {
+                    var r = e.getAsJsonObject();
+                    total++;
+                    String line = "  " + r.get("name").getAsString() + ": " + r.get("outcome").getAsString() + " - " + r.get("message").getAsString();
+                    report.add(line);
+                    if (!"PASS".equals(r.get("outcome").getAsString())) {
+                        failed.add(r.get("name").getAsString());
+                    }
+                }
+            } catch (Exception ex) {
+                finish(mc, "SELFTEST FAILED: could not read the results (" + ex + ")");
+                return;
+            }
+            if (total == 0 || !failed.isEmpty()) {
+                finish(mc, "SELFTEST FAILED after " + secs + " s: " + (total - failed.size()) + "/" + total + " passed, failed " + failed);
+            } else {
+                finish(mc, "WORLD OK after " + secs + " s: self-tests " + total + "/" + total + " passed");
+            }
         }
     }
 

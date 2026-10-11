@@ -24,6 +24,9 @@ param(
     [string] $Commands = '',
     [int] $TimeoutMinutes = 20,
     [string] $GameMode = 'survival',
+    # 'flat' (default) or 'normal' (real terrain, default world generation); -Seed makes a normal world reproducible
+    [ValidateSet('flat', 'normal')] [string] $WorldType = 'flat',
+    [string] $Seed = '',
     # Extra Gradle arguments, e.g. "-Palto_pack_exclude=connector-*.jar" (negative test of this check)
     [string] $ExtraGradleArgs = ''
 )
@@ -78,7 +81,7 @@ function Get-TestClientProcesses([datetime] $since) {
 
 $start = Get-Date
 Write-Host "[test-client] $Run / $Mode starting ($task), game dir $gameDir"
-$gradleArgs = "/c `"`"$source\gradlew.bat`" $task -Palto_devtest=$Mode -Palto_devtest_gamemode=$GameMode -Palto_devtest_timeout=$($TimeoutMinutes * 60) --console=plain"
+$gradleArgs = "/c `"`"$source\gradlew.bat`" $task -Palto_devtest=$Mode -Palto_devtest_gamemode=$GameMode -Palto_devtest_worldtype=$WorldType$(if ($Seed) { " -Palto_devtest_seed=$Seed" }) -Palto_devtest_timeout=$($TimeoutMinutes * 60) --console=plain"
 if ($Commands) { $gradleArgs += " `"-Palto_devtest_commands=$Commands`"" }
 if ($ExtraGradleArgs) { $gradleArgs += " $ExtraGradleArgs" }
 $gradle = Start-Process -FilePath 'cmd.exe' -ArgumentList "$gradleArgs > `"$gradleLog`" 2>&1`"" -WorkingDirectory $source -PassThru -WindowStyle Hidden

@@ -125,6 +125,8 @@ neoForge {
             systemProperty 'alto.devtest.commands', (findProperty('alto_devtest_commands') ?: '').toString()
             systemProperty 'alto.devtest.timeout', (findProperty('alto_devtest_timeout') ?: '900').toString()
             systemProperty 'alto.devtest.gamemode', (findProperty('alto_devtest_gamemode') ?: 'survival').toString()
+            systemProperty 'alto.devtest.worldtype', (findProperty('alto_devtest_worldtype') ?: 'flat').toString()
+            systemProperty 'alto.devtest.seed', (findProperty('alto_devtest_seed') ?: '').toString()
             // The test client never captures the mouse cursor (dev harness mixin); -Palto_devtest_grab=true to allow.
             systemProperty 'alto.devtest.nograb', (findProperty('alto_devtest_grab') == 'true' ? 'false' : 'true')
         }

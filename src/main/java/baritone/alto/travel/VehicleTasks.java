@@ -78,6 +78,11 @@ public final class VehicleTasks {
         return true;
     }
 
+    /** Same measure as the click itself: eye to the middle of the entity, with a little margin. */
+    static boolean inReach(LocalPlayer p, Entity e) {
+        return p.getEyePosition().distanceTo(e.getBoundingBox().getCenter()) <= p.entityInteractionRange() - 0.3;
+    }
+
     static void dismountKey(Alto alto, boolean down) {
         alto.baritone().getInputOverrideHandler().setInputForceState(Input.SNEAK, down);
     }
@@ -139,7 +144,7 @@ public final class VehicleTasks {
                     if (cart.isRemoved() || !cart.getPassengers().isEmpty() || ++ticks > 20 * 30) {
                         return Step.failure("could not board the minecart");
                     }
-                    if (p.distanceTo(cart) > 3) {
+                    if (!inReach(p, cart)) {
                         if (calcFailed && ++tries > 3) {
                             return Step.failure("cannot reach the minecart");
                         }
@@ -310,7 +315,7 @@ public final class VehicleTasks {
                     if (boat.isRemoved() || ++ticks > 20 * 30) {
                         return Step.failure("could not board the boat");
                     }
-                    if (p.distanceTo(boat) > 3) {
+                    if (!inReach(p, boat)) {
                         if (calcFailed && ++tries > 3) {
                             return Step.failure("cannot reach the boat");
                         }
