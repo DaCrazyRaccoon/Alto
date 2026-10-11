@@ -171,6 +171,9 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
         this.observedCompleted = new LongOpenHashSet();
         this.incorrectPositions = null;
         baritone.getAlto().supplyRun().onBuildStarted(this); // ALTO FORK: material list, supply run from storage
+        if (!altoResuming) {
+            baritone.getAlto().builderSupply().onNewBuild(); // ALTO FORK: a new build starts with a clean slate
+        }
     }
 
     public void resume() {
@@ -1048,9 +1051,16 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
         return out;
     }
 
+    private boolean altoResuming;
+
     public void altoResume(Object[] snapshot) {
         if (snapshot != null && !isActive()) {
-            build((String) snapshot[0], (ISchematic) snapshot[1], (Vec3i) snapshot[2]);
+            altoResuming = true;
+            try {
+                build((String) snapshot[0], (ISchematic) snapshot[1], (Vec3i) snapshot[2]);
+            } finally {
+                altoResuming = false;
+            }
         }
     }
 

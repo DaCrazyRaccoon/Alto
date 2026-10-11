@@ -74,6 +74,8 @@ public final class CraftTask extends AltoTask {
     private MenuGoal goal;
     private int waitTicks;
     private int made;
+    /** Output count in the inventory before the first craft (what is still needed is recomputed from it). */
+    private int startCount = -1;
 
     public CraftTask(Alto alto, RecipeDef recipe, int crafts, StationKind station, PlanContext pctx) {
         super(alto);
@@ -190,6 +192,20 @@ public final class CraftTask extends AltoTask {
             return Step.stay();
         }
         MenuView v = session.view();
+        // What is still needed comes from the real output count: one shift-click can craft several times, and the
+        // server's update may arrive after the click was counted.
+        int nowCount = v.count(recipe.output(), MenuView.PLAYER_STORAGE);
+        if (startCount < 0) {
+            startCount = nowCount;
+        } else {
+            int produced = Math.max(0, nowCount - startCount);
+            made = Math.max(made, produced);
+            remaining = Math.max(0, crafts - (produced + recipe.outputCount() - 1) / recipe.outputCount());
+            if (remaining <= 0) {
+                phase = Phase.CLOSE;
+                return Step.stay();
+            }
+        }
         int available = availableSets(v);
         if (available <= 0) {
             return Step.failure("missing ingredients for " + recipe.output().shortName() + ": need " + recipe.aggregatedInputs());

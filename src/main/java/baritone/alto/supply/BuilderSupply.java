@@ -66,6 +66,13 @@ public final class BuilderSupply {
      *
      * @return true if a supply run was started (the builder then waits instead of pausing)
      */
+    /** A build was started (not resumed after a supply job): forget failures and cooldowns of earlier builds. */
+    public void onNewBuild() {
+        buildId = "";
+        failuresInRow = 0;
+        lastFailureTick = Integer.MIN_VALUE / 2;
+    }
+
     public boolean onMissing(BuilderProcess builder, Map<BlockState, Integer> missing) {
         if (!alto.enabled() || !Baritone.settings().altoBuilderSupply.value || missing == null || missing.isEmpty()) {
             return false;
