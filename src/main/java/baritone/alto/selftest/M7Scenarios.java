@@ -375,7 +375,12 @@ public final class M7Scenarios {
             }
             int carried = baritone.alto.mc.McItems.count(TestRig.inv(), Items.COBBLESTONE);
             int inChest = M2Scenarios.serverCount(chest, Items.COBBLESTONE);
-            String s = alto.process().lastResult() + "; cobblestone carried " + carried + ", in the normal chest " + inChest + "/16";
+            java.util.List<String> indexed = new java.util.ArrayList<>();
+            for (baritone.alto.storage.ContainerRecord r : alto.storage().index().all()) {
+                indexed.add(r.blockId + (r.depositAllowed ? "" : " (no deposits)"));
+            }
+            String s = alto.process().lastResult() + "; cobblestone carried " + carried + ", in the normal chest " + inChest
+                    + "/16; indexed " + indexed;
             return carried == 0 && inChest == 16 ? Verdict.pass(s) : Verdict.fail(s);
         }
 

@@ -59,7 +59,8 @@ Every change is marked with a comment containing `ALTO FORK`. Search for it to s
 | `api/Settings.java` | One block of Alto settings between `ALTO FORK SETTINGS (begin)` and `(end)` |
 | `Baritone.java` | Creates the `Alto` instance; `getAlto()` |
 | `process/BuilderProcess.java` | Hands missing materials (or blocks only in the main inventory) to `BuilderSupply`; supply run on start; snapshot/resume helpers; remaining-material list |
-| `pathing/movement/MovementHelper.java` and four movements | Modded ladders/scaffolding/farmland, hazard blocks (`AltoHooks`) |
+| `pathing/movement/MovementHelper.java` and four movements | Modded ladders/scaffolding/farmland, hazard blocks, `avoidBreaking` also asks `AltoHooks.neverBreak` (machines, containers, tracks) |
+| `utils/PathingControlManager.java` | `inControlLastTick()`: valid while processes are asked `isActive()` (used by the moving-platform pause) |
 | `pathing/movement/CalculationContext.java` | `isPossiblyProtected` also asks `AltoHooks.isProtected` (claims) |
 | `utils/pathing/Avoidance.java` | Extra avoidance areas from Alto (running machines) |
 | `process/FarmProcess.java` | Modded crops and farmland, extra pickups, waits while Alto restocks seeds |
@@ -108,7 +109,11 @@ Alto runs its jobs in `AltoProcess`, a normal Baritone process:
    * hazard conditions (`alto.hazards()`), protection (`AltoHooks.publishProtection`);
    * pick-key providers (`alto.picker().addProvider`), recipe preferences and hints;
    * tick listeners and extra planner steps.
-6. Add a self-test scenario that is registered only when the mod is loaded.
+6. Add a self-test scenario that is registered only when the mod is loaded: register it from the integration's
+   `init` with `alto.selfTests().register(...)` (see `CreateScenarios`, `ClaimsScenarios`, `CorpseScenarios`,
+   `EmiScenarios`). The setup may build the mod's machines on the integrated server (it is a fixture, like a creative
+   player); the behaviour under test must go through Alto's normal client paths. `M7Scenarios.WallDetour` is a
+   ready-made "the pathfinder must not break this" fixture with a control run.
 
 Rules for integrations: read what the mod already shows the client, and act only through normal input (clicks,
 right-clicks, key presses the mod's own client handles). Never build a mod's packets by hand.

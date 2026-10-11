@@ -24,6 +24,11 @@ Tick each line when it behaved as described.
 
 ## Mods
 
+All of these passed in the test worlds with real mod blocks (see `TEST_REPORT.md`); your own builds are bigger and
+belong to your world, so they are still worth one try each.
+
+- [ ] Walking through your Create factory with `#goto`: no shaft, belt, funnel or track is broken (paths go around).
+- [ ] Standing on one of your moving contraptions during a job: the bot stands still until it stops.
 - [ ] Create: look at a deployer, `#filter iron_ingot` sets its filter; the ingot stays in your inventory.
 - [ ] Pick key: look at a funnel, press Y (marked), open your inventory, hover an item in EMI, press Y: the filter
       is set.

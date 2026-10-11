@@ -64,6 +64,7 @@ public final class DepositTask extends AltoTask {
     private Approach approach;
     private Predicate<ItemKey> accepts = k -> true;
     private int stored;
+    private int beforeStore;
     private int zoneWalks;
 
     public DepositTask(Alto alto, Predicate<ItemKey> keep) {
@@ -138,22 +139,23 @@ public final class DepositTask extends AltoTask {
                         tried.add(targetKey.id());
                         phase = Phase.CLOSE;
                     } else {
+                        beforeStore = depositable().total(); // counted once, before the first click
                         phase = Phase.STORE;
                     }
                 }
                 return Step.stay();
             }
             case STORE: {
-                int before = depositable().total();
                 ContainerSession.Status st = session.run(MenuGoals.store(k -> !keep.test(k) && accepts.test(k), "items", -1,
                         MenuGoals.roles(SlotRole.STORAGE)));
                 detail("storing in " + target.toShortString());
                 if (st == ContainerSession.Status.FAILED) {
+                    stored += Math.max(0, beforeStore - depositable().total());
                     tried.add(targetKey.id());
                     alto.storage().recorder().recordNow();
                     phase = Phase.CLOSE;
                 } else if (st == ContainerSession.Status.DONE) {
-                    stored += Math.max(0, before - depositable().total());
+                    stored += Math.max(0, beforeStore - depositable().total());
                     alto.storage().recorder().recordNow();
                     tried.add(targetKey.id());
                     phase = Phase.CLOSE;
