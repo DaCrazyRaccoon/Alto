@@ -16,7 +16,8 @@ Contents: [Crafting](#crafting) · [Storage](#storage) · [Helpers](#helpers) ·
 
 ## Crafting
 
-![Crafting a chest](../images/crafting.png)
+![Crafting a chest](../images/crafting.jpg)
+*`#craft chest 1` with only logs: Alto crafted planks, placed a crafting table and is filling its grid. It picks the table up again afterwards.*
 
 | Command | What it does |
 |---|---|
@@ -29,7 +30,8 @@ Alto uses the 2x2 grid when it can, otherwise a crafting table: one nearby, or o
 Alto never uses items on the "never consume" list (diamonds, netherite and similar by default) and never burns
 valuable fuel. With EMI installed, the recipes you picked in EMI's recipe tree are preferred.
 
-![Smelting iron](../images/smelting.png)
+![Smelting iron](../images/smelting.jpg)
+*Alto placed a furnace, smelts raw iron with coal from your inventory, and picks the furnace up when it is done.*
 
 ## Storage
 
@@ -42,7 +44,8 @@ Alto only uses containers inside your storage zones.
 #home zone scan storage        open every container once so Alto knows what is inside
 ```
 
-![Taking items from a chest](../images/storage.png)
+![Taking items from a chest](../images/storage.jpg)
+*`#fetch` opens a chest in your storage zone and takes exactly the number of items you asked for.*
 
 | Command | What it does |
 |---|---|
@@ -81,7 +84,8 @@ When the builder runs out of planks, Alto crafts more from your logs, puts them 
 The same works for `#build <schematic>` and any block Alto knows how to get. At the start of a build, Alto fetches what
 your storage has in one trip.
 
-![An area filled with planks crafted from logs](../images/fill-planks.png)
+![An area filled with planks crafted from logs](../images/fill-planks.jpg)
+*`#sel fill oak_planks` while holding only oak logs. The builder ran out of planks, so Alto crafted more and the build continued.*
 
 | Command | What it does |
 |---|---|
@@ -92,7 +96,8 @@ your storage has in one trip.
 `#farm [range]` also harvests and replants modded crops (for example Farmer's Delight cabbages and onions). Crops you
 harvest by right-clicking, like tomatoes, are left alone. When you run out of seeds, Alto fetches some from storage.
 
-![Farming](../images/farming.png)
+![Farming](../images/farming.jpg)
+*`#farm` with no seeds in the inventory: Alto fetched seeds from a chest and planted the field.*
 
 ## Travel
 
@@ -106,8 +111,11 @@ harvest by right-clicking, like tomatoes, are left alone. When you run out of se
 With `altoBuildPortals` on (off by default), Alto builds and lights a portal when it knows none. It needs 10
 obsidian, a flint and steel, and some cobblestone.
 
-![A portal built by Alto](../images/portal.png)
-![Crossing water by boat](../images/boat.png)
+![A portal built by Alto](../images/portal.jpg)
+*With `altoBuildPortals` on, Alto built and lit this portal and went through it to the nether.*
+
+![Crossing water by boat](../images/boat.jpg)
+*`#boat <x> <z>`: Alto placed its boat, crosses the water, and picks the boat up on the other side.*
 
 ## Safety, stopping and the HUD
 
@@ -118,14 +126,16 @@ obsidian, a flint and steel, and some cobblestone.
   barrels, signs, Create shafts and belts) or train tracks. To `#mine` such a block, turn the setting off.
 - **Progress HUD** (H key, or `#alto hud`): what the script, Alto and Baritone are doing right now.
 
-![A safety stop](../images/safety.png)
+![A safety stop](../images/safety.jpg)
+*Health dropped while mining: Alto paused everything and says how to continue (`#resume`) or stop (`#stop`).*
 
 ## Settings
 
 `#alto settings`, or Mods > Alto (unofficial Baritone fork) > Config. Settings are in groups, with a search box and a reset button
 for each one. The second page lists your homes and storage zones. `#set <setting> <value>` works too.
 
-![The settings screen](../images/settings.png)
+![The settings screen](../images/settings.jpg)
+*The settings screen: every Alto setting in groups, with search and a reset button for each.*
 
 ## Chat
 
@@ -138,7 +148,8 @@ to see what went wrong.
 Make scripts with blocks in the script editor, `alto-script-editor.html`. Open it in any browser; it works offline.
 Save scripts as `<name>.alto.json` in `.minecraft/baritone/alto/scripts/` (the editor's Save button can do that).
 
-![The script editor](../images/editor.png)
+![The script editor](../images/editor.jpg)
+*The script editor with an example script. The right side lists problems and what the script is allowed to do.*
 
 ```
 #script list
@@ -148,7 +159,8 @@ Save scripts as `<name>.alto.json` in `.minecraft/baritone/alto/scripts/` (the e
 #script gui                   the script runner screen (key under Controls > Alto)
 ```
 
-![The script runner](../images/script-runner.png)
+![The script runner](../images/script-runner.jpg)
+*The script runner screen (`#script gui`): check, run, pause and stop your scripts.*
 
 Scripts never start by themselves. A running script is saved every few seconds; after a restart, Alto asks before it
 continues (`#script resume`). Chat triggers only react to text you type. Scripts cannot send chat or run Baritone
@@ -166,8 +178,11 @@ commands unless you allow it (`altoScriptChat`, `altoScriptCommands`). The block
 | `#filter <item\|hand\|clear>` | Sets the filter of the deployer, funnel, tunnel or chute you look at. The item is not used up. |
 | `#useon <item> <x y z> [face]` | Uses an item on a block, for example to put it on a depot. |
 
-![Riding a train](../images/create-train.png)
-![Riding an elevator](../images/create-elevator.png)
+![Riding a train](../images/create-train.jpg)
+*`#train AltoA -> AltoB`: Alto walked to the station, sat on a free seat, and gets off at the next station.*
+
+![Riding an elevator](../images/create-elevator.jpg)
+*`#elevator Upper`: Alto picked the floor on the cab's controls with the scroll wheel, right-clicked, and rides up.*
 
 Also:
 
@@ -176,10 +191,17 @@ Also:
   (`#alto hazards` reloads them).
 - Material lists use Create's own costs (an encased shaft needs a shaft).
 
-![Standing on a moving piston platform](../images/create-platform.png)
-![Ordering from a stock keeper](../images/create-order.png)
-![Setting a deployer's filter](../images/create-filter.png)
-![Walking around a running drill](../images/create-hazard.png)
+![Standing on a moving piston platform](../images/create-platform.jpg)
+*Standing on a piston platform while it moves: Baritone waits, then walks on from where the platform stopped.*
+
+![Ordering from a stock keeper](../images/create-order.jpg)
+*`#order iron_ingot 4`: Alto opened the stock keeper and sent the order through its normal screen.*
+
+![Setting a deployer's filter](../images/create-filter.jpg)
+*`#filter iron_ingot` while looking at a deployer: the filter is set and the ingot stays in your inventory.*
+
+![Walking around a running drill](../images/create-hazard.jpg)
+*A running mechanical drill stands in the way. Baritone keeps two blocks away from it instead of brushing past.*
 
 ## EMI
 
@@ -193,7 +215,8 @@ Without marked blocks, Alto offers to filter, fetch, craft, plan or mine the ite
 your EMI favorites. When Alto cannot make an item, `#plan` names the EMI recipe types that can (for example
 "Pressing").
 
-![Picking an item in EMI](../images/emi.png)
+![Picking an item in EMI](../images/emi.jpg)
+*With a block marked (Y), hover an item in EMI's list and press Y: that item becomes the block's filter.*
 
 ## Other mods
 
@@ -208,10 +231,17 @@ your EMI favorites. When Alto cannot make an item, `#plan` names the EMI recipe 
 `#alto integrations` shows which of these are active. Alto works without any of them, and with other versions of
 them: if a mod's version does not fit, only that part of Alto switches itself off.
 
-![A Sophisticated Storage chest](../images/sophisticated.png)
-![Going around a claimed wall](../images/claims.png)
-![Taking items back from a corpse](../images/corpse.png)
-![Farming cabbages](../images/farmers-delight.png)
+![A Sophisticated Storage chest](../images/sophisticated.jpg)
+*`#fetch` taking logs from a Sophisticated Storage chest. The upgrade in your hand is not applied to it.*
+
+![Going around a claimed wall](../images/claims.jpg)
+*This wall is inside another player's claim. Baritone walks around it instead of breaking through.*
+
+![Taking items back from a corpse](../images/corpse.jpg)
+*`#corpse` after dying: Alto walked back, opened the corpse and takes everything back.*
+
+![Farming cabbages](../images/farmers-delight.jpg)
+*`#farm` harvested these Farmer's Delight cabbages and replanted them from the seeds they dropped.*
 
 ## Self-tests
 

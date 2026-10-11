@@ -1,43 +1,37 @@
-# Manual checklist
+# Things to try in your own game
 
-Things to try yourself in your real game (after backing up, see `INSTALL.md`). The automatic tests cover most
-features in test worlds; this list is about what only a real world, a real server or your own setup can show.
-Tick each line when it behaved as described.
+Alto's automatic tests run in test worlds. This list is what only your own world, setup or server can show. Back up
+first (see [INSTALL.md](INSTALL.md)) and try things in a copy of a world before your main one.
 
 ## First start
 
-- [ ] The game starts with the Alto jar and no other Baritone jar. Mods list shows "Alto (unofficial Baritone fork)".
-- [ ] Mods > Alto (unofficial Baritone fork) > Config opens the settings screen; search finds `altoClicksPerSecond`.
-- [ ] Controls > Alto: pick key (Y), stop key (End), HUD key (H), script runner key (unbound). No clash
-      with keys you use (rebind if needed).
-- [ ] Joining a server shows the one-time reminder about automation rules; joining again does not.
+- [ ] The game starts with the Alto jar and no other Baritone jar. The mods list shows "Alto (unofficial Baritone fork)".
+- [ ] Mods > Alto > Config opens the settings screen; searching for `altoClicksPerSecond` finds it.
+- [ ] Controls > Alto: pick key (Y), stop key (End), HUD key (H), script runner key (not set). Rebind any that clash.
+- [ ] Joining a server shows the reminder about automation rules once; joining again does not.
 
-## Everyday jobs (singleplayer copy of a world first)
+## Everyday jobs
 
 - [ ] Holding only oak logs: `#sel 1`, `#sel 2`, `#sel fill oak_planks` fills the area; planks are crafted when needed.
-- [ ] Same with `#set alwaysUseCraftingStation true`: a crafting table is used (or placed and picked up again).
+- [ ] `#set alwaysUseCraftingStation true`, then the same: a crafting table is used, or placed and picked up again.
 - [ ] `#craft chest 1`, `#craft furnace 1`, `#craft iron_ingot 4` (with raw iron and coal) work.
 - [ ] Storage: `#home set`, select your storage room, `#home zone add storage`, `#home zone scan storage`;
       `#fetch cobblestone 10` brings exactly 10; `#deposit` puts the rest away (tools and food stay).
-- [ ] A long `#mine` run: Alto deposits when the inventory is full and the mining continues.
+- [ ] A long `#mine`: Alto deposits when the inventory is full and the mining continues.
 - [ ] A worn pickaxe gets replaced during mining (from storage or crafted).
 
 ## Mods
 
-All of these passed in the test worlds with real mod blocks (see `TEST_REPORT.md`); your own builds are bigger and
-belong to your world, so they are still worth one try each.
-
-- [ ] Walking through your Create factory with `#goto`: no shaft, belt, funnel or track is broken (paths go around).
+- [ ] `#goto` through your Create factory: no shaft, belt, funnel or track gets broken.
 - [ ] Standing on one of your moving contraptions during a job: the bot stands still until it stops.
-- [ ] Create: look at a deployer, `#filter iron_ingot` sets its filter; the ingot stays in your inventory.
-- [ ] Pick key: look at a funnel, press Y (marked), open your inventory, hover an item in EMI, press Y: the filter
-      is set.
-- [ ] Running saws / drills / crushing wheels are walked around, not into.
-- [ ] Sophisticated chest: `#fetch` from it works; holding an upgrade item while Alto opens it does not apply it.
-- [ ] `#train <from> -> <to>` between two of your Create stations (needs a train that stops at both).
-- [ ] `#elevator <floor>` in one of your Create elevators.
-- [ ] `#order <item> <count>` at your stock keeper (only works where you may use it).
-- [ ] `#corpse` after a death (Corpse mod).
+- [ ] Look at a deployer, `#filter iron_ingot`: its filter is set and the ingot stays in your inventory.
+- [ ] Pick key: look at a funnel, press Y, open your inventory, hover an item in EMI, press Y: the filter is set.
+- [ ] Running saws, drills and crushing wheels are walked around.
+- [ ] `#fetch` from a Sophisticated Storage chest works; an upgrade in your hand is not applied.
+- [ ] `#train <from> -> <to>` between two of your stations (needs a train that stops at both).
+- [ ] `#elevator <floor>` in one of your elevators.
+- [ ] `#order <item> <count>` at a stock keeper you are allowed to use.
+- [ ] `#corpse` after a death.
 
 ## Travel
 
@@ -52,12 +46,12 @@ belong to your world, so they are still worth one try each.
 - [ ] The stop key ends it at once.
 - [ ] Quit while a script runs; after restarting, Alto asks; `#script resume` continues it.
 
-## Multiplayer server (your server)
+## On a server
 
 - [ ] Alto works on a server that does not have it (it is client-only).
-- [ ] Container clicks look calm (about 4 per second); no kicks for spam.
+- [ ] Container clicks look calm (about 4 per second); you are not kicked for spam.
 - [ ] With high ping, Alto waits for the server instead of clicking ahead.
-- [ ] Claims of other players (Open Parties and Claims) are never broken into.
+- [ ] Other players' claims (Open Parties and Claims) are never broken into.
 
 ## Safety
 

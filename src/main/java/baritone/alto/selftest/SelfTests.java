@@ -241,9 +241,20 @@ public final class SelfTests {
                 }
             }
             String cls = mc.screen.getClass().getName();
-            boolean ready = cls.contains("StockKeeper") ? photoScreenTicks == 14 // its list arrives a little later
-                    : cls.startsWith("baritone.") ? photoScreenTicks >= 6 : filled >= 3 || photoScreenTicks == 40;
             String screen = mc.screen.getClass().getSimpleName().replaceAll("[^A-Za-z0-9]", "").toLowerCase(java.util.Locale.ROOT);
+            boolean crafting = screen.contains("crafting") || screen.equals("inventoryscreen");
+            boolean ready;
+            if (cls.startsWith("baritone.")) {
+                ready = photoScreenTicks >= 6; // Alto's own screens
+            } else if (cls.contains("StockKeeper")) {
+                ready = photoScreenTicks == 20; // its stock list arrives a little later
+            } else if (n.equals("emi-pick")) {
+                ready = photoScreenTicks == 18; // EMI's list next to the inventory
+            } else if (crafting) {
+                ready = filled >= 3 || photoScreenTicks == 40; // a grid Alto is filling
+            } else {
+                ready = filled >= 1 || photoScreenTicks == 3; // a container right after it opened, contents still in
+            }
             if (ready && photosTaken.add(n + "-" + screen)) {
                 ph.request(n + "-" + screen, false);
             }

@@ -43,7 +43,7 @@ Alto is a modified version of Baritone 1.11.3 (branch `1.21.1`, commit `10e65932
 * Fixed: `#corpse` could not find corpses on a server: Corpse never tells clients what a corpse holds, so every corpse
   looked empty. Alto now opens your nearest corpse, and skips older corpses that turn out to be empty.
 * `#train`: "the train stopped" is measured from the carriage's position.
-* Faster crafting by hand (you noticed): the grid is filled holding the stack from slot to slot and putting the rest
+* Faster crafting by hand: the grid is filled holding the stack from slot to slot and putting the rest
   back once at the end. A chest is now 10 clicks (was 24: pick up, place one, put back, for each of the 8 slots).
 * Chat: Alto's messages start with `[Alto]` instead of `[Baritone] [Alto]` (same colours and the same chat/toast
   settings as Baritone's).

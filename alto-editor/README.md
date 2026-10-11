@@ -3,7 +3,7 @@
 A block editor for Alto scripts (`*.alto.json`). It is one HTML file that works offline: no server, no internet, no
 installation. The script language is described in [`docs/alto/SCRIPT_LANGUAGE.md`](../docs/alto/SCRIPT_LANGUAGE.md).
 
-![The script editor](../docs/images/editor.png)
+![The script editor](../docs/images/editor.jpg)
 
 ## Use it
 

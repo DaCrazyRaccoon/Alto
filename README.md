@@ -1,153 +1,212 @@
-# Baritone
+# Alto
 
-<p align="center">
-  <a href="https://github.com/cabaletta/baritone/releases/"><img src="https://img.shields.io/github/downloads/cabaletta/baritone/total.svg" alt="GitHub All Releases"/></a>
-</p>
+## **Alto is a vibecoded modification of Baritone. It is not made by the Baritone team, and the Baritone team does not support it.**
 
-<p align="center">
-  <a href="#Baritone"><img src="https://img.shields.io/badge/MC-1.12.2-brightgreen.svg" alt="Minecraft"/></a>
-  <a href="#Baritone"><img src="https://img.shields.io/badge/MC-1.13.2-yellow.svg" alt="Minecraft"/></a>
-  <a href="#Baritone"><img src="https://img.shields.io/badge/MC-1.14.4-yellow.svg" alt="Minecraft"/></a>
-  <a href="#Baritone"><img src="https://img.shields.io/badge/MC-1.15.2-yellow.svg" alt="Minecraft"/></a>
-  <a href="#Baritone"><img src="https://img.shields.io/badge/MC-1.16.5-yellow.svg" alt="Minecraft"/></a>
-  <a href="#Baritone"><img src="https://img.shields.io/badge/MC-1.17.1-yellow.svg" alt="Minecraft"/></a>
-  <a href="#Baritone"><img src="https://img.shields.io/badge/MC-1.18.2-yellow.svg" alt="Minecraft"/></a>
-  <a href="#Baritone"><img src="https://img.shields.io/badge/MC-1.19.2-brightgreen.svg" alt="Minecraft"/></a>
-  <a href="#Baritone"><img src="https://img.shields.io/badge/MC-1.19.4-brightgreen.svg" alt="Minecraft"/></a>
-  <a href="#Baritone"><img src="https://img.shields.io/badge/MC-1.20.1-brightgreen.svg" alt="Minecraft"/></a>
-  <a href="#Baritone"><img src="https://img.shields.io/badge/MC-1.21.3-brightgreen.svg" alt="Minecraft"/></a>
-</p>
+Alto is a fork of [Baritone](https://github.com/cabaletta/baritone) for Minecraft 1.21.1 (NeoForge). Baritone walks,
+mines, builds and farms for you. Alto adds what Baritone cannot do: use chests, crafting tables, furnaces and modded
+machines the way a player does.
 
-<p align="center">
-  <a href="https://travis-ci.com/cabaletta/baritone/"><img src="https://travis-ci.com/cabaletta/baritone.svg?branch=master" alt="Build Status"/></a>
-  <a href="https://github.com/cabaletta/baritone/releases/"><img src="https://img.shields.io/github/release/cabaletta/baritone.svg" alt="Release"/></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-LGPL--3.0%20with%20anime%20exception-green.svg" alt="License"/></a>
-  <a href="https://www.codacy.com/gh/cabaletta/baritone/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=cabaletta/baritone&amp;utm_campaign=Badge_Grade"><img src="https://app.codacy.com/project/badge/Grade/cadab857dab049438b6e28b3cfc5570e" alt="Codacy Badge"/></a>
-  <a href="https://github.com/cabaletta/baritone/blob/master/CODE_OF_CONDUCT.md"><img src="https://img.shields.io/badge/%E2%9D%A4-code%20of%20conduct-blue.svg?style=flat" alt="Code of Conduct"/></a>
-  <a href="https://snyk.io/test/github/cabaletta/baritone?targetFile=build.gradle"><img src="https://snyk.io/test/github/cabaletta/baritone/badge.svg?targetFile=build.gradle" alt="Known Vulnerabilities"/></a>
-  <a href="https://github.com/cabaletta/baritone/issues/"><img src="https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat" alt="Contributions welcome"/></a>
-  <a href="https://github.com/cabaletta/baritone/issues/"><img src="https://img.shields.io/github/issues/cabaletta/baritone.svg" alt="Issues"/></a>
-  <a href="https://github.com/cabaletta/baritone/issues?q=is%3Aissue+is%3Aclosed"><img src="https://img.shields.io/github/issues-closed/cabaletta/baritone.svg" alt="GitHub issues-closed"/></a>
-  <a href="https://github.com/cabaletta/baritone/pulls/"><img src="https://img.shields.io/github/issues-pr/cabaletta/baritone.svg" alt="Pull Requests"/></a>
-  <a href="https://github.com/cabaletta/baritone/graphs/contributors/"><img src="https://img.shields.io/github/contributors/cabaletta/baritone.svg" alt="GitHub contributors"/></a>
-  <a href="https://github.com/cabaletta/baritone/commit/"><img src="https://img.shields.io/github/commits-since/cabaletta/baritone/v1.0.0.svg" alt="GitHub commits"/></a>
-  <img src="https://img.shields.io/github/languages/code-size/cabaletta/baritone.svg" alt="Code size"/>
-  <img src="https://img.shields.io/github/repo-size/cabaletta/baritone.svg" alt="GitHub repo size"/>
-  <img src="https://tokei.rs/b1/github/cabaletta/baritone?category=code&style=flat" alt="Lines of Code"/>
-  <img src="https://img.shields.io/badge/Badges-36-blue.svg" alt="yes"/>
-</p>
+Report problems with Alto in this repository, not to the Baritone team.
 
-<p align="center">
-  <a href="https://impactclient.net/"><img src="https://img.shields.io/badge/Impact%20integration-v1.2.14%20/%20v1.3.8%20/%20v1.4.6%20/%20v1.5.3%20/%20v1.6.3-brightgreen.svg" alt="Impact integration"/></a>
-  <a href="https://github.com/lambda-client/lambda"><img src="https://img.shields.io/badge/Lambda%20integration-v1.2.17-brightgreen.svg" alt="Lambda integration"/></a>
-  <a href="https://github.com/fr1kin/ForgeHax/"><img src="https://img.shields.io/badge/ForgeHax%20%22integration%22-scuffed-yellow.svg" alt="ForgeHax integration"/></a>
-  <a href="https://aristois.net/"><img src="https://img.shields.io/badge/Aristois%20add--on%20integration-v1.6.3-green.svg" alt="Aristois add-on integration"/></a>
-  <a href="https://rootnet.dev/"><img src="https://img.shields.io/badge/rootNET%20integration-v1.2.14-green.svg" alt="rootNET integration"/></a>
-  <a href="https://futureclient.net/"><img src="https://img.shields.io/badge/Future%20integration-v1.2.12%20%2F%20v1.3.6%20%2F%20v1.4.4-red" alt="Future integration"/></a>
-  <a href="https://rusherhack.org/"><img src="https://img.shields.io/badge/RusherHack%20integration-v1.2.14-green" alt="RusherHack integration"/></a>
-</p>
+## Requirements
 
-<p align="center">
-  <a href="http://forthebadge.com/"><img src="https://web.archive.org/web/20230604002050/https://forthebadge.com/images/badges/built-with-swag.svg" alt="forthebadge"/></a>
-  <a href="http://forthebadge.com/"><img src="https://web.archive.org/web/20230604002050/https://forthebadge.com/images/badges/mom-made-pizza-rolls.svg" alt="forthebadge"/></a>
-</p>
+- Minecraft 1.21.1 with NeoForge 21.1 (tested with 21.1.249).
+- Nothing else. Create, EMI, Sophisticated Storage, Open Parties and Claims, Corpse, Farmer's Delight and Lootr are
+  optional: Alto works with them when they are installed and without them when they are not.
 
-A Minecraft pathfinder bot.
+## Install
 
-Baritone is the pathfinding system used in [Impact](https://impactclient.net/) since 4.4. [Here's](https://www.youtube.com/watch?v=StquF69-_wI) a (very old!) video I made showing off what it can do.
+1. Back up your game or modpack instance.
+2. Put the Alto jar in your `mods` folder.
+3. Remove any other Baritone jar. Alto replaces Baritone; the two cannot be installed together.
 
-[**Baritone Discord Server**](http://discord.gg/s6fRBAUpmr)
+Alto runs on your client only. Servers do not need it. Check a server's rules before using automation on it.
 
-**Quick download links:**
+Commands start with `#`, like in Baritone. `#help` lists them.
 
-| Forge                                                                                                         | Fabric                                                                                                          | NeoForge                                                                                                            |
-|---------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------|
-| [1.12.2 Forge](https://github.com/cabaletta/baritone/releases/download/v1.2.19/baritone-api-forge-1.2.19.jar) |                                                                                                                 |                                                                                                                     |
-| [1.16.5 Forge](https://github.com/cabaletta/baritone/releases/download/v1.6.5/baritone-api-forge-1.6.5.jar)   | [1.16.5 Fabric](https://github.com/cabaletta/baritone/releases/download/v1.6.5/baritone-api-fabric-1.6.5.jar)   |                                                                                                                     |
-| [1.17.1 Forge](https://github.com/cabaletta/baritone/releases/download/v1.7.3/baritone-api-forge-1.7.3.jar)   | [1.17.1 Fabric](https://github.com/cabaletta/baritone/releases/download/v1.7.3/baritone-api-fabric-1.7.3.jar)   |                                                                                                                     |
-| [1.18.2 Forge](https://github.com/cabaletta/baritone/releases/download/v1.8.6/baritone-api-forge-1.8.6.jar)   | [1.18.2 Fabric](https://github.com/cabaletta/baritone/releases/download/v1.8.6/baritone-api-fabric-1.8.6.jar)   |                                                                                                                     |
-| [1.19.2 Forge](https://github.com/cabaletta/baritone/releases/download/v1.9.4/baritone-api-forge-1.9.4.jar)   | [1.19.2 Fabric](https://github.com/cabaletta/baritone/releases/download/v1.9.4/baritone-api-fabric-1.9.4.jar)   |                                                                                                                     |
-| [1.19.3 Forge](https://github.com/cabaletta/baritone/releases/download/v1.9.1/baritone-api-forge-1.9.1.jar)   | [1.19.3 Fabric](https://github.com/cabaletta/baritone/releases/download/v1.9.1/baritone-api-fabric-1.9.1.jar)   |                                                                                                                     |
-| [1.19.4 Forge](https://github.com/cabaletta/baritone/releases/download/v1.9.5/baritone-api-forge-1.9.5.jar)   | [1.19.4 Fabric](https://github.com/cabaletta/baritone/releases/download/v1.9.5/baritone-api-fabric-1.9.5.jar)   |                                                                                                                     |
-| [1.20.1 Forge](https://github.com/cabaletta/baritone/releases/download/v1.10.3/baritone-api-forge-1.10.3.jar) | [1.20.1 Fabric](https://github.com/cabaletta/baritone/releases/download/v1.10.3/baritone-api-fabric-1.10.3.jar) |                                                                                                                     |
-| [1.20.3 Forge](https://github.com/cabaletta/baritone/releases/download/v1.10.4/baritone-api-forge-1.10.4.jar) | [1.20.3 Fabric](https://github.com/cabaletta/baritone/releases/download/v1.10.4/baritone-api-fabric-1.10.4.jar) | [1.20.3 NeoForge](https://github.com/cabaletta/baritone/releases/download/v1.10.4/baritone-api-neoforge-1.10.4.jar) |
-| [1.20.4 Forge](https://github.com/cabaletta/baritone/releases/download/v1.10.4/baritone-api-forge-1.10.4.jar) | [1.20.4 Fabric](https://github.com/cabaletta/baritone/releases/download/v1.10.4/baritone-api-fabric-1.10.4.jar) | [1.20.4 NeoForge](https://github.com/cabaletta/baritone/releases/download/v1.10.4/baritone-api-neoforge-1.10.4.jar) |
-| [1.21.1 Forge](https://github.com/cabaletta/baritone/releases/download/v1.11.2/baritone-api-forge-1.11.2.jar) | [1.21.1 Fabric](https://github.com/cabaletta/baritone/releases/download/v1.11.2/baritone-api-fabric-1.11.2.jar) | [1.21.1 NeoForge](https://github.com/cabaletta/baritone/releases/download/v1.11.2/baritone-api-neoforge-1.11.2.jar) |
-| [1.21.3 Forge](https://github.com/cabaletta/baritone/releases/download/v1.11.1/baritone-api-forge-1.11.1.jar) | [1.21.3 Fabric](https://github.com/cabaletta/baritone/releases/download/v1.11.1/baritone-api-fabric-1.11.1.jar) | [1.21.3 NeoForge](https://github.com/cabaletta/baritone/releases/download/v1.11.1/baritone-api-neoforge-1.11.1.jar) |
-| [1.21.4 Forge](https://github.com/cabaletta/baritone/releases/download/v1.13.1/baritone-api-forge-1.13.1.jar) | [1.21.4 Fabric](https://github.com/cabaletta/baritone/releases/download/v1.13.1/baritone-api-fabric-1.13.1.jar) | [1.21.4 NeoForge](https://github.com/cabaletta/baritone/releases/download/v1.13.1/baritone-api-neoforge-1.13.1.jar) |
-| [1.21.5 Forge](https://github.com/cabaletta/baritone/releases/download/v1.14.0/baritone-api-forge-1.14.0.jar) | [1.21.5 Fabric](https://github.com/cabaletta/baritone/releases/download/v1.14.0/baritone-api-fabric-1.14.0.jar) | [1.21.5 NeoForge](https://github.com/cabaletta/baritone/releases/download/v1.14.0/baritone-api-neoforge-1.14.0.jar) |
-| [1.21.6 Forge](https://github.com/cabaletta/baritone/releases/download/v1.15.0/baritone-api-forge-1.15.0.jar) | [1.21.6 Fabric](https://github.com/cabaletta/baritone/releases/download/v1.15.0/baritone-api-fabric-1.15.0.jar) | [1.21.6 NeoForge](https://github.com/cabaletta/baritone/releases/download/v1.15.0/baritone-api-neoforge-1.15.0.jar) |
-| [1.21.7 Forge](https://github.com/cabaletta/baritone/releases/download/v1.15.0/baritone-api-forge-1.15.0.jar) | [1.21.7 Fabric](https://github.com/cabaletta/baritone/releases/download/v1.15.0/baritone-api-fabric-1.15.0.jar) | [1.21.7 NeoForge](https://github.com/cabaletta/baritone/releases/download/v1.15.0/baritone-api-neoforge-1.15.0.jar) |
-| [1.21.8 Forge](https://github.com/cabaletta/baritone/releases/download/v1.15.0/baritone-api-forge-1.15.0.jar) | [1.21.8 Fabric](https://github.com/cabaletta/baritone/releases/download/v1.15.0/baritone-api-fabric-1.15.0.jar) | [1.21.8 NeoForge](https://github.com/cabaletta/baritone/releases/download/v1.15.0/baritone-api-neoforge-1.15.0.jar) |
-| [1.21.9 Forge](https://github.com/cabaletta/baritone/releases/download/v1.16.0/baritone-api-forge-1.16.0.jar) | [1.21.9 Fabric](https://github.com/cabaletta/baritone/releases/download/v1.16.0/baritone-api-fabric-1.16.0.jar) | [1.21.9 NeoForge](https://github.com/cabaletta/baritone/releases/download/v1.16.0/baritone-api-neoforge-1.16.0.jar) |
-| [1.21.10 Forge](https://github.com/cabaletta/baritone/releases/download/v1.16.0/baritone-api-forge-1.16.0.jar) | [1.21.10 Fabric](https://github.com/cabaletta/baritone/releases/download/v1.16.0/baritone-api-fabric-1.16.0.jar) | [1.21.10 NeoForge](https://github.com/cabaletta/baritone/releases/download/v1.16.0/baritone-api-neoforge-1.16.0.jar) |
-| [1.21.11 Forge](https://github.com/cabaletta/baritone/releases/download/v1.17.0/baritone-api-forge-1.17.0.jar) | [1.21.11 Fabric](https://github.com/cabaletta/baritone/releases/download/v1.17.0/baritone-api-fabric-1.17.0.jar) | [1.21.11 NeoForge](https://github.com/cabaletta/baritone/releases/download/v1.17.0/baritone-api-neoforge-1.17.0.jar) |
-| [26.1 Forge](https://github.com/cabaletta/baritone/releases/download/v1.18.0/baritone-api-forge-1.18.0.jar) | [26.1 Fabric](https://github.com/cabaletta/baritone/releases/download/v1.18.0/baritone-api-fabric-1.18.0.jar) | [26.1 NeoForge](https://github.com/cabaletta/baritone/releases/download/v1.18.0/baritone-api-neoforge-1.18.0.jar) |
-| [26.2 Forge](https://github.com/cabaletta/baritone/releases/download/v1.19.0/baritone-api-forge-1.19.0.jar) | [26.2 Fabric](https://github.com/cabaletta/baritone/releases/download/v1.19.0/baritone-api-fabric-1.19.0.jar) | [26.2 NeoForge](https://github.com/cabaletta/baritone/releases/download/v1.19.0/baritone-api-neoforge-1.19.0.jar) |
+## Features
 
-**How to immediately get started:** Type `#goto 1000 500` in chat to go to x=1000 z=500. Type `#mine diamond_ore` to mine diamond ore. Type `#stop` to stop. For more, read [the usage page](USAGE.md) and/or watch this [tutorial playlist](https://www.youtube.com/playlist?list=PLnwnJ1qsS7CoQl9Si-RTluuzCo_4Oulpa). Also try `#elytra` for Elytra flying in the Nether using fireworks ([trailer](https://youtu.be/4bGGPo8yiHo), [usage](https://youtu.be/NnSlQi-68eQ)). For help, join the [Baritone Discord Server](http://discord.gg/s6fRBAUpmr).
+### Crafting
 
-For other versions of Minecraft or more complicated situations or for development, see [Installation & setup](SETUP.md). For 1.16.5, [click here](https://www.youtube.com/watch?v=_4eVJ9Qz2J8) and see description. Once Baritone is installed, look [here](USAGE.md) for instructions on how to use it. There's a [showcase video](https://youtu.be/CZkLXWo4Fg4) made by @Adovin#6313 on Baritone which I recommend. For help, join the [Baritone Discord Server](http://discord.gg/s6fRBAUpmr).
+Alto crafts what a job needs. It uses the 2x2 grid in your inventory, or a crafting table it finds, or one it places
+and picks up again.
 
-This project is an updated version of [MineBot](https://github.com/leijurv/MineBot/),
-the original version of the bot for Minecraft 1.8.9, rebuilt for 1.12.2 onwards. Baritone focuses on reliability and particularly performance (it's over [30x faster](https://github.com/cabaletta/baritone/pull/180#issuecomment-423822928) than MineBot at calculating paths).
+![Crafting a chest](docs/images/crafting.jpg)
+*`#craft chest 1` with only logs: Alto crafted planks, placed a crafting table and is filling its grid. It picks the table up again afterwards.*
 
-Have committed at least once a day from Aug 1, 2018, to Aug 1, 2019.
+- `#craft chest 1` gets one chest: from your inventory, your storage, or by crafting, smelting or mining.
+- `#plan chest 1` shows the steps without doing them.
+- When the builder runs out of a block, Alto makes more. Hold oak logs, select an area, and `#sel fill oak_planks`
+  fills it with planks.
 
-1Leijurv3DWTrGAfmmiTphjhXLvQiHg7K2
+![An area filled with planks crafted from logs](docs/images/fill-planks.jpg)
+*`#sel fill oak_planks` while holding only oak logs. The builder ran out of planks, so Alto crafted more and the build continued.*
 
-# Getting Started
+### Smelting
 
-Here are some links to help to get started:
+Alto smelts in a furnace it finds or places. It never burns valuable fuel.
 
-- [Features](FEATURES.md)
+![Smelting iron](docs/images/smelting.jpg)
+*Alto placed a furnace, smelts raw iron with coal from your inventory, and picks the furnace up when it is done.*
 
-- [Installation & setup](SETUP.md)
+### Storage
 
-- [API Javadocs](https://baritone.leijurv.com/)
+Mark a storage room and Alto remembers what is in every container there.
 
-- [Settings](https://baritone.leijurv.com/baritone/api/Settings.html#field.detail)
+![Taking items from a chest](docs/images/storage.jpg)
+*`#fetch` opens a chest in your storage zone and takes exactly the number of items you asked for.*
 
-- [Usage (chat control)](USAGE.md)
+- `#home zone add storage` turns your selection (`#sel 1`, `#sel 2`) into a storage zone.
+- `#fetch cobblestone 64` takes exactly 64 from your storage.
+- `#deposit` puts away everything except tools, food and armor.
+- Shulker boxes you carry work like storage too.
 
-## Stars over time
+While Baritone works, Alto can deposit when your inventory is full, restock torches and food, replace a pickaxe that
+is about to break, and eat when you are hungry. Each helper has an on/off setting.
 
-[![Stargazers over time](https://starchart.cc/cabaletta/baritone.svg)](https://starchart.cc/cabaletta/baritone)
+### Building
 
-# API
+`#build` and `#sel fill` get their materials from your storage first, then craft or mine what is missing.
+`#materials` prints the shopping list of a build.
 
-The API is heavily documented, you can find the Javadocs for the latest release [here](https://baritone.leijurv.com/).
-Please note that usage of anything located outside of the `baritone.api` package is not supported by the API release
-jar.
+![A build supplied from storage](docs/images/builder-supply.jpg)
+*Before this build started, Alto listed the materials and fetched the stone bricks and glass from storage in one trip.*
 
-Below is an example of basic usage for changing some settings, and then pathing to an X/Z goal.
+### Farming
 
-```java
-BaritoneAPI.getSettings().allowSprint.value = true;
-BaritoneAPI.getSettings().primaryTimeoutMS.value = 2000L;
-BaritoneAPI.getProvider().getPrimaryBaritone().getCustomGoalProcess().setGoalAndPath(new GoalXZ(10000, 20000));
+`#farm` also handles modded crops and fetches seeds from your storage when you run out.
+
+![Farming](docs/images/farming.jpg)
+*`#farm` with no seeds in the inventory: Alto fetched seeds from a chest and planted the field.*
+
+### Travel
+
+- `#goto x y z nether` (or `overworld`) travels through the nether portal that means the least walking.
+  Alto remembers the portals it sees. It can build a portal if you allow it (off by default).
+- `#minecart` rides a minecart. `#boat x z` crosses water by boat and picks the boat up again.
+
+![Riding a minecart](docs/images/minecart.jpg)
+*`#minecart` boards the nearest free minecart and gets off at the end of the line.*
+
+### Safety
+
+- The **End** key stops everything at once (`#stop` does the same).
+- Low health or a hostile mob nearby pauses everything. `#resume` continues. Alto never fights.
+- Paths never break machines, chests, signs or train tracks (setting `altoProtectMachines`).
+
+![A safety stop](docs/images/safety.jpg)
+*Health dropped while mining: Alto paused everything and says how to continue (`#resume`) or stop (`#stop`).*
+
+### Progress and settings
+
+Press **H** for a small progress display. `#alto settings` (or Mods > Baritone > Config) opens the settings screen.
+
+![The settings screen](docs/images/settings.jpg)
+*The settings screen: every Alto setting in groups, with search and a reset button for each.*
+
+### Scripts
+
+Make scripts with blocks in the script editor (`alto-script-editor.html`, works offline in any browser), save them
+to `.minecraft/baritone/alto/scripts/`, and run them with `#script run <name>`. Alto asks before a new script runs
+for the first time.
+
+![The script editor](docs/images/editor.jpg)
+*The script editor with an example script. The right side lists problems and what the script is allowed to do.*
+
+![The script runner](docs/images/script-runner.jpg)
+*The script runner screen (`#script gui`): check, run, pause and stop your scripts.*
+
+## Mods
+
+### Create
+
+- `#train <from> -> <to>` walks to a station, boards a train, rides it and gets off at the destination.
+- `#elevator <floor>` picks the floor on an elevator's controls and rides.
+- `#order <item> <count>` orders from a stock keeper.
+- `#filter <item>` sets the filter of the deployer, funnel or chute you look at.
+- Baritone waits while you stand on a moving contraption, walks around running saws, drills and fans, and never
+  breaks shafts, belts or tracks to make a path.
+
+![Train](docs/images/create-train.jpg)
+*`#train`: riding a Create train between two named stations.*
+
+![Elevator](docs/images/create-elevator.jpg)
+*`#elevator Upper`: Alto picked the floor on the cab's controls with the scroll wheel, right-clicked, and rides up.*
+
+![Moving platform](docs/images/create-platform.jpg)
+*Standing on a piston platform while it moves: Baritone waits, then walks on from where the platform stopped.*
+
+![Stock keeper](docs/images/create-order.jpg)
+*`#order iron_ingot 4`: Alto opened the stock keeper and sent the order through its normal screen.*
+
+![Filter](docs/images/create-filter.jpg)
+*`#filter iron_ingot` while looking at a deployer: the filter is set and the ingot stays in your inventory.*
+
+### EMI
+
+Look at a block and press **Y** to mark it, then hover an item in EMI and press **Y** again: the item becomes the
+block's filter. Without marked blocks, Alto offers to fetch, craft or mine the item.
+
+![Picking an item in EMI](docs/images/emi.jpg)
+*With a block marked (Y), hover an item in EMI's list and press Y: that item becomes the block's filter.*
+
+### Sophisticated Storage and Backpacks
+
+Their chests, barrels and placed backpacks work as storage. Upgrades you hold are never applied by accident.
+
+![A Sophisticated Storage chest](docs/images/sophisticated.jpg)
+*`#fetch` taking logs from a Sophisticated Storage chest. The upgrade in your hand is not applied to it.*
+
+### Open Parties and Claims
+
+Baritone never breaks or places blocks in someone else's claim. Alto can only see the claims your server shares
+with clients.
+
+![Going around a claimed wall](docs/images/claims.jpg)
+*This wall is inside another player's claim. Baritone walks around it instead of breaking through.*
+
+### Corpse
+
+`#corpse` walks back to your corpse and takes your items.
+
+![Taking items back from a corpse](docs/images/corpse.jpg)
+*`#corpse` after dying: Alto walked back, opened the corpse and takes everything back.*
+
+### Farmer's Delight
+
+`#farm` harvests and replants cabbages, onions and the other crops. Tomatoes are left alone.
+
+![Farming cabbages](docs/images/farmers-delight.jpg)
+*`#farm` harvested these Farmer's Delight cabbages and replanted them from the seeds they dropped.*
+
+### Lootr
+
+Lootr chests are never used to store your items.
+
+## Chat
+
+By default Alto only tells you results, problems and answers to your commands. The steps of a job are shown in the
+progress display (H). `#set altoQuietChat false` shows every step in chat, which helps when something goes wrong.
+
+## Building from source
+
+Requires JDK 21.
+
+```
+./gradlew build
 ```
 
-# FAQ
+The jar is in `build/libs`. The build downloads the mods Alto works with only to compile against them; none of their
+code is included in the Alto jar.
 
-## Can I use Baritone as a library in my custom utility client?
+## License
 
-That's what it's for, sure! (As long as usage complies with the LGPL 3.0 License)
+Alto is licensed under the GNU Lesser General Public License v3.0, like Baritone. See [LICENSE](LICENSE) and
+[docs/alto/LICENSE-NOTE.md](docs/alto/LICENSE-NOTE.md). If you share the jar, you must also share its source code.
 
-## How is it so fast?
+Baritone is made by leijurv, Brady and the [Baritone contributors](https://github.com/cabaletta/baritone/graphs/contributors).
+The original Baritone README is in [README-baritone.md](README-baritone.md).
 
-Magic. (Hours of [leijurv](https://github.com/leijurv/) enduring excruciating pain)
-
-### Additional Special Thanks To:
-
-![YourKit-Logo](https://www.yourkit.com/images/yklogo.png)
-
-YourKit supports open source projects with innovative and intelligent tools for monitoring and profiling Java and .NET applications.
-
-YourKit is the creator of the [YourKit Java Profiler](https://www.yourkit.com/java/profiler/), [YourKit .NET Profiler](https://www.yourkit.com/.net/profiler/), and [YourKit YouMonitor](https://www.yourkit.com/youmonitor/).
-
-We thank them for granting Baritone an OSS license so that we can make our software the best it can be.
-
-## Why is it called Baritone?
-
-It's named for FitMC's deep sultry voice.
+More documentation: [user guide](docs/alto/USER_GUIDE.md), [install](docs/alto/INSTALL.md),
+[script language](docs/alto/SCRIPT_LANGUAGE.md), [developer notes](docs/alto/DEVELOPER.md),
+[changelog](docs/alto/CHANGELOG.md).

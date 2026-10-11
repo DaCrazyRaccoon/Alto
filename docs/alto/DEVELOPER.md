@@ -1,6 +1,9 @@
 # Alto developer notes
 
-Alto is a private fork of Baritone 1.11.3 (branch `1.21.1`, tag commit `10e65932`) for NeoForge 21.1 / Minecraft
+**Alto is a vibecoded modification of Baritone. It is not made by the Baritone team, and the Baritone team does not
+support it.**
+
+Alto is an unofficial fork of Baritone 1.11.3 (branch `1.21.1`, commit `10e65932`) for NeoForge 21.1 / Minecraft
 1.21.1. It adds container and GUI automation (crafting, smelting, storage, Create filters and more) to Baritone's
 normal jobs. Like Baritone it is **client-only**: it registers no network channels and sends only the packets a
 normal client sends.
@@ -13,9 +16,13 @@ gradlew build          # jar in build/libs, unit tests included
 gradlew test           # unit tests only
 ```
 
-The upstream build used unimined from `maven.wagyourtail.xyz`. That host is blocked on this machine, so the fork
-builds with **ModDevGradle 2.0.148** (Gradle 9.2.1, NeoForge 21.1.249, Parchment 2024.11.17). The original
-`buildSrc` is kept, unused, in `buildSrc.upstream-unimined/`.
+Baritone's own build uses unimined; Alto builds with **ModDevGradle 2.0.148** (Gradle 9.2.1, NeoForge 21.1.249,
+Parchment 2024.11.17) and only for NeoForge. The original `buildSrc` is kept, unused, in `buildSrc.upstream-unimined/`.
+
+The mods Alto works with are compile-only dependencies (`integrationMods` in `build.gradle`): the exact released jars
+Alto was tested with, downloaded from Modrinth's Maven (Create, EMI, Open Parties and Claims) and CurseMaven
+(Sophisticated Core/Storage/Backpacks, Corpse). They are never part of the Alto jar and never on the plain dev
+client's classpath.
 
 Source sets:
 
@@ -132,5 +139,9 @@ The test client script fails on error screens, crash reports, missing dependenci
 while it waits) and time-outs, and it only ever stops processes it started. Test runs use a separate worktree
 (`work/test`) checked out at a commit, so editing sources cannot break a running test build.
 
-The pack test copies only `mods`, `config`, `defaultconfigs` and `kubejs` from the Prism instance into
-`testenv/pack` (never saves, accounts or launcher files). The Prism instance itself is never written to.
+The test clients need a `testenv` folder next to the repository (`../testenv`): `run-dev` and `run-pack` game
+folders, and for pack runs a copy of a modpack's `mods`, `config`, `defaultconfigs` and `kubejs` in `testenv/pack`
+(never saves, accounts or launcher files). Without it, only the plain dev client and the unit tests can run.
+
+`-ExtraGradleArgs "-Palto_devtest_photos=true"` takes the documentation pictures (`screenshots/photo-*.png`) during
+a self-test run.

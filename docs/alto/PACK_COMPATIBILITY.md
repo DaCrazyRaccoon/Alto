@@ -1,59 +1,45 @@
-# Pack compatibility report: Createrington Rails 'n Sails
+# Mod compatibility
 
-Pack: Minecraft 1.21.1, NeoForge 21.1.249, 278 jars / 310 mod ids (352 mods loaded including nested ones),
-Create 6.0.10, EMI 1.1.24, JEI 19.57. Full static scan (mod list, every mixin, KubeJS recipe changes):
-`research/pack-scan.md`, `research/pack-mods.tsv`, `research/pack-mixins.tsv`.
+Alto was developed and tested with the **Createrington Rails 'n Sails** modpack: Minecraft 1.21.1, NeoForge 21.1.249,
+about 280 mod jars (350 mods with the ones they contain), including Create 6.0.10 and EMI 1.1.24. The tests ran in a
+copy of the pack, never in a real game installation.
 
-## How it was tested
+All mod support is optional. Alto starts without these mods, and with other versions of them; if a version does not
+fit, only Alto's support for that mod switches itself off.
 
-* Only a **copy** of the pack's `mods`, `config`, `defaultconfigs` and `kubejs` folders was used (`testenv/pack`),
-  in a separate game folder. The Prism instance was never written to (see the audit).
-* As you asked, the Fabric-only jars that Sinytra Connector loads (Axiom, Iris Extension) were left out of the test
-  copy, together with Connector itself and Continuity. In your real game they are present; see "Not covered" below.
-* The pack starts with Alto in about 30-70 s to the title screen; the automatic launch check fails on any error
-  screen, crash report or missing dependency.
-* All self-test scenarios run in the pack copy (superflat and real terrain); results are in `TEST_REPORT.md`.
+## Mods Alto works with
 
-## Mod by mod
+| Mod | What Alto does with it | Tested in game |
+|---|---|---|
+| Create 6.0.10 | Trains, elevators, moving platforms, stock keepers, filters, material lists; walks around running machines; never breaks shafts, belts or tracks for a path | yes, with real Create machines built by the tests |
+| Steam 'n' Rails and other Create add-ons | Their tracks and machines are protected from paths like Create's | through the same protection rules |
+| EMI 1.1.24 | Pick key, favorites, preferred recipes, recipe hints | yes |
+| Sophisticated Storage and Backpacks | Chests, barrels and placed backpacks as storage; upgrades you hold are never applied | yes |
+| Open Parties and Claims | No breaking or placing in other players' claims | yes |
+| Corpse | `#corpse` takes your items back | yes |
+| Farmer's Delight | Crops and rich soil farmland in `#farm`; tomatoes left alone | yes |
+| Lootr | Never used to store your items | yes |
 
-| Mod | Status with Alto |
+## Other mods in the pack
+
+| Mod | Notes |
 |---|---|
-| Create 6.0.10 | Integrated and **tested in game with real Create machines** built by the tests: filters (`create-filter`), material lists (`create-materials`), running machines avoided (`create-hazard`), shafts/belts/tracks never broken by paths (`create-protect`), riding a piston platform (`create-platform`), `#elevator` in an elevator with contraption controls (`create-elevator`), `#order` at a stock keeper with a packager network (`create-order`), `#train` on a railway with two stations and a scheduled train with a conductor (`create-train`). |
-| Steam 'n' Rails and other Create add-ons | Their tracks (all gauges, crossings) and every block with a block entity are protected from paths. No add-on changes the client paths Alto uses (checked in the static scan). |
-| EMI 1.1.24 (+ JEI) | Integrated: pick key, favorites, preferred recipes, recipe hints. Tested: the pick key over EMI's item list sets a marked deployer's filter, and missing items get EMI's categories as hints (`emi-pick`). |
-| Sophisticated Storage / Backpacks | Integrated and tested (`sophisticated-fetch`). |
-| Open Parties and Claims | Integrated and tested: a claim of another player over the test area makes paths go around instead of breaking (`claims-protect`). Alto sees the claims your server sends to clients (`claimsSynchronization`). |
-| Corpse | Integrated and tested: die, respawn, `#corpse` takes everything back (`corpse`). |
-| Lootr | Tested: never deposited into, even when it is the closest container (`lootr-skip`). |
-| Farmer's Delight | Tested: ripe cabbages on rich soil farmland are harvested and replanted (`farm-modded`); tomatoes left alone. |
-| Inventory Essentials (stack/tool refill on) | Works alongside: Alto re-reads the inventory after every action. |
+| Inventory Essentials | Works alongside: Alto re-reads the inventory after every action. |
 | Carry On | Alto never sneak-right-clicks, so it never picks up containers. |
-| Sophisticated Backpacks upgrades (pickup, magnet, tool swapper, feeding...) | They may move items while Alto works; Alto re-reads the inventory and tolerates it. |
-| Sable / Create Aeronautics | Not integrated (you chose not to). Baritone may path poorly near physics ships; the static scan lists Sable's movement and ray-cast hooks as the highest risk. |
-| Freecam | When Freecam is on, it blocks block use and movement; Alto then cannot act (expected). |
-| Axiom (Fabric, via Connector) | Not in the test copy. Its key hooks only act while its editor is open. |
-| No other Baritone or automation mod | Confirmed by a byte search of every jar. |
+| Sophisticated Backpacks upgrades (pickup, magnet, feeding...) | They may move items while Alto works; Alto re-reads the inventory and copes. |
+| Sable / Create Aeronautics | No support. Baritone may find poor paths near physics ships. |
+| Freecam | While Freecam is on, it blocks movement and block use, so Alto cannot act. |
+| Fabric mods loaded by Sinytra Connector (Axiom, Iris Extension) | Not tested. |
+| Other Baritone or automation mods | None in the pack. Never install another Baritone next to Alto. |
 
 ## Mixins
 
-Alto adds no new mixins to the shipped jar beyond upstream Baritone's (the test harness's own mixin is dev-only and
-not in the jar). No pack mixin duplicates one of Baritone's `@Redirect`s or its `@Overwrite`; the pack starts cleanly
-with the fork in every run. Container automation clicks through `MultiPlayerGameMode` by slot index, which avoids the
-screen-level click hooks of Create's deployer, FancyMenu and LDLib2.
+Alto adds no mixins beyond Baritone's own. No mod in the pack conflicts with Baritone's mixins. Alto clicks in
+containers by slot number, not by screen position, so mods that change how screens look do not affect it.
 
-## Bugs the mod tests found (fixed)
+## Not tested
 
-* The moving-platform pause never switched on (two separate reasons), so Baritone kept walking on moving pistons and
-  elevators.
-* `#elevator` never reported arrival; its time-out could not trigger.
-* `#corpse` could not see any corpse on a server (Corpse does not send corpse contents to clients).
-* `#train` tried to walk up onto the carriage to reach a seat.
-* Paths could break Create shafts, belts, funnels and train tracks (now protected by default).
-
-## Not covered
-
-* The Connector-loaded Fabric mods (Axiom, Iris Extension) were not part of the tests.
-* Your real server's plugins, permissions and lag.
-* Sable ships and aircraft.
-* Long train networks with signals and several trains, and stock networks with frogports and deliveries (the tests
-  use one train and one packager; the logic is the same).
+- Real multiplayer servers (plugins, permissions, lag).
+- Sable ships and aircraft.
+- Large Create networks: many trains and signals, stock networks with package deliveries, elevators with many floors.
+  The tests use one of each.
