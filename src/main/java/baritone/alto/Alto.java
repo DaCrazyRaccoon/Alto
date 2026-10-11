@@ -50,6 +50,7 @@ import baritone.alto.upkeep.Upkeep;
 import baritone.alto.hazard.HazardManager;
 import baritone.alto.integration.FilterAccess;
 import baritone.alto.integration.Integrations;
+import baritone.alto.picker.ItemPicker;
 import baritone.api.Settings;
 import baritone.api.event.events.PacketEvent;
 import baritone.api.event.events.TickEvent;
@@ -74,6 +75,8 @@ import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 /**
  * Root of the Alto fork for one {@link Baritone} instance. Created by a single line at the end of the
@@ -96,6 +99,7 @@ public final class Alto {
     private final StorageManager storage;
     private Upkeep upkeep;
     private final HazardManager hazards;
+    private final ItemPicker picker;
     private final List<FilterAccess> filterAccess = new CopyOnWriteArrayList<>();
     private final VanillaRecipeSource vanillaRecipes = new VanillaRecipeSource();
     private final BuilderSupply builderSupply;
@@ -103,6 +107,8 @@ public final class Alto {
     private final List<Consumer<WorldModel.Builder>> worldModelContributors = new CopyOnWriteArrayList<>();
     private final List<BiFunction<PlanStep, PlanContext, AltoTask>> stepTaskFactories = new CopyOnWriteArrayList<>();
     private final List<Consumer<Alto>> tickListeners = new CopyOnWriteArrayList<>();
+    private final List<Supplier<Map<ItemKey, String>>> recipePreferences = new CopyOnWriteArrayList<>();
+    private final List<Function<ItemKey, String>> recipeHints = new CopyOnWriteArrayList<>();
 
     private Alto(Baritone baritone) {
         this.baritone = baritone;
@@ -120,6 +126,11 @@ public final class Alto {
         this.builderSupply = new BuilderSupply(this);
         this.selfTests = new SelfTests(this);
         this.hazards = new HazardManager(this);
+        this.picker = new ItemPicker(this);
+        // Vanilla fallback: the item in the inventory slot under the mouse (integrations such as EMI come first).
+        this.picker.addProvider((mx, my) -> net.minecraft.client.Minecraft.getInstance().screen
+                instanceof net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<?> s && s.getSlotUnderMouse() != null
+                ? s.getSlotUnderMouse().getItem() : net.minecraft.world.item.ItemStack.EMPTY);
         addStepTaskFactory((step, pctx) -> step instanceof PlanStep.Fetch f
                 ? new FetchTask(this, ContainerRecord.Key.parse(f.storageId()), f.item(), f.count()) : null);
         addStepTaskFactory((step, pctx) -> step instanceof PlanStep.UnpackShulker u
@@ -173,6 +184,10 @@ public final class Alto {
 
     public StorageManager storage() {
         return storage;
+    }
+
+    public ItemPicker picker() {
+        return picker;
     }
 
     public HazardManager hazards() {
@@ -239,7 +254,35 @@ public final class Alto {
             never.add(McItems.key(i));
         }
         o.neverConsume = never;
+        Map<ItemKey, String> preferred = new java.util.HashMap<>();
+        for (Supplier<Map<ItemKey, String>> p : recipePreferences) {
+            try {
+                preferred.putAll(p.get());
+            } catch (Throwable t) {
+                AltoLog.debug("recipe preferences failed: " + t);
+            }
+        }
+        o.preferredRecipes = preferred;
         return o;
+    }
+
+    /** Lines that explain how missing items are made (from integrations such as EMI), for chat output. */
+    public List<String> hintsFor(ItemCounts missing) {
+        List<String> out = new ArrayList<>();
+        missing.forEach((item, n) -> {
+            for (Function<ItemKey, String> h : recipeHints) {
+                try {
+                    String line = h.apply(item);
+                    if (line != null) {
+                        out.add(line);
+                        break;
+                    }
+                } catch (Throwable t) {
+                    AltoLog.debug("recipe hint failed: " + t);
+                }
+            }
+        });
+        return out;
     }
 
     /** Allowed fuels in preference order with their burn time (ticks), from setting altoAllowedFuels. */
@@ -273,6 +316,16 @@ public final class Alto {
     }
 
     // ------------------------------------------------------------------------------------------ extension hooks
+
+    /** Preferred recipe ids per output item (e.g. EMI recipe tree defaults). */
+    public void addRecipePreferences(Supplier<Map<ItemKey, String>> source) {
+        recipePreferences.add(source);
+    }
+
+    /** A one-line explanation of how an item is made, or null. */
+    public void addRecipeHint(Function<ItemKey, String> hint) {
+        recipeHints.add(hint);
+    }
 
     public void addWorldModelContributor(Consumer<WorldModel.Builder> contributor) {
         worldModelContributors.add(contributor);

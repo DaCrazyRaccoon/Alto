@@ -66,6 +66,30 @@ class PlannerTest {
     }
 
     @Test
+    void preferredRecipeWinsWhenCostIsClose() {
+        WorldModel w = VanillaFixtures.world().inventory("iron_block", 1).inventory("iron_nugget", 9)
+                .station(StationKind.CRAFTING_TABLE, "overworld|5,64,5", 4).build();
+        Plan normal = plan(w, "iron_ingot", 1);
+        assertTrue(normal.isComplete(), normal.describe().toString());
+        assertEquals(ItemCounts.of("iron_block", 1), normal.fromInventory(), steps(normal)); // cheapest without a preference
+        PlannerOptions o = new PlannerOptions();
+        o.preferredRecipes = java.util.Map.of(ItemKey.of("iron_ingot"), "minecraft:iron_ingot_from_nuggets");
+        Plan preferred = plan(o, w, "iron_ingot", 1);
+        assertTrue(preferred.isComplete(), preferred.describe().toString());
+        assertEquals(ItemCounts.of("iron_nugget", 9), preferred.fromInventory(), steps(preferred));
+    }
+
+    @Test
+    void preferredRecipeNeverBeatsAvailableItems() {
+        WorldModel w = VanillaFixtures.world().inventory("iron_block", 1).build();
+        PlannerOptions o = new PlannerOptions();
+        o.preferredRecipes = java.util.Map.of(ItemKey.of("iron_ingot"), "minecraft:iron_ingot_from_nuggets");
+        Plan p = plan(o, w, "iron_ingot", 1);
+        assertTrue(p.isComplete(), p.describe().toString());
+        assertEquals(ItemCounts.of("iron_block", 1), p.fromInventory(), steps(p));
+    }
+
+    @Test
     void alreadyHavingTheItemNeedsNoSteps() {
         WorldModel w = VanillaFixtures.world().inventory("oak_planks", 10).inventory("oak_log", 5).build();
         Plan p = plan(w, "oak_planks", 8);

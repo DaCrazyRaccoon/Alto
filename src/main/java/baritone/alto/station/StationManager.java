@@ -73,6 +73,33 @@ public final class StationManager {
                 .min(Comparator.comparingDouble(p -> p.distSqr(feet)));
     }
 
+    /** Stations remembered from earlier scans (any distance), as positions in the current dimension. */
+    public List<BlockPos> remembered(StationKind kind) {
+        List<BlockPos> out = new ArrayList<>();
+        String dim = alto.storage().dimension();
+        for (baritone.alto.storage.ContainerRecord r : alto.storage().index().all()) {
+            if (r.adapter.equals("station:" + kind.name()) && r.key.dimension().equals(dim)) {
+                out.add(new BlockPos(r.key.x(), r.key.y(), r.key.z()));
+            }
+        }
+        return out;
+    }
+
+    private void remember(StationKind kind, List<BlockPos> found) {
+        String dim = alto.storage().dimension();
+        for (BlockPos p : found) {
+            baritone.alto.storage.ContainerRecord.Key key = new baritone.alto.storage.ContainerRecord.Key(dim, p.getX(), p.getY(), p.getZ());
+            if (alto.storage().index().get(key) == null) {
+                baritone.alto.storage.ContainerRecord r = new baritone.alto.storage.ContainerRecord(key);
+                r.blockId = net.minecraft.core.registries.BuiltInRegistries.BLOCK.getKey(blockFor(kind)).toString();
+                r.adapter = "station:" + kind.name();
+                r.lastSeenMillis = System.currentTimeMillis();
+                r.depositAllowed = false;
+                alto.storage().index().put(r);
+            }
+        }
+    }
+
     /** All stations of this kind in loaded chunks around the player (up to 64). */
     public List<BlockPos> scan(StationKind kind, double radius) {
         Block block = blockFor(kind);
@@ -81,7 +108,9 @@ public final class StationManager {
         }
         IPlayerContext ctx = alto.ctx();
         int chunks = Math.max(1, (int) Math.ceil(radius / 16.0) + 1);
-        return new ArrayList<>(BaritoneAPI.getProvider().getWorldScanner().scanChunkRadius(ctx, List.of(block), 64, -1, chunks));
+        List<BlockPos> found = new ArrayList<>(BaritoneAPI.getProvider().getWorldScanner().scanChunkRadius(ctx, List.of(block), 64, -1, chunks));
+        remember(kind, found);
+        return found;
     }
 
     /** Distance to the nearest loaded ender chest block (infinite if none within 64 blocks). */

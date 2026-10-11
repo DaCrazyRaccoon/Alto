@@ -62,7 +62,10 @@ public final class WorldModelBuilder {
                     continue;
                 }
                 Optional<BlockPos> pos = alto.stations().findNearest(kind, radius, p -> true);
-                pos.ifPresent(p -> b.station(kind, p.toShortString(), Math.sqrt(p.distSqr(feet))));
+                if (pos.isEmpty()) {
+                    pos = nearHome(alto, kind);
+                }
+                pos.ifPresent(p -> b.station(kind, p.getX() + "," + p.getY() + "," + p.getZ(), Math.sqrt(p.distSqr(feet))));
             }
         }
         if (Baritone.settings().altoPlannerAllowGather.value) {
@@ -78,6 +81,17 @@ public final class WorldModelBuilder {
             b.fuel(fuel.getKey(), fuel.getValue());
         }
         return b.build();
+    }
+
+    /** A remembered station within 32 blocks of one of your homes or inside a storage zone (C: "near my home"). */
+    private static Optional<BlockPos> nearHome(Alto alto, StationKind kind) {
+        String dim = alto.storage().dimension();
+        BlockPos feet = alto.ctx().playerFeet();
+        return alto.stations().remembered(kind).stream()
+                .filter(p -> alto.storage().zones().zoneAt(dim, p.getX(), p.getY(), p.getZ()).isPresent()
+                        || alto.storage().zones().homes().stream().anyMatch(h -> h.dimension().equals(dim)
+                        && p.distSqr(new BlockPos(h.x(), h.y(), h.z())) <= 32 * 32))
+                .min(java.util.Comparator.comparingDouble(p -> p.distSqr(feet)));
     }
 
     private static boolean hasPickaxe(Inventory inv) {

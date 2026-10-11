@@ -153,6 +153,9 @@ public final class CraftTask extends AltoTask {
             return Step.stay();
         }
         table = pctx.station(StationKind.CRAFTING_TABLE);
+        if (table != null && !ctx.world().isLoaded(table)) {
+            return Step.walk(new baritone.api.pathing.goals.GoalGetToBlock(table)); // remembered table near home
+        }
         if (table == null || !ctx.world().getBlockState(table).is(net.minecraft.world.level.block.Blocks.CRAFTING_TABLE)) {
             Optional<BlockPos> near = alto.stations().findNearest(StationKind.CRAFTING_TABLE,
                     Baritone.settings().altoStationSearchRadius.value, p -> true);

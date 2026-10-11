@@ -17,9 +17,16 @@
 
 package baritone.launch;
 
+import baritone.alto.neoforge.AltoNeoForge;
 import net.neoforged.api.distmarker.Dist;
+import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
 
 @Mod(value = "baritoe", dist = Dist.CLIENT)
 public class BaritoneForgeModXD {
+
+    // ALTO FORK: register the optional integrations and key mappings (client only, no network channels).
+    public BaritoneForgeModXD(IEventBus modBus) {
+        AltoNeoForge.init(modBus);
+    }
 }

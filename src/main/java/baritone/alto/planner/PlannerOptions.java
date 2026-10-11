@@ -19,6 +19,7 @@ package baritone.alto.planner;
 
 import baritone.alto.core.ItemKey;
 
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -57,6 +58,9 @@ public final class PlannerOptions {
     /** Items never used as an ingredient or fuel (only obtained when they are the target itself). */
     public Set<ItemKey> neverConsume = Set.of();
 
+    /** Recipe ids the player prefers per output (EMI's recipe tree defaults). Tried first and favoured by {@code Planner.PREFERRED_BONUS}. */
+    public Map<ItemKey, String> preferredRecipes = Map.of();
+
     /** Time estimates. */
     public int ticksPerClick = 5;
     public double walkBlocksPerTick = 0.2;
@@ -81,6 +85,7 @@ public final class PlannerOptions {
         o.ticksPerClick = ticksPerClick;
         o.walkBlocksPerTick = walkBlocksPerTick;
         o.neverConsume = neverConsume;
+        o.preferredRecipes = preferredRecipes;
         return o;
     }
 

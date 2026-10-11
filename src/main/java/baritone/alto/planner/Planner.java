@@ -55,6 +55,8 @@ public final class Planner {
     static final double MISSING_PENALTY = 10_000_000;
     /** Mining is the last resort. */
     static final double GATHER_PENALTY = 100_000;
+    /** A preferred recipe (EMI default) wins unless it costs this many ticks more. It never outweighs missing items or mining. */
+    static final double PREFERRED_BONUS = 2_000;
     static final double SHULKER_UNPACK_TICKS = 80;
     static final double CONTAINER_OPEN_TICKS = 30;
     static final double STATION_PLACE_TICKS = 40;
@@ -150,6 +152,7 @@ public final class Planner {
             return;
         }
         State best = null;
+        double bestScore = Double.MAX_VALUE;
         if (!stack.contains(item)) {
             Set<ItemKey> inner = new HashSet<>(stack);
             inner.add(item);
@@ -163,8 +166,9 @@ public final class Planner {
                 }
                 State c = s.copy();
                 produceWith(c, r, n, depth, inner, forceGrid);
-                if (best == null || c.cost < best.cost) {
+                if (best == null || score(c, item, r) < bestScore) {
                     best = c;
+                    bestScore = score(c, item, r);
                 }
             }
         }
@@ -175,7 +179,7 @@ public final class Planner {
             double t = 200 + n * gather.ticksPerItem();
             c.ticks += t;
             c.cost += GATHER_PENALTY + t;
-            if (best == null || c.cost < best.cost) {
+            if (best == null || c.cost < bestScore) {
                 best = c;
             }
         }
@@ -196,8 +200,13 @@ public final class Planner {
         return false;
     }
 
+    private double score(State c, ItemKey item, RecipeDef r) {
+        return r.id().equals(opt.preferredRecipes.get(item)) ? c.cost - PREFERRED_BONUS : c.cost;
+    }
+
     private List<RecipeDef> candidates(ItemKey item) {
         List<RecipeDef> out = new ArrayList<>();
+        String preferred = opt.preferredRecipes.get(item);
         for (RecipeDef r : book.producing(item)) {
             if (!r.kind().executable || r.inputs().isEmpty() || r.consumesOwnOutput()) {
                 continue;
@@ -208,7 +217,11 @@ public final class Planner {
             if (r.kind().isCooking() && !opt.allowSmelting) {
                 continue;
             }
-            out.add(r);
+            if (r.id().equals(preferred)) {
+                out.add(0, r); // always within maxAlternatives
+            } else {
+                out.add(r);
+            }
         }
         return out;
     }

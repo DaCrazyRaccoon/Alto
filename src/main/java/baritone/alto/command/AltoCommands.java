@@ -21,6 +21,7 @@ import baritone.Baritone;
 import baritone.alto.Alto;
 import baritone.alto.AltoLog;
 import baritone.alto.core.ItemCounts;
+import baritone.alto.integration.Integrations;
 import baritone.alto.core.ItemKey;
 import baritone.alto.mc.McItems;
 import baritone.alto.planner.Plan;
@@ -61,6 +62,10 @@ public final class AltoCommands {
         commands.add(new StorageCommands.DepositCommand(baritone, alto));
         commands.add(new StorageCommands.ShulkerCommand(baritone, alto));
         commands.add(new StorageCommands.ExportRegistryCommand(baritone, alto));
+        commands.add(new FilterCommands.FilterCommand(baritone, alto));
+        commands.add(new FilterCommands.MarkCommand(baritone, alto));
+        commands.add(new FilterCommands.PickCommand(baritone, alto));
+        commands.add(new FilterCommands.UseOnCommand(baritone, alto));
         commands.forEach(baritone.getCommandManager().getRegistry()::register);
     }
 
@@ -95,6 +100,7 @@ public final class AltoCommands {
             Plan plan = alto.plan(target, new ItemCounts());
             if (!plan.isComplete()) {
                 plan.describe().forEach(this::logDirect);
+                alto.hintsFor(plan.missing()).forEach(this::logDirect);
                 throw new CommandInvalidStateException("Cannot get " + count + "x " + key.shortName() + ". Missing: " + plan.missing());
             }
             plan.describe().forEach(this::logDirect);
@@ -148,6 +154,7 @@ public final class AltoCommands {
             int have = McItems.count(ctx.player().getInventory(), item);
             Plan plan = alto.plan(ItemCounts.of(key, have + count), new ItemCounts());
             plan.describe().forEach(this::logDirect);
+            alto.hintsFor(plan.missing()).forEach(this::logDirect);
         }
 
         @Override
@@ -193,6 +200,15 @@ public final class AltoCommands {
                 case "stop":
                     alto.process().cancelJob("stopped with #alto stop");
                     break;
+                case "hazards":
+                    logDirect("Hazard rules: " + alto.hazards().reload());
+                    break;
+                case "integrations":
+                    logDirect("Active integrations: " + Integrations.active());
+                    if (!Integrations.failed().isEmpty()) {
+                        logDirect("Disabled after an error: " + Integrations.failed());
+                    }
+                    break;
                 default:
                     getLongDesc().forEach(this::logDirect);
             }
@@ -200,7 +216,7 @@ public final class AltoCommands {
 
         @Override
         public Stream<String> tabComplete(String label, IArgConsumer args) {
-            return args.hasExactlyOne() ? Stream.of("status", "stop", "help") : Stream.empty();
+            return args.hasExactlyOne() ? Stream.of("status", "stop", "hazards", "integrations", "help") : Stream.empty();
         }
 
         @Override
@@ -216,7 +232,9 @@ public final class AltoCommands {
                     "",
                     "Usage:",
                     "> alto status - what Alto is doing, server lag, pacing",
-                    "> alto stop - stop the current Alto job (#stop stops everything)"
+                    "> alto stop - stop the current Alto job (#stop stops everything)",
+                    "> alto hazards - reload baritone/alto/hazards.json",
+                    "> alto integrations - which mod integrations are active"
             );
         }
     }

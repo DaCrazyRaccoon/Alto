@@ -154,7 +154,7 @@ public final class PlanTask extends AltoTask {
         if (step instanceof PlanStep.Station s) {
             switch (s.action()) {
                 case USE_EXISTING:
-                    resolveExisting(s.kind());
+                    resolveExisting(s.kind(), s.siteId());
                     return null;
                 case PLACE:
                     return new PlaceStationTask(alto, s.kind(), pctx);
@@ -167,7 +167,18 @@ public final class PlanTask extends AltoTask {
         return alto.tasksFor(step, pctx);
     }
 
-    private void resolveExisting(StationKind kind) {
+    private void resolveExisting(StationKind kind, String siteId) {
+        if (siteId != null) {
+            String[] c = siteId.split(",");
+            if (c.length == 3) {
+                try {
+                    pctx.useStation(kind, new BlockPos(Integer.parseInt(c[0].trim()), Integer.parseInt(c[1].trim()), Integer.parseInt(c[2].trim())));
+                    return;
+                } catch (NumberFormatException ignored) {
+                    // fall through to a nearby search
+                }
+            }
+        }
         Optional<BlockPos> pos = alto.stations().findNearest(kind, Baritone.settings().altoStationSearchRadius.value, p -> true);
         pos.ifPresent(p -> pctx.useStation(kind, p));
     }

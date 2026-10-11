@@ -175,6 +175,9 @@ public final class SmeltTask extends AltoTask {
 
     private Step choose() {
         BlockPos main = pctx.station(kind);
+        if (main != null && !ctx.world().isLoaded(main)) {
+            return Step.walk(new baritone.api.pathing.goals.GoalGetToBlock(main)); // remembered furnace near home
+        }
         if (main == null || !ctx.world().getBlockState(main).is(StationManager.blockFor(kind))) {
             Optional<BlockPos> near = alto.stations().findNearest(kind, Baritone.settings().altoStationSearchRadius.value, p -> true);
             if (near.isEmpty()) {
