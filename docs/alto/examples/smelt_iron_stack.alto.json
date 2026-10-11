@@ -1,0 +1,53 @@
+{
+  "format": "alto-script",
+  "version": 1,
+  "name": "Smelt a stack of iron",
+  "description": "Fetches raw iron and coal from storage when the inventory has too little, then smelts 64 iron ingots.",
+  "variables": [],
+  "procedures": [],
+  "events": [
+    {
+      "event": "on_start",
+      "body": [
+        {
+          "block": "if",
+          "condition": {
+            "expr": "lt",
+            "a": {"expr": "item_count", "item": "minecraft:raw_iron", "where": "inventory"},
+            "b": 64
+          },
+          "then": [
+            {
+              "block": "fetch",
+              "item": "minecraft:raw_iron",
+              "count": {
+                "expr": "sub",
+                "a": 64,
+                "b": {"expr": "item_count", "item": "minecraft:raw_iron", "where": "inventory"}
+              }
+            }
+          ]
+        },
+        {
+          "block": "if",
+          "condition": {
+            "expr": "lt",
+            "a": {"expr": "item_count", "item": "minecraft:coal", "where": "inventory"},
+            "b": 8
+          },
+          "then": [
+            {"block": "fetch", "item": "minecraft:coal", "count": 8}
+          ]
+        },
+        {"block": "smelt", "item": "minecraft:iron_ingot", "count": 64},
+        {
+          "block": "message",
+          "text": {
+            "expr": "join",
+            "parts": ["Smelting done, iron ingots in the inventory: ", {"expr": "item_count", "item": "minecraft:iron_ingot", "where": "inventory"}]
+          }
+        }
+      ]
+    }
+  ]
+}

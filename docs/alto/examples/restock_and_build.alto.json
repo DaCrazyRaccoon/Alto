@@ -1,0 +1,69 @@
+{
+  "format": "alto-script",
+  "version": 1,
+  "name": "Restock and build a cabin",
+  "description": "Tops up the materials for cabin.schem from storage with a reusable restock procedure, walks to the site and builds it.",
+  "variables": [
+    {"name": "site_x", "initial": 100},
+    {"name": "site_y", "initial": 64},
+    {"name": "site_z", "initial": -200}
+  ],
+  "procedures": [
+    {
+      "name": "restock",
+      "params": [
+        {"name": "item", "type": "item"},
+        {"name": "amount", "type": "number"}
+      ],
+      "body": [
+        {
+          "block": "if",
+          "condition": {
+            "expr": "lt",
+            "a": {"expr": "item_count", "item": {"expr": "param", "name": "item"}, "where": "inventory"},
+            "b": {"expr": "param", "name": "amount"}
+          },
+          "then": [
+            {
+              "block": "fetch",
+              "item": {"expr": "param", "name": "item"},
+              "count": {
+                "expr": "sub",
+                "a": {"expr": "param", "name": "amount"},
+                "b": {"expr": "item_count", "item": {"expr": "param", "name": "item"}, "where": "inventory"}
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "events": [
+    {
+      "event": "on_start",
+      "body": [
+        {"block": "message", "text": "Restocking materials for the cabin..."},
+        {"block": "call", "procedure": "restock", "args": {"item": "minecraft:oak_planks", "amount": 128}},
+        {"block": "call", "procedure": "restock", "args": {"item": "minecraft:glass_pane", "amount": 32}},
+        {"block": "call", "procedure": "restock", "args": {"item": "minecraft:cobblestone", "amount": 64}},
+        {
+          "block": "goto",
+          "target": {
+            "type": "coords",
+            "x": {"expr": "var", "name": "site_x"},
+            "y": {"expr": "var", "name": "site_y"},
+            "z": {"expr": "sub", "a": {"expr": "var", "name": "site_z"}, "b": 3}
+          }
+        },
+        {
+          "block": "build",
+          "schematic": "cabin.schem",
+          "x": {"expr": "var", "name": "site_x"},
+          "y": {"expr": "var", "name": "site_y"},
+          "z": {"expr": "var", "name": "site_z"}
+        },
+        {"block": "message", "text": "The cabin is built."}
+      ]
+    }
+  ]
+}

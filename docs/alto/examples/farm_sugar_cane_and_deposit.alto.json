@@ -1,0 +1,72 @@
+{
+  "format": "alto-script",
+  "version": 1,
+  "name": "Sugar cane farm",
+  "description": "Every 5 minutes: harvest the sugar cane nearby and put everything except food and torches into storage. Ends by itself after 12 passes (one hour); type !stopfarm to end it earlier. Eats when health gets low and empties the inventory when it is full.",
+  "variables": [
+    {"name": "passes", "initial": 0},
+    {"name": "max_passes", "initial": 12}
+  ],
+  "procedures": [
+    {
+      "name": "store_harvest",
+      "params": [],
+      "body": [
+        {"block": "deposit", "except": ["minecraft:bread", "minecraft:cooked_beef", "minecraft:torch"]}
+      ]
+    }
+  ],
+  "events": [
+    {
+      "event": "on_start",
+      "body": [
+        {"block": "message", "text": "Sugar cane farm started: one pass every 5 minutes, 12 passes at most. Type !stopfarm to stop."}
+      ]
+    },
+    {
+      "event": "every",
+      "seconds": 300,
+      "body": [
+        {"block": "farm", "range": 24, "crops": ["minecraft:sugar_cane"]},
+        {"block": "call", "procedure": "store_harvest"},
+        {"block": "change_var", "name": "passes", "delta": 1},
+        {
+          "block": "message",
+          "text": {
+            "expr": "join",
+            "parts": ["Farm pass ", {"expr": "var", "name": "passes"}, " of ", {"expr": "var", "name": "max_passes"}, " done."]
+          }
+        },
+        {
+          "block": "if",
+          "condition": {"expr": "gte", "a": {"expr": "var", "name": "passes"}, "b": {"expr": "var", "name": "max_passes"}},
+          "then": [
+            {"block": "message", "text": "All passes done, the farm script ends."},
+            {"block": "stop"}
+          ]
+        }
+      ]
+    },
+    {
+      "event": "on_inventory_full",
+      "body": [
+        {"block": "call", "procedure": "store_harvest"}
+      ]
+    },
+    {
+      "event": "on_health_below",
+      "health": 8,
+      "body": [
+        {"block": "eat"}
+      ]
+    },
+    {
+      "event": "on_chat",
+      "trigger": "!stopfarm",
+      "body": [
+        {"block": "message", "text": "Stopping the sugar cane farm."},
+        {"block": "stop"}
+      ]
+    }
+  ]
+}

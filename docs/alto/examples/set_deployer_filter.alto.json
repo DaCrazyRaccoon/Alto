@@ -1,0 +1,28 @@
+{
+  "format": "alto-script",
+  "version": 1,
+  "name": "Set deployer filter",
+  "description": "Sets the filter of the Create deployer at 120 70 -45 to iron ingots, fetching one ingot first if the inventory has none. The face is left out, so Alto uses the side that has the filter slot.",
+  "variables": [],
+  "procedures": [],
+  "events": [
+    {
+      "event": "on_start",
+      "body": [
+        {
+          "block": "if",
+          "condition": {
+            "expr": "lt",
+            "a": {"expr": "item_count", "item": "minecraft:iron_ingot", "where": "inventory"},
+            "b": 1
+          },
+          "then": [
+            {"block": "fetch", "item": "minecraft:iron_ingot", "count": 1}
+          ]
+        },
+        {"block": "set_filter", "x": 120, "y": 70, "z": -45, "item": "minecraft:iron_ingot"},
+        {"block": "message", "text": "The deployer at 120 70 -45 now filters iron ingots."}
+      ]
+    }
+  ]
+}
