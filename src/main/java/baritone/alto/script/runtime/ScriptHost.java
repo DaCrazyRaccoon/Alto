@@ -22,7 +22,9 @@ import baritone.alto.script.lang.Value;
 /**
  * What a {@link ScriptRun} needs from the game. The Minecraft binding implements this; tests use a mock world.
  * All methods are called on the thread that calls {@link ScriptRun#tick()} (the client thread), never concurrently.
- * A {@link RuntimeException} thrown by any method fails the run with a clear error instead of crashing the tick.
+ * They must not call back into the {@link ScriptRun} (no {@code fire}, {@code stop}... from inside a callback; do it
+ * on the next tick instead). A {@link RuntimeException} thrown by {@link #start}, {@link #query}, the setting checks,
+ * {@link #showMessage} or the handle's {@code poll} fails the run with a clear error instead of crashing the tick.
  */
 public interface ScriptHost {
 

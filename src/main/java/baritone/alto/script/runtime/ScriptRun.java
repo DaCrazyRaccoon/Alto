@@ -19,20 +19,13 @@ package baritone.alto.script.runtime;
 
 import baritone.alto.script.check.ScriptValidator;
 import baritone.alto.script.codec.ScriptCodec;
-import baritone.alto.script.lang.ActionType;
 import baritone.alto.script.lang.Diagnostic;
-import baritone.alto.script.lang.Event;
 import baritone.alto.script.lang.EventType;
-import baritone.alto.script.lang.Expr;
-import baritone.alto.script.lang.Fields;
-import baritone.alto.script.lang.Ids;
-import baritone.alto.script.lang.Limits;
 import baritone.alto.script.lang.Script;
 import baritone.alto.script.lang.Stmt;
 import baritone.alto.script.lang.Value;
 import baritone.alto.script.runtime.Activation.Blocker;
 
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -73,33 +66,16 @@ import java.util.function.Supplier;
  */
 public final class ScriptRun {
 
-    /** Per handler: its activation (if running), condition arming and timer. */
-    private static final class HandlerState {
-        final int index;
-        final Script.EventHandler handler;
-        Activation running;
-        boolean armed = true;
-        long nextFireAt;
-
-        HandlerState(int index, Script.EventHandler handler) {
-            this.index = index;
-            this.handler = handler;
-        }
-    }
-
     private final Script script;
     private final ScriptHost host;
     private final RunOptions options;
     private final String scriptHash;
-    private final Map<String, Script.Procedure> procedures = new HashMap<>();
     private final LinkedHashMap<String, Value> variables = new LinkedHashMap<>();
     private final Evaluator evaluator;
-    private final ActionResolver resolver;
-    private final List<HandlerState> handlers = new ArrayList<>();
-    private final boolean listening;
-    private final boolean hasConditionHandlers;
+    private final ActionSlot slot = new ActionSlot();
+    private final Executor executor;
+    private final EventScheduler events;
     private final List<Activation> activations = new ArrayList<>();
-    private final ArrayDeque<Activation> turnQueue = new ArrayDeque<>();
     private final long startMillis;
 
     private RunStatus status = RunStatus.RUNNING;
@@ -108,18 +84,11 @@ public final class ScriptRun {
     private long pausedAtMillis;
     private long pausedTotalMillis;
     private int nextActivationId;
-    private long nextConditionCheck;
-
-    private Activation slotOwner;
-    private ActionHandle slotHandle;
-    private ActionCall slotCall;
-    private long lastChatAt = Long.MIN_VALUE;
 
     private long ticks;
     private long totalSteps;
     private int stepsThisTick;
     private int stepsLastTick;
-    private int actionsStarted;
 
     /**
      * Creates a run and starts {@code on_start} (it executes on the first {@link #tick()}).
@@ -131,8 +100,7 @@ public final class ScriptRun {
     }
 
     private ScriptRun(Script script, ScriptHost host, RunOptions options, RunSnapshot snapshot) {
-        List<Diagnostic> diagnostics = ScriptValidator.validate(script);
-        for (Diagnostic d : diagnostics) {
+        for (Diagnostic d : ScriptValidator.validate(script)) {
             if (d.isError()) {
                 throw new IllegalArgumentException("the script has errors and cannot run: " + d);
             }
@@ -142,29 +110,13 @@ public final class ScriptRun {
         this.options = options.copy();
         this.options.check();
         this.scriptHash = ScriptCodec.hash(script);
+        Map<String, Script.Procedure> procedures = new HashMap<>();
         for (Script.Procedure p : script.procedures()) {
             procedures.put(p.name(), p);
         }
         for (Script.VarDecl v : script.variables()) {
             variables.put(v.name(), v.initial());
         }
-        this.evaluator = new Evaluator(this, this.options.randomSeed);
-        this.resolver = new ActionResolver(evaluator);
-        this.startMillis = host.nowMillis();
-        boolean listens = false;
-        boolean conditions = false;
-        for (int i = 0; i < script.handlers().size(); i++) {
-            HandlerState h = new HandlerState(i, script.handlers().get(i));
-            Event event = h.handler.event();
-            listens |= event.type() != EventType.ON_START;
-            conditions |= isCondition(event.type());
-            if (event instanceof Event.Every every) {
-                h.nextFireAt = periodMillis(every);
-            }
-            handlers.add(h);
-        }
-        this.listening = listens;
-        this.hasConditionHandlers = conditions;
         if (snapshot != null) {
             snapshot.variables().forEach((name, value) -> {
                 Value declared = variables.get(name);
@@ -173,13 +125,11 @@ public final class ScriptRun {
                 }
             });
         }
-        for (HandlerState h : handlers) {
-            boolean wasActiveChat = snapshot != null && h.handler.event().type() == EventType.ON_CHAT
-                    && snapshot.activeHandlers().contains(h.handler.path());
-            if (h.handler.event().type() == EventType.ON_START || wasActiveChat) {
-                startHandler(h);
-            }
-        }
+        this.evaluator = new Evaluator(this, this.options.randomSeed);
+        this.executor = new Executor(this, host, this.options, procedures, variables, evaluator, slot);
+        this.events = new EventScheduler(script, evaluator, this::startActivation, this.options.conditionCheckMillis);
+        this.startMillis = host.nowMillis();
+        events.startInitial(snapshot);
     }
 
     /**
@@ -189,8 +139,7 @@ public final class ScriptRun {
      * @throws IllegalArgumentException when the snapshot belongs to a different script version, or on script errors
      */
     public static ScriptRun restore(Script script, ScriptHost host, RunOptions options, RunSnapshot snapshot) {
-        String hash = ScriptCodec.hash(script);
-        if (!hash.equals(snapshot.scriptHash())) {
+        if (!ScriptCodec.hash(script).equals(snapshot.scriptHash())) {
             throw new IllegalArgumentException("the saved run belongs to a different version of this script");
         }
         return new ScriptRun(script, host, options, snapshot);
@@ -211,14 +160,14 @@ public final class ScriptRun {
                 end(RunStatus.STOPPED, "the maximum run time of " + seconds(options.maxRuntimeMillis) + " was reached");
                 return;
             }
-            pollTask();
+            pollAction();
             if (status == RunStatus.RUNNING) {
-                startDueHandlers(now);
+                events.startDue(now);
             }
             if (status == RunStatus.RUNNING) {
                 runActivations(now);
             }
-            if (status == RunStatus.RUNNING && activations.isEmpty() && !listening) {
+            if (status == RunStatus.RUNNING && activations.isEmpty() && !events.listening()) {
                 end(RunStatus.FINISHED, "finished");
             }
         } catch (ScriptRuntimeException e) {
@@ -247,14 +196,20 @@ public final class ScriptRun {
             return false;
         }
         try {
-            if (type == EventType.ON_CHAT) {
-                return chat(payload);
-            }
-            return checkConditions();
+            return type == EventType.ON_CHAT ? events.chat(payload) : events.checkConditions();
         } catch (ScriptRuntimeException e) {
             fail(e.path(), e.getMessage());
             return false;
         }
+    }
+
+    /**
+     * Whether {@code typed} (text the user typed) equals one of the script's chat triggers, using the same rule as
+     * {@link #fire}: surrounding spaces removed, case ignored. The binding can use it to keep trigger text from being
+     * sent to the server. True even while that handler is running.
+     */
+    public boolean isChatTrigger(String typed) {
+        return events.isChatTrigger(typed);
     }
 
     /**
@@ -267,9 +222,10 @@ public final class ScriptRun {
         }
         status = RunStatus.PAUSED;
         pausedAtMillis = host.nowMillis();
-        if (slotHandle != null) {
-            cancelTask();
-            slotOwner.blocker = null; // keeps its turn and re-runs the action block when resumed
+        if (slot.running()) {
+            Activation owner = slot.owner();
+            slot.cancelKeepTurn();
+            owner.blocker = null; // keeps its turn and re-runs the action block when resumed
         }
     }
 
@@ -344,7 +300,7 @@ public final class ScriptRun {
      * {@code null} when idle.
      */
     public ActivationView current() {
-        Activation a = slotOwner != null ? slotOwner : activations.isEmpty() ? null : activations.get(0);
+        Activation a = slot.owner() != null ? slot.owner() : activations.isEmpty() ? null : activations.get(0);
         return a == null ? null : view(a);
     }
 
@@ -369,6 +325,7 @@ public final class ScriptRun {
         return ticks;
     }
 
+    /** Statement and expression steps executed since the start. */
     public long totalSteps() {
         return totalSteps;
     }
@@ -377,8 +334,9 @@ public final class ScriptRun {
         return stepsLastTick;
     }
 
+    /** Host actions started since the start. */
     public int actionsStarted() {
-        return actionsStarted;
+        return executor.actionsStarted();
     }
 
     /** Milliseconds the run has been running, paused time excluded. */
@@ -402,7 +360,7 @@ public final class ScriptRun {
     }
 
     /** Calls the host; a host exception becomes a script error at {@code path}. */
-    <T> T hostCall(String path, String what, Supplier<T> call) {
+    static <T> T hostCall(String path, String what, Supplier<T> call) {
         try {
             return call.get();
         } catch (ScriptRuntimeException e) {
@@ -412,107 +370,46 @@ public final class ScriptRun {
         }
     }
 
-    // ------------------------------------------------------------------------------------------ events
-
-    private static boolean isCondition(EventType type) {
-        return type == EventType.ON_INVENTORY_FULL || type == EventType.ON_HEALTH_BELOW || type == EventType.ON_ITEM_BELOW;
-    }
-
-    private static long periodMillis(Event.Every every) {
-        return Math.max(1, Math.round(every.seconds() * 1000));
-    }
-
-    private void startHandler(HandlerState h) {
-        Activation a = new Activation(nextActivationId++, h.index, h.handler);
-        activations.add(a);
-        h.running = a;
-    }
-
-    private boolean chat(String text) {
-        if (text == null) {
-            return false;
-        }
-        String typed = text.trim();
-        for (HandlerState h : handlers) {
-            if (h.handler.event() instanceof Event.OnChat c && c.trigger().trim().equalsIgnoreCase(typed)) {
-                if (h.running != null) {
-                    return false;
-                }
-                startHandler(h);
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private void startDueHandlers(long now) {
-        for (HandlerState h : handlers) {
-            if (h.handler.event() instanceof Event.Every every && now >= h.nextFireAt) {
-                if (h.running == null) {
-                    startHandler(h);
-                }
-                long period = periodMillis(every);
-                h.nextFireAt += ((now - h.nextFireAt) / period + 1) * period; // skip missed periods, no bursts
-            }
-        }
-        if (hasConditionHandlers && now >= nextConditionCheck) {
-            nextConditionCheck = now + options.conditionCheckMillis;
-            checkConditions();
-        }
-    }
-
-    /** Edge-triggered condition events; see the class comment. */
-    private boolean checkConditions() {
-        boolean started = false;
-        for (HandlerState h : handlers) {
-            String path = h.handler.path();
-            Boolean holds = switch (h.handler.event()) {
-                case Event.OnInventoryFull ignored ->
-                        ((Value.Bool) evaluator.query(new QueryCall.InventoryFull(), path)).value();
-                case Event.OnHealthBelow e -> number(evaluator.query(new QueryCall.Health(), path)) < e.health();
-                case Event.OnItemBelow e -> number(evaluator.query(
-                        new QueryCall.ItemCount(Ids.normalize(e.item()), e.where()), path)) < e.count();
-                default -> null;
-            };
-            if (holds == null) {
-                continue;
-            }
-            if (!holds) {
-                h.armed = true;
-            } else if (h.armed && h.running == null) {
-                h.armed = false;
-                startHandler(h);
-                started = true;
-            }
-        }
-        return started;
-    }
-
-    private static double number(Value v) {
-        return ((Value.Num) v).value();
+    /** Ends the run: cancels the running action and drops every activation. */
+    void end(RunStatus newStatus, String reason) {
+        slot.clear();
+        status = newStatus;
+        endReason = reason;
+        activations.clear();
+        events.clear();
     }
 
     // ------------------------------------------------------------------------------------------ execution
 
-    private void pollTask() {
-        if (slotHandle == null) {
+    private Activation startActivation(int handlerIndex, Script.EventHandler handler) {
+        Activation a = new Activation(nextActivationId++, handlerIndex, handler);
+        activations.add(a);
+        return a;
+    }
+
+    private void pollAction() {
+        if (!slot.running()) {
             return;
         }
-        ActionCall call = slotCall;
-        ActionHandle.Status s = hostCall(call.path(), "check " + call.type().jsonName(), slotHandle::poll);
-        if (s == null || s == ActionHandle.Status.RUNNING) {
+        ActionCall call = slot.call();
+        ActionHandle handle = slot.handle();
+        String name = call.type().jsonName();
+        ActionHandle.Status s = hostCall(call.path(), "check " + name, handle::poll);
+        if (s == null) {
+            throw new ScriptRuntimeException(call.path(), "Alto returned no status for " + name);
+        }
+        if (s == ActionHandle.Status.RUNNING) {
             return;
         }
+        Activation owner = slot.owner();
+        slot.release(); // the action has ended either way; it is not cancelled
         if (s == ActionHandle.Status.SUCCEEDED) {
-            Activation owner = slotOwner;
-            releaseSlot();
             owner.blocker = null;
             owner.advance();
             return;
         }
-        String reason = hostCall(call.path(), "read why " + call.type().jsonName() + " failed", slotHandle::failureReason);
-        releaseSlot(); // a failed action has ended; do not cancel it
-        throw new ScriptRuntimeException(call.path(), call.type().jsonName() + " failed: "
+        String reason = hostCall(call.path(), "read why " + name + " failed", handle::failureReason);
+        throw new ScriptRuntimeException(call.path(), name + " failed: "
                 + (reason == null || reason.isBlank() ? "no reason given" : reason));
     }
 
@@ -522,14 +419,14 @@ public final class ScriptRun {
             if (status != RunStatus.RUNNING) {
                 return;
             }
-            if (a.done || (a.blocker != null && !tryUnblock(a, now))) {
+            if (a.done || (a.blocker != null && !executor.tryUnblock(a, now))) {
                 continue;
             }
             while (status == RunStatus.RUNNING && !a.done && a.blocker == null && exhausted == null) {
                 if (stepsThisTick >= options.stepBudget) {
                     exhausted = a;
                 } else {
-                    step(a, now);
+                    executor.step(a, now);
                 }
             }
             if (exhausted != null) {
@@ -540,11 +437,8 @@ public final class ScriptRun {
             Activation a = it.next();
             if (a.done) {
                 it.remove();
-                turnQueue.remove(a);
-                HandlerState h = handlers.get(a.handlerIndex);
-                if (h.running == a) {
-                    h.running = null;
-                }
+                slot.forget(a);
+                events.ended(a);
             }
         }
         if (exhausted != null && !exhausted.done && exhausted.loopPassesSinceYield > 0
@@ -552,317 +446,6 @@ public final class ScriptRun {
             throw new ScriptRuntimeException(exhausted.lastLoopPath, "runtime loop guard: this loop used the whole step"
                     + " budget (" + options.stepBudget + " steps) in " + exhausted.guardStrikes + " ticks in a row"
                     + " without waiting; add a wait block or an action inside the loop");
-        }
-    }
-
-    private boolean tryUnblock(Activation a, long now) {
-        switch (a.blocker) {
-            case Blocker.Task ignored -> {
-                return false;
-            }
-            case Blocker.AwaitTurn ignored -> {
-                if (slotOwner == null && turnQueue.peekFirst() == a) {
-                    a.blocker = null;
-                    return true;
-                }
-                return false;
-            }
-            case Blocker.Sleep s -> {
-                if (now < s.untilMillis()) {
-                    return false;
-                }
-                a.blocker = null;
-                a.advance();
-                return true;
-            }
-            case Blocker.Retry r -> {
-                if (now < r.atMillis()) {
-                    return false;
-                }
-                a.blocker = null;
-                return true;
-            }
-            case Blocker.Condition c -> {
-                countStep();
-                if (evaluator.bool(c.stmt().condition(), a.params(), "condition")) {
-                    a.blocker = null;
-                    a.advance();
-                    return true;
-                }
-                if (c.deadlineMillis() >= 0 && now >= c.deadlineMillis()) {
-                    throw new ScriptRuntimeException(c.stmt().path(), "wait_until timed out after "
-                            + Value.formatNumber(c.timeoutSeconds()) + " s (the condition never became true)");
-                }
-                return false;
-            }
-        }
-    }
-
-    private void step(Activation a, long now) {
-        Frame f = a.frames.peek();
-        if (f.index >= f.body.size()) {
-            endOfFrame(a, f);
-            return;
-        }
-        Stmt s = f.body.get(f.index);
-        countStep();
-        Map<String, Value> params = a.params();
-        switch (s) {
-            case Stmt.Action act -> action(a, act, params, now);
-            case Stmt.Repeat r -> {
-                int times = evaluator.whole(r.times(), Fields.REPEAT_TIMES, params);
-                f.index++;
-                if (times > 0) {
-                    a.frames.push(Frame.loop(Frame.Kind.REPEAT, r, r.body(), times));
-                }
-            }
-            case Stmt.RepeatUntil r -> {
-                boolean done = evaluator.bool(r.condition(), params, "condition");
-                f.index++;
-                if (!done) {
-                    a.frames.push(Frame.loop(Frame.Kind.REPEAT_UNTIL, r, r.body(), 0));
-                }
-            }
-            case Stmt.Forever fe -> {
-                if (!hostCall(fe.path(), "read the safety stops setting", host::safetyStopsEnabled)) {
-                    throw new ScriptRuntimeException(fe.path(), "forever refused: safety stops are off; turn on"
-                            + " safety stops in Alto's settings to run scripts with forever loops");
-                }
-                f.index++;
-                a.frames.push(Frame.loop(Frame.Kind.FOREVER, fe, fe.body(), 0));
-            }
-            case Stmt.If i -> {
-                boolean condition = evaluator.bool(i.condition(), params, "condition");
-                f.index++;
-                List<Stmt> branch = condition ? i.then() : i.otherwise();
-                if (!branch.isEmpty()) {
-                    a.frames.push(Frame.block(i, branch));
-                }
-            }
-            case Stmt.WaitUntil w -> {
-                if (evaluator.bool(w.condition(), params, "condition")) {
-                    f.index++;
-                } else {
-                    long deadline = -1;
-                    double seconds = 0;
-                    if (w.timeoutSeconds() != null) {
-                        seconds = evaluator.number(w.timeoutSeconds(), Fields.TIMEOUT_SECONDS, params);
-                        deadline = now + Math.round(seconds * 1000);
-                    }
-                    a.block(new Blocker.Condition(w, deadline, seconds));
-                }
-            }
-            case Stmt.Break b -> breakLoop(a, b);
-            case Stmt.Call c -> call(a, f, c, params);
-            case Stmt.SetVar sv -> {
-                Value value = evaluator.eval(sv.value(), params);
-                Value old = variables.get(sv.name());
-                if (old == null || old.type() != value.type()) {
-                    throw new ScriptRuntimeException(sv.path(), "cannot store " + value.type().withArticle()
-                            + " in variable '" + sv.name() + "'");
-                }
-                if (value instanceof Value.Str str && str.value().length() > Limits.MAX_STRING_VALUE) {
-                    throw new ScriptRuntimeException(sv.path(), "text is longer than " + Limits.MAX_STRING_VALUE + " characters");
-                }
-                variables.put(sv.name(), value);
-                f.index++;
-            }
-            case Stmt.ChangeVar cv -> {
-                double delta = evaluator.number(cv.delta(), params, "delta");
-                if (!(variables.get(cv.name()) instanceof Value.Num old)) {
-                    throw new ScriptRuntimeException(cv.path(), "change_var needs a number variable called '" + cv.name() + "'");
-                }
-                double next = old.value() + delta;
-                if (!Double.isFinite(next)) {
-                    throw new ScriptRuntimeException(cv.path(), "variable '" + cv.name() + "' became too large");
-                }
-                variables.put(cv.name(), Value.of(next));
-                f.index++;
-            }
-        }
-    }
-
-    private void endOfFrame(Activation a, Frame f) {
-        switch (f.kind) {
-            case HANDLER -> a.done = true;
-            case BLOCK, CALL -> a.frames.pop();
-            case REPEAT -> {
-                if (--f.remaining > 0) {
-                    nextPass(a, f);
-                } else {
-                    a.frames.pop();
-                }
-            }
-            case REPEAT_UNTIL -> {
-                if (evaluator.bool(((Stmt.RepeatUntil) f.owner).condition(), a.params(), "condition")) {
-                    a.frames.pop();
-                } else {
-                    nextPass(a, f);
-                }
-            }
-            case FOREVER -> nextPass(a, f);
-        }
-    }
-
-    private void nextPass(Activation a, Frame f) {
-        countStep();
-        f.index = 0;
-        a.loopPassesSinceYield++;
-        a.lastLoopPath = f.owner.path();
-    }
-
-    private void breakLoop(Activation a, Stmt.Break b) {
-        while (true) {
-            Frame top = a.frames.peek();
-            if (top == null || top.kind == Frame.Kind.HANDLER || top.kind == Frame.Kind.CALL) {
-                throw new ScriptRuntimeException(b.path(), "break is not inside a loop");
-            }
-            a.frames.pop();
-            if (top.isLoop()) {
-                return;
-            }
-        }
-    }
-
-    private void call(Activation a, Frame f, Stmt.Call c, Map<String, Value> params) {
-        Script.Procedure p = procedures.get(c.procedure());
-        if (p == null) {
-            throw new ScriptRuntimeException(c.path(), "there is no procedure called '" + c.procedure() + "'");
-        }
-        if (a.callDepth() >= options.maxCallDepth) {
-            throw new ScriptRuntimeException(c.path(), "procedure calls are nested more than "
-                    + options.maxCallDepth + " deep");
-        }
-        Map<String, Value> args = new LinkedHashMap<>();
-        for (Script.ParamDecl param : p.params()) {
-            Expr e = c.args().get(param.name());
-            if (e == null) {
-                throw new ScriptRuntimeException(c.path(), "missing value for parameter '" + param.name() + "'");
-            }
-            Value v = evaluator.eval(e, params);
-            if (v.type() != param.type().valueType()) {
-                throw new ScriptRuntimeException(e.path(), "parameter '" + param.name() + "' needs "
-                        + param.type().valueType().withArticle() + ", got " + v.type().withArticle());
-            }
-            if (param.type().isId()) {
-                String id = ((Value.Str) v).value();
-                if (!Ids.isValidId(id)) {
-                    throw new ScriptRuntimeException(e.path(), "parameter '" + param.name()
-                            + "' needs an item or block id, got '" + id + "'");
-                }
-                v = Value.of(Ids.normalize(id));
-            }
-            args.put(param.name(), v);
-        }
-        f.index++;
-        a.frames.push(Frame.call(c, p, args));
-    }
-
-    private void action(Activation a, Stmt.Action act, Map<String, Value> params, long now) {
-        switch (act.type()) {
-            case WAIT -> {
-                double seconds = evaluator.number(act.expr("seconds"), act.type().field("seconds"), params);
-                a.block(new Blocker.Sleep(now + Math.round(seconds * 1000)));
-            }
-            case MESSAGE -> {
-                String text = evaluator.eval(act.expr("text"), params).display();
-                String shown = text.length() > Limits.MAX_TEXT_LENGTH ? text.substring(0, Limits.MAX_TEXT_LENGTH) + "..." : text;
-                hostCall(act.path(), "show a message", () -> {
-                    host.showMessage(shown);
-                    return null;
-                });
-                a.advance();
-            }
-            case STOP -> end(RunStatus.FINISHED, "the script stopped itself (stop at " + act.path() + ")");
-            default -> hostTask(a, act, params, now);
-        }
-    }
-
-    private void hostTask(Activation a, Stmt.Action act, Map<String, Value> params, long now) {
-        if (act.type() == ActionType.SEND_CHAT) {
-            if (!hostCall(act.path(), "read the chat setting", host::chatAllowed)) {
-                throw new ScriptRuntimeException(act.path(), "send_chat refused: scripts are not allowed to send chat"
-                        + " messages; turn on the script chat setting in Alto's settings if you really want this");
-            }
-            if (lastChatAt != Long.MIN_VALUE && now < lastChatAt + options.minChatIntervalMillis) {
-                a.block(new Blocker.Retry(lastChatAt + options.minChatIntervalMillis));
-                return;
-            }
-        }
-        if (!acquireTurn(a)) {
-            a.block(new Blocker.AwaitTurn());
-            return;
-        }
-        ActionRequest request = resolver.resolve(act, params);
-        if (request instanceof ActionRequest.Command command
-                && !hostCall(act.path(), "read the allowed commands", () -> host.commandAllowed(command.command()))) {
-            throw new ScriptRuntimeException(act.path(), "command refused: '" + command.command()
-                    + "' is not on the allowed commands list in Alto's settings");
-        }
-        if (options.maxTotalActions > 0 && actionsStarted >= options.maxTotalActions) {
-            end(RunStatus.STOPPED, "the maximum of " + options.maxTotalActions + " actions was reached");
-            return;
-        }
-        ActionCall call = new ActionCall(act.path(), request);
-        ActionHandle handle = hostCall(act.path(), "start " + act.type().jsonName(), () -> host.start(call));
-        if (handle == null) {
-            throw new ScriptRuntimeException(act.path(), "Alto could not start " + act.type().jsonName());
-        }
-        actionsStarted++;
-        if (act.type() == ActionType.SEND_CHAT) {
-            lastChatAt = now;
-        }
-        slotHandle = handle;
-        slotCall = call;
-        a.block(new Blocker.Task(call));
-    }
-
-    /** First come, first served; an owner whose action was cancelled by pause keeps its turn. */
-    private boolean acquireTurn(Activation a) {
-        if (slotOwner == a) {
-            return true;
-        }
-        if (slotOwner == null && (turnQueue.isEmpty() || turnQueue.peekFirst() == a)) {
-            turnQueue.remove(a);
-            slotOwner = a;
-            return true;
-        }
-        if (!turnQueue.contains(a)) {
-            turnQueue.addLast(a);
-        }
-        return false;
-    }
-
-    private void releaseSlot() {
-        slotOwner = null;
-        slotHandle = null;
-        slotCall = null;
-    }
-
-    // ------------------------------------------------------------------------------------------ ending
-
-    private void cancelTask() {
-        ActionHandle handle = slotHandle;
-        slotHandle = null;
-        slotCall = null;
-        if (handle != null) {
-            try {
-                handle.cancel();
-            } catch (RuntimeException ignored) {
-                // the run is ending or pausing anyway; a broken cancel must not crash the tick
-            }
-        }
-    }
-
-    private void end(RunStatus newStatus, String reason) {
-        cancelTask();
-        status = newStatus;
-        endReason = reason;
-        activations.clear();
-        turnQueue.clear();
-        slotOwner = null;
-        for (HandlerState h : handlers) {
-            h.running = null;
         }
     }
 
@@ -899,7 +482,7 @@ public final class ScriptRun {
         if (a.blocker == null) {
             return "";
         }
-        long now = status == RunStatus.PAUSED ? pausedAtMillis - startMillis - pausedTotalMillis : clock();
+        long now = runMillis();
         return switch (a.blocker) {
             case Blocker.Task t -> "task " + t.call().type().jsonName();
             case Blocker.AwaitTurn ignored -> "its turn (another handler's action is running)";

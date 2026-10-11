@@ -60,6 +60,8 @@ class EventsTest {
         assertEquals(RunStatus.RUNNING, run.status(), "a script with listeners waits for events");
         assertFalse(run.fire(EventType.ON_CHAT, "go"));
         assertFalse(run.fire(EventType.ON_CHAT, null));
+        assertTrue(run.isChatTrigger(" !Go"));
+        assertFalse(run.isChatTrigger("!go now"));
         assertTrue(run.fire(EventType.ON_CHAT, "  !GO "));
         assertFalse(run.fire(EventType.ON_CHAT, "!go"), "already running: ignored, not queued");
         assertEquals("on_chat \"!go\"", run.activations().get(0).handler());

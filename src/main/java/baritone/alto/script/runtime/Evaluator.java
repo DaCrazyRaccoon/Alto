@@ -224,7 +224,7 @@ final class Evaluator {
 
     /** Asks the host; checks the answer's type. Not counted as a step (the expression node was). */
     Value query(QueryCall q, String path) {
-        Value v = run.hostCall(path, "read " + q.name(), () -> run.host().query(q));
+        Value v = ScriptRun.hostCall(path, "read " + q.name(), () -> run.host().query(q));
         if (v == null || v.type() != q.resultType()) {
             throw new ScriptRuntimeException(path, "Alto answered " + (v == null ? "nothing" : v.type().withArticle())
                     + " for " + q.name() + " instead of " + q.resultType().withArticle());
