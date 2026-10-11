@@ -54,6 +54,7 @@ import baritone.alto.picker.ItemPicker;
 import baritone.alto.travel.PortalManager;
 import baritone.alto.supply.SupplyRun;
 import baritone.api.Settings;
+import baritone.api.event.events.ChatEvent;
 import baritone.api.event.events.PacketEvent;
 import baritone.api.event.events.TickEvent;
 import baritone.api.event.events.WorldEvent;
@@ -104,6 +105,7 @@ public final class Alto {
     private final ItemPicker picker;
     private final PortalManager portals;
     private final SupplyRun supplyRun;
+    private final baritone.alto.scriptmc.ScriptManager scripts;
     private final baritone.alto.task.PlatformPauseProcess platformPause;
     private final List<FilterAccess> filterAccess = new CopyOnWriteArrayList<>();
     private final VanillaRecipeSource vanillaRecipes = new VanillaRecipeSource();
@@ -114,6 +116,7 @@ public final class Alto {
     private final List<Consumer<Alto>> tickListeners = new CopyOnWriteArrayList<>();
     private final List<Supplier<Map<ItemKey, String>>> recipePreferences = new CopyOnWriteArrayList<>();
     private final List<Function<ItemKey, String>> recipeHints = new CopyOnWriteArrayList<>();
+    private final Map<String, Function<List<String>, AltoTask>> scriptActions = new java.util.concurrent.ConcurrentHashMap<>();
     private volatile Supplier<java.util.Optional<net.minecraft.world.entity.Entity>> corpseLocator = java.util.Optional::empty;
 
     private Alto(Baritone baritone) {
@@ -135,6 +138,7 @@ public final class Alto {
         this.picker = new ItemPicker(this);
         this.portals = new PortalManager(this);
         this.supplyRun = new SupplyRun(this);
+        this.scripts = new baritone.alto.scriptmc.ScriptManager(this);
         this.platformPause = new baritone.alto.task.PlatformPauseProcess(baritone);
         // Vanilla fallback: the item in the inventory slot under the mouse (integrations such as EMI come first).
         this.picker.addProvider((mx, my) -> net.minecraft.client.Minecraft.getInstance().screen
@@ -199,6 +203,10 @@ public final class Alto {
     /** Integrations that see moving contraptions report here every tick (extra 8). */
     public baritone.alto.task.PlatformPauseProcess platformPause() {
         return platformPause;
+    }
+
+    public baritone.alto.scriptmc.ScriptManager scripts() {
+        return scripts;
     }
 
     public SupplyRun supplyRun() {
@@ -353,6 +361,11 @@ public final class Alto {
         return Integrations.isActive("Corpse");
     }
 
+    /** Script actions that need a mod (e.g. "ride_train", "board_train_seat" from the Create integration). */
+    public Map<String, Function<List<String>, AltoTask>> scriptActions() {
+        return scriptActions;
+    }
+
     /** Preferred recipe ids per output item (e.g. EMI recipe tree defaults). */
     public void addRecipePreferences(Supplier<Map<ItemKey, String>> source) {
         recipePreferences.add(source);
@@ -458,6 +471,14 @@ public final class Alto {
             if (event.getState() == EventState.POST && event.getWorld() != null) {
                 lag.reset();
                 notice.onJoin();
+            }
+        }
+
+        @Override
+        public void onSendChatMessage(ChatEvent event) {
+            // Only text you type yourself reaches this event; a script's chat trigger is handled locally.
+            if (scripts.onTypedChat(event.getMessage())) {
+                event.cancel();
             }
         }
 

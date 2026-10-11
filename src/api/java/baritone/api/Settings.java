@@ -2069,6 +2069,34 @@ public final class Settings {
      */
     public final Setting<Boolean> altoStockKeeper = new Setting<>(true);
 
+    /**
+     * Scripts: allow Alto scripts (baritone/alto/scripts/*.alto.json) to run with #script. Scripts never start by
+     * themselves; each new or changed script must be confirmed once.
+     */
+    public final Setting<Boolean> altoScripts = new Setting<>(true);
+
+    /**
+     * Scripts: allow the send_chat block to send real chat messages as you. Off by default.
+     */
+    public final Setting<Boolean> altoScriptChat = new Setting<>(false);
+
+    /**
+     * Scripts: Baritone commands the command block may run (without the #), e.g. "mine diamond_ore". Empty by
+     * default, so scripts cannot run any command block until you add it here.
+     */
+    public final Setting<List<String>> altoScriptCommands = new Setting<>(new ArrayList<>());
+
+    /**
+     * Safety stops (extra 13): stop Alto's job or script when health is low, you are on fire / in lava, or a hostile
+     * mob is close; #resume continues. Scripts with "forever" loops only run while this is on.
+     */
+    public final Setting<Boolean> altoSafetyStops = new Setting<>(true);
+
+    /**
+     * Safety stops: health (in half hearts) at or below which Alto stops.
+     */
+    public final Setting<Integer> altoSafetyHealth = new Setting<>(8);
+
     // ALTO FORK SETTINGS (end)
 
     /**

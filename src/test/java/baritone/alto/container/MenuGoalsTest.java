@@ -56,6 +56,30 @@ class MenuGoalsTest {
     }
 
     @Test
+    void exactHalfOfAStackTakesTwoClicks() {
+        // 8 of 16: right click picks up 8, one left click puts them into the inventory; the chest keeps its 8.
+        MenuSim sim = MenuSim.chest().put(0, "oak_log", 16);
+        MenuGoal.Decision d = sim.run(MenuGoals.take(LOG::equals, "oak_log", 8, STORAGE, true), 30);
+        assertInstanceOf(MenuGoal.Done.class, d);
+        assertEquals(8, sim.view().count(LOG, MenuView.PLAYER_STORAGE));
+        assertEquals(8, sim.view().count(LOG, STORAGE));
+        assertFalse(sim.view().carrying());
+        assertEquals(2, sim.clicks);
+    }
+
+    @Test
+    void exactNearlyAllPutsTheFewBack() {
+        // 60 of 64: pick up all, put 4 back one by one, put the 60 into the inventory (6 clicks, not 60).
+        MenuSim sim = MenuSim.chest().put(0, "oak_log", 64);
+        MenuGoal.Decision d = sim.run(MenuGoals.take(LOG::equals, "oak_log", 60, STORAGE, true), 40);
+        assertInstanceOf(MenuGoal.Done.class, d);
+        assertEquals(60, sim.view().count(LOG, MenuView.PLAYER_STORAGE));
+        assertEquals(4, sim.view().count(LOG, STORAGE));
+        assertFalse(sim.view().carrying());
+        assertTrue(sim.clicks <= 6, "clicks " + sim.clicks);
+    }
+
+    @Test
     void takeReportsWhenTheContainerRunsOut() {
         MenuSim sim = MenuSim.chest().put(3, "oak_log", 4);
         MenuGoal.Decision d = sim.run(MenuGoals.take(LOG::equals, "oak_log", 20, STORAGE, false), 10);

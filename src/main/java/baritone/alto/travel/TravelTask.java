@@ -48,12 +48,26 @@ public final class TravelTask extends AltoTask {
     private int failures;
     private int hops;
 
+    private boolean stopOnArrival;
+
     public TravelTask(Alto alto, String targetDim, int x, Integer y, int z) {
         super(alto);
         this.targetDim = targetDim;
         this.x = x;
         this.y = y;
         this.z = z;
+    }
+
+    /** take_portal: through the nearest known portal into the other dimension, done on arrival. */
+    public static TravelTask throughNearestPortal(Alto alto) {
+        var p = alto.ctx().player();
+        String dim = alto.ctx().world().dimension().location().toString();
+        String other = dim.equals(PortalBook.NETHER) ? PortalBook.OVERWORLD : PortalBook.NETHER;
+        double s = PortalBook.scale(dim, other);
+        double scale = Double.isNaN(s) ? 1 : s;
+        TravelTask t = new TravelTask(alto, other, (int) Math.floor(p.getX() * scale), null, (int) Math.floor(p.getZ() * scale));
+        t.stopOnArrival = true;
+        return t;
     }
 
     @Override
@@ -70,6 +84,9 @@ public final class TravelTask extends AltoTask {
         switch (phase) {
             case ROUTE: {
                 if (dim().equals(targetDim)) {
+                    if (stopOnArrival) {
+                        return Step.success("arrived in the " + PortalBook.shortDim(targetDim));
+                    }
                     phase = Phase.FINAL;
                     return Step.stay();
                 }

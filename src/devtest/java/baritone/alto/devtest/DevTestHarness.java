@@ -303,6 +303,8 @@ public final class DevTestHarness {
     private String lastScreen = "";
     private long lastScreenNanos = System.nanoTime();
     private boolean stuckReported;
+    private int screenTicks;
+    private static final boolean CONTAINER_SHOTS = Boolean.getBoolean("alto.devtest.containershots");
 
     /** Logs every screen change and reports a screen that blocks the run for more than two minutes. */
     private void logScreenChanges(Minecraft mc) {
@@ -312,6 +314,11 @@ public final class DevTestHarness {
             lastScreen = now;
             lastScreenNanos = System.nanoTime();
             stuckReported = false;
+            screenTicks = 0;
+        } else if (CONTAINER_SHOTS && mc.screen instanceof net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<?>
+                && ++screenTicks % 8 == 3 && screenTicks < 60) {
+            // -Palto_devtest_containershots=true: what the player would see while Alto clicks in a container.
+            shot(mc, "container-" + mc.screen.getClass().getSimpleName() + "-t" + screenTicks);
         } else if (!stuckReported && mc.screen != null && mc.getOverlay() == null
                 && System.nanoTime() - lastScreenNanos > 120_000_000_000L && !(mc.screen instanceof TitleScreen)) {
             stuckReported = true;

@@ -87,6 +87,92 @@ public final class VehicleTasks {
         alto.baritone().getInputOverrideHandler().setInputForceState(Input.SNEAK, down);
     }
 
+    // ------------------------------------------------------------------------------------------ board / leave
+
+    /** Script blocks board_vehicle / leave_vehicle: get on the nearest free boat or minecart, or get off. */
+    public static final class BoardTask extends AltoTask {
+        public enum Kind { BOAT, MINECART, ANY }
+
+        private final Kind kind;
+        private Entity target;
+        private int ticks;
+        private int tries;
+
+        public BoardTask(Alto alto, Kind kind) {
+            super(alto);
+            this.kind = kind;
+        }
+
+        @Override
+        public String name() {
+            return "Board the nearest " + (kind == Kind.ANY ? "vehicle" : kind.name().toLowerCase(java.util.Locale.ROOT));
+        }
+
+        private boolean fits(Entity e) {
+            boolean boat = e instanceof Boat;
+            boolean cart = e instanceof AbstractMinecart m && m.getMinecartType() == AbstractMinecart.Type.RIDEABLE;
+            return e.getPassengers().isEmpty() && (kind == Kind.BOAT ? boat : kind == Kind.MINECART ? cart : boat || cart);
+        }
+
+        @Override
+        public Step tick(boolean calcFailed) {
+            LocalPlayer p = ctx.player();
+            if (p.getVehicle() != null) {
+                return Step.success("riding");
+            }
+            if (target == null || target.isRemoved() || !target.getPassengers().isEmpty()) {
+                target = ctx.world().getEntities(p, p.getBoundingBox().inflate(16), this::fits).stream()
+                        .min(Comparator.comparingDouble(e -> e.distanceToSqr(p))).orElse(null);
+                if (target == null) {
+                    return Step.failure("no free " + name().substring("Board the nearest ".length()) + " within 16 blocks");
+                }
+            }
+            if (++ticks > 20 * 30) {
+                return Step.failure("could not board");
+            }
+            if (!inReach(p, target)) {
+                if (calcFailed && ++tries > 3) {
+                    return Step.failure("cannot reach the vehicle");
+                }
+                return Step.walk(new GoalNear(target.blockPosition(), 1));
+            }
+            aimAndUse(alto, target);
+            return Step.stay();
+        }
+    }
+
+    public static final class LeaveTask extends AltoTask {
+        private int ticks;
+
+        public LeaveTask(Alto alto) {
+            super(alto);
+        }
+
+        @Override
+        public String name() {
+            return "Get off the vehicle";
+        }
+
+        @Override
+        public Step tick(boolean calcFailed) {
+            if (ctx.player().getVehicle() == null) {
+                dismountKey(alto, false);
+                return Step.success("off");
+            }
+            if (++ticks > 100) {
+                dismountKey(alto, false);
+                return Step.failure("could not get off");
+            }
+            dismountKey(alto, true);
+            return Step.stay();
+        }
+
+        @Override
+        public void cancel() {
+            dismountKey(alto, false);
+        }
+    }
+
     // ------------------------------------------------------------------------------------------ minecart
 
     /** {@code #minecart [x z]}: board the nearest free minecart, ride (holding forward), get off at the end. */

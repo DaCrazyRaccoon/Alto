@@ -92,16 +92,25 @@ public final class MenuGoals {
                 int moved = have - baseline;
                 int remaining = amount - moved;
                 if (v.carrying()) {
-                    // Exact mode: the carried stack is the source of single right-clicks.
                     if (exact && match.test(v.carriedItem()) && remaining > 0) {
+                        // Exact mode, carrying c and needing r (c >= r is the normal case): whichever is fewer clicks,
+                        // single items into the inventory, or single items back into the container, then the rest at once.
+                        int c = v.carriedCount();
                         SlotView target = targetFor(v, v.carriedItem());
                         if (target == null) {
                             return fail("inventory full");
                         }
-                        return click(Click.right(target.index(), "place 1 " + label));
+                        if (c <= remaining) {
+                            return click(Click.left(target.index(), "put " + c + " " + label + " into the inventory"));
+                        }
+                        SlotView back = sourceSlotFor(v, v.carriedItem(), from);
+                        if (remaining <= c - remaining || back == null) {
+                            return click(Click.right(target.index(), "place 1 " + label));
+                        }
+                        return click(Click.right(back.index(), "put 1 " + label + " back"));
                     }
                     if (exact && match.test(v.carriedItem())) {
-                        // Done placing singles: put the rest back where it came from.
+                        // Done: put the rest back where it came from.
                         SlotView back = sourceSlotFor(v, v.carriedItem(), from);
                         if (back != null) {
                             return click(Click.left(back.index(), "return the rest of " + label));
@@ -127,8 +136,17 @@ public final class MenuGoals {
                 if (v.spaceFor(pick.item(), pick.maxStack(), MenuView.PLAYER_STORAGE) <= 0) {
                     return fail("inventory full");
                 }
-                if (exact && pick.count() > remaining && remaining <= EXACT_CLICK_LIMIT) {
-                    return click(Click.left(pick.index(), "pick up " + label + " to split"));
+                if (exact && pick.count() > remaining) {
+                    // Pick up half (right click) or all (left click), whichever leaves fewer clicks to split exactly.
+                    int all = pick.count();
+                    int half = (all + 1) / 2;
+                    int costAll = splitClicks(all, remaining);
+                    int costHalf = half >= remaining ? splitClicks(half, remaining) : Integer.MAX_VALUE;
+                    if (Math.min(costAll, costHalf) <= EXACT_CLICK_LIMIT) {
+                        return costHalf <= costAll
+                                ? click(Click.right(pick.index(), "pick up half of the " + label))
+                                : click(Click.left(pick.index(), "pick up " + label + " to split"));
+                    }
                 }
                 return click(Click.shift(pick.index(), "take " + label));
             }
@@ -138,6 +156,11 @@ public final class MenuGoals {
                 return "take " + amount + "x " + label;
             }
         };
+    }
+
+    /** Clicks to end up with exactly {@code need} of {@code carried} in the inventory (single clicks plus one). */
+    static int splitClicks(int carried, int need) {
+        return carried == need ? 1 : Math.min(need, carried - need) + 1;
     }
 
     /**
