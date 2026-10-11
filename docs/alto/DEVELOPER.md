@@ -58,11 +58,15 @@ Every change is marked with a comment containing `ALTO FORK`. Search for it to s
 |---|---|
 | `api/Settings.java` | One block of Alto settings between `ALTO FORK SETTINGS (begin)` and `(end)` |
 | `Baritone.java` | Creates the `Alto` instance; `getAlto()` |
-| `process/BuilderProcess.java` | Hands missing materials to `BuilderSupply`; snapshot/resume helpers |
+| `process/BuilderProcess.java` | Hands missing materials (or blocks only in the main inventory) to `BuilderSupply`; supply run on start; snapshot/resume helpers; remaining-material list |
 | `pathing/movement/MovementHelper.java` and four movements | Modded ladders/scaffolding/farmland, hazard blocks (`AltoHooks`) |
 | `pathing/movement/CalculationContext.java` | `isPossiblyProtected` also asks `AltoHooks.isProtected` (claims) |
 | `utils/pathing/Avoidance.java` | Extra avoidance areas from Alto (running machines) |
-| `launch/BaritoneForgeModXD.java` | Calls `AltoNeoForge.init(modBus)` |
+| `process/FarmProcess.java` | Modded crops and farmland, extra pickups, waits while Alto restocks seeds |
+| `command/defaults/GotoCommand.java` | `goto <x> [y] <z> <dimension>` goes to `TravelCommands` (portal travel) |
+| `command/defaults/ExecutionControlCommands.java` | `#resume` also ends an Alto safety stop; `#stop` also stops scripts and Alto's job |
+| `utils/schematic/format/DefaultSchematicFormats.java` | `.nbt` structure files (`StructureNbtSchematic`) |
+| `launch/BaritoneForgeModXD.java` | Calls `AltoNeoForge.init(modBus, container)` (integrations, keys, HUD, settings screen) |
 
 `AltoHooks` is the only class upstream code calls. Its data is published from the client thread as immutable
 snapshots, because the path search reads it on another thread.
