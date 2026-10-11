@@ -152,6 +152,8 @@ test {
         events = ['failed', 'skipped']
         exceptionFormat = 'full'
     }
+    // The script tests read the language docs (JSON schema, example scripts): re-run them when those change.
+    inputs.dir('docs/alto').withPropertyName('altoScriptDocs').withPathSensitivity(PathSensitivity.RELATIVE)
 }
 
 tasks.withType(JavaCompile).configureEach {

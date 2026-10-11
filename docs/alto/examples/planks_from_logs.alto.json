@@ -1,0 +1,33 @@
+{
+  "format": "alto-script",
+  "version": 1,
+  "name": "Planks from logs",
+  "description": "Crafts oak planks 16 at a time until the inventory holds at least 64. Needs oak logs in the inventory (or in storage Alto knows, if crafting may fetch).",
+  "variables": [],
+  "procedures": [],
+  "events": [
+    {
+      "event": "on_start",
+      "body": [
+        {
+          "block": "repeat_until",
+          "condition": {
+            "expr": "gte",
+            "a": {"expr": "item_count", "item": "minecraft:oak_planks", "where": "inventory"},
+            "b": 64
+          },
+          "body": [
+            {"block": "craft", "item": "minecraft:oak_planks", "count": 16}
+          ]
+        },
+        {
+          "block": "message",
+          "text": {
+            "expr": "join",
+            "parts": ["Done: ", {"expr": "item_count", "item": "minecraft:oak_planks", "where": "inventory"}, " oak planks."]
+          }
+        }
+      ]
+    }
+  ]
+}
