@@ -1,6 +1,10 @@
 # Alto script language, version 1
 
-Alto scripts are small, Scratch-like programs that tell Alto (the Baritone fork) what to do: walk, mine, craft,
+You do not need this page to write scripts: the block editor (`alto-editor/dist/alto-script-editor.html`) builds
+them for you and checks them. This page is the complete reference, for when you want to know exactly what a block
+does or edit the JSON by hand.
+
+Alto scripts are small, Scratch-like programs that tell Alto what to do: walk, mine, craft,
 smelt, fetch from storage, build, farm, react to events. A script is a JSON file (`*.alto.json`) that the browser
 editor writes and Alto runs. This document is the reference for every part of the language; the JSON Schema
 [`alto-script.schema.json`](alto-script.schema.json) describes the same structure for editors, and the files in
