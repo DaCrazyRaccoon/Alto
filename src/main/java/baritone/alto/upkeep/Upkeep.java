@@ -114,6 +114,18 @@ public final class Upkeep {
         seeds.addAll(List.of(net.minecraft.world.item.Items.WHEAT_SEEDS, net.minecraft.world.item.Items.BEETROOT_SEEDS,
                 net.minecraft.world.item.Items.CARROT, net.minecraft.world.item.Items.POTATO,
                 net.minecraft.world.item.Items.MELON_SEEDS, net.minecraft.world.item.Items.PUMPKIN_SEEDS));
+        // #farm only plants from the hotbar: seeds already carried in the main inventory just need moving there.
+        Inventory inv = alto.ctx().player().getInventory();
+        for (int i = 9; i < 36; i++) {
+            Item it = inv.getItem(i).getItem();
+            if (!inv.getItem(i).isEmpty() && seeds.contains(it)) {
+                ItemKey k = McItems.key(it);
+                start("seeds", new baritone.alto.task.MenuGoalTask(alto, "Put " + k.shortName() + " on the hotbar",
+                        baritone.alto.container.MenuGoals.toHotbar(k, x -> !(McItems.item(x) instanceof TieredItem)
+                                && !seeds.contains(McItems.item(x)))));
+                return true;
+            }
+        }
         ItemKey best = null;
         int bestCount = 0;
         java.util.function.Predicate<ContainerRecord> usable = alto.storage().usable();
