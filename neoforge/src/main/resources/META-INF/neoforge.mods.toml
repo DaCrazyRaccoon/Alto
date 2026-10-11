@@ -7,9 +7,10 @@
 modLoader="javafml" #mandatory
 # A version range to match for said mod loader - for regular FML @Mod it will be the forge version
 loaderVersion="[1,)" #mandatory This is typically bumped every Minecraft version by Forge. See our download page for lists of versions.
-license="https://raw.githubusercontent.com/cabaletta/baritone/1.16.2/LICENSE"
+license="LGPL-3.0-or-later (modified version of Baritone)"
 # A URL to refer people to when problems occur with this mod
-issueTrackerURL="https://github.com/cabaletta/baritone/issues" #optional
+# ALTO FORK: Alto's own issue tracker. Problems with Alto must not go to the Baritone team.
+issueTrackerURL="https://github.com/DaCrazyRaccoon/Alto/issues" #optional
 # A list of mods - how many allowed here is determined by the individual mod loader
 [[mods]] #mandatory
 # The modid of the mod
@@ -17,20 +18,20 @@ modId="baritoe" #mandatory
 # The version number of the mod - there's a few well known ${} variables useable here or just hardcode it
 version="${version}" #mandatory
  # A display name for the mod
-displayName="Baritone (Alto fork)" #mandatory
+displayName="Alto (unofficial Baritone fork)" #mandatory
 # A URL for the "homepage" for this mod, displayed in the mod UI
-displayURL="https://github.com/cabaletta/baritone" #optional
+displayURL="https://github.com/DaCrazyRaccoon/Alto" #optional
 # A file name (in the root of the mod JAR) containing a logo for display
 #logoFile="examplemod.png" #optional
 # A text field displayed in the mod UI
 credits="Hat Gamers" #optional
 # A text field displayed in the mod UI
-authors="leijurv, Brady" #optional
+authors="Baritone: leijurv, Brady and contributors. Alto: DaCrazyRaccoon" #optional
 # The description text for the mod (multi line!) (#mandatory)
 description='''
-A Minecraft pathfinder bot.
-Alto fork: container/GUI automation, crafting, smelting, storage, Create and EMI support, scripting.
-This is a modified version of Baritone (LGPL-3.0). If you give this jar to others, give them its source too: see META-INF/ALTO-LICENSE-NOTE.md in the jar.
+Alto is a vibecoded modification of Baritone. It is not made by the Baritone team, and the Baritone team does not support it.
+Adds container use to Baritone: crafting, smelting, storage, Create and EMI support, scripts.
+Licensed under the LGPL-3.0 like Baritone. If you give this jar to others, give them its source too (META-INF/ALTO-LICENSE-NOTE.md).
 '''
 
 [[dependencies.baritoe]]

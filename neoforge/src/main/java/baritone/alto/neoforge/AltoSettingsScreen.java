@@ -64,7 +64,7 @@ public final class AltoSettingsScreen extends Screen {
     private SettingList list;
 
     public AltoSettingsScreen(Screen parent) {
-        super(Component.literal("Baritone (Alto) settings"));
+        super(Component.literal("Alto settings"));
         this.parent = parent;
     }
 

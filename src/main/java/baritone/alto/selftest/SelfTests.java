@@ -210,7 +210,8 @@ public final class SelfTests {
                 photoMoments(ph, mc);
             }
             if (v.outcome() == Scenario.Outcome.PASS && ph != null && photosTaken.add(current.name() + "-done")) {
-                ph.request(current.name() + "-done", true); // the result, seen from behind the player
+                // the result, seen from behind the player (or through their eyes when it is the block they look at)
+                ph.request(current.name() + "-done", !java.util.Set.of("create-filter", "useon").contains(current.name()));
                 heldVerdict = v;
                 return;
             }
@@ -231,7 +232,7 @@ public final class SelfTests {
         boolean gui = mc.screen instanceof net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<?>
                 || mc.screen != null && mc.screen.getClass().getName().startsWith("baritone.");
         photoScreenTicks = gui ? photoScreenTicks + 1 : 0;
-        if (gui && photoScreenTicks >= 6) {
+        if (gui && photoScreenTicks >= 2) {
             // A container once Alto has put things in it (or after 2 s); Alto's own screens right away.
             int filled = 0;
             for (net.minecraft.world.inventory.Slot s : mc.player.containerMenu.slots) {
@@ -239,7 +240,9 @@ public final class SelfTests {
                     filled++;
                 }
             }
-            boolean ready = mc.screen.getClass().getName().startsWith("baritone.") || filled >= 3 || photoScreenTicks == 40;
+            String cls = mc.screen.getClass().getName();
+            boolean ready = cls.contains("StockKeeper") ? photoScreenTicks == 14 // its list arrives a little later
+                    : cls.startsWith("baritone.") ? photoScreenTicks >= 6 : filled >= 3 || photoScreenTicks == 40;
             String screen = mc.screen.getClass().getSimpleName().replaceAll("[^A-Za-z0-9]", "").toLowerCase(java.util.Locale.ROOT);
             if (ready && photosTaken.add(n + "-" + screen)) {
                 ph.request(n + "-" + screen, false);

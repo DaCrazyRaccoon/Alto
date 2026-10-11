@@ -1,159 +1,224 @@
 # Alto user guide
 
-Alto is a fork of Baritone for Minecraft 1.21.1 / NeoForge. On top of everything Baritone does (walking, mining,
-building, farming), Alto can use chests, crafting tables, furnaces and modded containers like a player: it crafts,
-smelts, fetches from and deposits into your storage, keeps your tools and food topped up, travels through portals
-and by vehicle, works with Create, EMI and other mods, and runs scripts you make with the block editor.
+**Alto is a vibecoded modification of Baritone. It is not made by the Baritone team, and the Baritone team does not
+support it.**
 
-Alto is **client-only**: install it in your own game only. Servers do not need it, and it sends only the packets a
-normal client sends. Check a server's rules on automation before you use it there; Alto reminds you once per server.
+Alto adds container use (chests, crafting tables, furnaces, modded machines) to Baritone. Everything Baritone does
+still works the same way. Commands start with `#`. `#help <command>` explains any command.
 
-Commands start with `#` (Baritone's prefix). `#help <command>` explains any command.
+Alto runs on your client only. It sends the same packets a normal player sends, at a calm pace (4 clicks per second
+by default). Check a server's rules before using it there; Alto reminds you once per server.
 
----
+Contents: [Crafting](#crafting) · [Storage](#storage) · [Helpers](#helpers) · [Building](#building) ·
+[Farming](#farming) · [Travel](#travel) · [Safety](#safety-stopping-and-the-hud) · [Settings](#settings) ·
+[Chat](#chat) · [Scripts](#scripts) · [Create](#create) · [EMI](#emi) · [Other mods](#other-mods) ·
+[Files](#where-alto-keeps-its-files)
 
-## 1. The headline: building with what you carry
+## Crafting
 
-Hold oak logs, select an area and fill it with oak planks:
-
-```
-#sel 1        (look at one corner)
-#sel 2        (look at the other corner)
-#sel fill oak_planks
-```
-
-When the builder runs out of planks, Alto crafts more from your logs (in the inventory 2x2 grid), puts them on the
-hotbar and the build continues. With `#set alwaysUseCraftingStation true`, Alto uses a crafting table instead: one
-nearby, one near your home, or it places one from your inventory (crafting it first if needed) and picks it up again
-afterwards. This works the same for any block the planner can produce, and for `#build <schematic>`.
-
-## 2. Crafting, smelting and planning
+![Crafting a chest](../images/crafting.png)
 
 | Command | What it does |
 |---|---|
-| `#craft <item> [count]` | Gets `count` more of the item: from your inventory, carried shulker boxes, storage, crafting, smelting, and as a last resort mining. Stations are found, or placed and picked up again. |
-| `#plan <item> [count]` | Shows the plan and its estimated time without doing it. Missing items are explained ("made by: Pressing (EMI)"). |
-| `#materials [file] [fetch]` | Shopping list for the current build or a schematic file; `fetch` gets what fits from your storage. |
+| `#craft <item> [count]` | Gets that many more of the item: from your inventory, carried shulker boxes, your storage, or by crafting, smelting or mining. |
+| `#plan <item> [count]` | Shows the steps and how long they take, without doing them. |
 
-The planner prefers, in this order: what you carry, carried shulker boxes, storage within 48 blocks, then whatever
-is cheapest of far storage / crafting / smelting, and mining last. It never uses items on the never-consume list
-(diamonds, netherite and similar by default) and never burns valuable fuel. With EMI installed, the default recipes you
-chose in EMI's recipe tree are preferred.
+Alto uses the 2x2 grid when it can, otherwise a crafting table: one nearby, or one it places and picks up again.
+`#set alwaysUseCraftingStation true` makes it always use a table.
 
-## 3. Homes, storage zones and the storage index
+Alto never uses items on the "never consume" list (diamonds, netherite and similar by default) and never burns
+valuable fuel. With EMI installed, the recipes you picked in EMI's recipe tree are preferred.
 
-Alto only takes from and puts into containers **inside your storage zones** (unless `altoStorageAnywhere` is on).
+![Smelting iron](../images/smelting.png)
+
+## Storage
+
+Alto only uses containers inside your storage zones.
 
 ```
-#home set                      a home where you stand
-#sel 1 / #sel 2                select your storage room
+#home set                      set your home where you stand
+#sel 1, #sel 2                 select your storage room
 #home zone add storage         make the selection a storage zone called "storage"
 #home zone scan storage        open every container once so Alto knows what is inside
-#home zone rules storage cobblestone dirt    only these items are deposited there (optional)
 ```
 
-Alto remembers what is in every container you or Alto open (per world, in `baritone/alto/worlds/`). It works with
-chests, barrels, shulker boxes, hoppers, droppers, Sophisticated Storage chests/barrels/shulker boxes and placed
-backpacks. Loot containers (Lootr) and corpses are never used as storage.
+![Taking items from a chest](../images/storage.png)
 
 | Command | What it does |
 |---|---|
 | `#fetch <item> [count]` | Takes exactly that many from your storage. |
-| `#deposit` | Puts everything except tools, food, armor and the keep list into your storage. |
-| `#home storage [item]` | What is stored where. |
-| `#shulker ...` | Carried shulker boxes: list, take from, put into. |
+| `#deposit` | Puts away everything except tools, food, armor and your keep list. |
+| `#home storage [item]` | Shows what is stored where. |
+| `#shulker ...` | Uses the shulker boxes you carry: list, take from, put into. |
+| `#home zone rules <zone> <items...>` | Only these items are deposited in that zone. |
 
-## 4. Automatic helpers while Baritone works
+Chests, barrels, shulker boxes, hoppers, droppers, and Sophisticated Storage chests, barrels and placed backpacks all
+work. Lootr chests and corpses are never used to store your items.
 
-These run while Baritone mines, builds, farms or explores, pause the job, and let it continue afterwards.
+## Helpers
+
+These run while Baritone mines, builds, farms or explores. They pause the job and let it continue afterwards.
 
 | Helper | Default | Setting |
 |---|---|---|
-| Deposit when the inventory is nearly full | on (only with a storage zone) | `altoAutoDeposit` |
-| Restock torches, food... from storage | on (only with a storage zone) | `altoRestock`, `altoRestockItems` |
-| Replace nearly broken tools (from storage or crafted) | on | `altoToolUpkeep` |
+| Deposit when the inventory is nearly full | on (needs a storage zone) | `altoAutoDeposit` |
+| Restock torches, food and other items from storage | on (needs a storage zone) | `altoRestock`, `altoRestockItems` |
+| Replace a tool that is about to break | on | `altoToolUpkeep` |
 | Eat when hungry | off | `altoAutoEat` |
-| Compress items (9 ingots into a block...) when the inventory is full | off | `altoCompress` |
+| Compress items into blocks when the inventory is full | off | `altoCompress` |
 
-## 5. Travel
+## Building
+
+With only oak logs in your inventory:
+
+```
+#sel 1                (look at one corner)
+#sel 2                (look at the other corner)
+#sel fill oak_planks
+```
+
+When the builder runs out of planks, Alto crafts more from your logs, puts them on your hotbar, and the build goes on.
+The same works for `#build <schematic>` and any block Alto knows how to get. At the start of a build, Alto fetches what
+your storage has in one trip.
+
+![An area filled with planks crafted from logs](../images/fill-planks.png)
 
 | Command | What it does |
 |---|---|
-| `#goto <x> [y] <z> <overworld|nether>` or `#travel <dimension> <x> [y] <z>` | Through the nether portal that means the least walking, then on to the exact coordinates. Alto learns portals you come near and remembers where each one led. With `altoBuildPortals` on (off by default) it builds and lights a portal when none is known (needs 10 obsidian, a flint and steel, and some cobblestone or similar). |
-| `#portals [forget]` | The portals Alto knows in this world. |
+| `#materials [file] [fetch]` | Shopping list for the current build or a schematic file; `fetch` gets what fits from storage. |
+
+## Farming
+
+`#farm [range]` also harvests and replants modded crops (for example Farmer's Delight cabbages and onions). Crops you
+harvest by right-clicking, like tomatoes, are left alone. When you run out of seeds, Alto fetches some from storage.
+
+![Farming](../images/farming.png)
+
+## Travel
+
+| Command | What it does |
+|---|---|
+| `#goto <x> [y] <z> <overworld\|nether>` | Goes through the nether portal that means the least walking, then on to the exact coordinates. |
+| `#portals [forget]` | The portals Alto remembers in this world. |
 | `#minecart [x z]` | Rides the nearest free minecart. |
-| `#boat <x> <z>` | Crosses water by boat (uses a boat nearby or places yours, picks it up again). Straight lines only. |
-| `#train <from> -> <to>`, `#stations` | Create trains between named stations: waits for a train, sits on a free passenger seat, gets off at the destination. Never touches controls, conductors or schedules. |
-| `#elevator <floor>` | Create elevators: selects the floor on the cab's controls and rides. |
+| `#boat <x> <z>` | Crosses water in a straight line by boat and picks the boat up again. |
 
-While you stand on a moving Create contraption (elevator, piston platform, bearing...), Baritone stops walking until
-it stops.
+With `altoBuildPortals` on (off by default), Alto builds and lights a portal when it knows none. It needs 10
+obsidian, a flint and steel, and some cobblestone.
 
-## 6. Farming
+![A portal built by Alto](../images/portal.png)
+![Crossing water by boat](../images/boat.png)
 
-`#farm [range]` (Baritone) also harvests and replants modded crops (Farmer's Delight cabbages, onions...) on modded
-farmland. Crops you harvest by right-clicking (tomatoes) are left alone. When you run out of seeds and there is empty
-farmland, Alto fetches seeds from your storage.
+## Safety, stopping and the HUD
 
-## 7. Create, EMI and other mods
+- **End key**: stops the script, Alto's job and Baritone. `#stop` does the same.
+- **Safety stops** (on): when your health drops to 4 hearts or a hostile mob comes within 6 blocks, everything pauses.
+  Alto never fights. `#resume` continues.
+- **Machines are safe** (`altoProtectMachines`, on): paths never break blocks that hold something (machines, chests,
+  barrels, signs, Create shafts and belts) or train tracks. To `#mine` such a block, turn the setting off.
+- **Progress HUD** (H key, or `#alto hud`): what the script, Alto and Baritone are doing right now.
 
-* **Filters:** `#filter <item|picked|hand|clear>` while looking at a Create deployer, funnel, tunnel or chute sets its
-  filter (plain items are not used up). `#filter <item> <x y z> [face]`, `#filter <item> marked`, `#filter <item> sel`.
-* **Pick key (default Y):** in the world it marks/unmarks the block you look at; in EMI or any inventory it picks the
-  item under the mouse. With marked blocks, the picked item becomes their filter; otherwise Alto offers actions in chat
-  (filter / fetch / craft / plan / mine). `#pick favorites` lists your EMI favorites.
-* `#useon <item> <x y z> [face]` uses an item on a block (e.g. puts an item on a depot).
-* `#order <item> <count> [address]` orders from the nearest Create stock keeper (only when the server lets you open it).
-* `#corpse` (Corpse mod) walks to your corpse and takes your items back. Clients are not told what a corpse holds, so
-  Alto opens your nearest corpse; an older, already emptied one is skipped and the next one is tried.
-* Open Parties and Claims: Baritone never breaks or places in other players' claims. Alto sees the claims your server
-  sends to clients: with the server setting `claimsSynchronization = ALL` that is every claim; with `OWNED_ONLY` only
-  yours, your party's and server claims (other claims are still protected by the server, but Baritone may then try a
-  path through them and get stuck).
-* **Machines are safe from paths** (`altoProtectMachines`, on by default): Baritone never breaks a block that holds
-  data (machines, chests, barrels, signs, Create shafts, belts, funnels, stations...) or a train track to make a path.
-  `#mine` of such a block needs the setting off.
-* Hazards (running saws, drills, crushing wheels, fans, belts...) are avoided; edit `baritone/alto/hazards.json` and
-  `#alto hazards` to reload.
-* `#alto integrations` shows which mod integrations are active.
+![A safety stop](../images/safety.png)
 
-## 8. Scripts
+## Settings
 
-Make scripts with the block editor `alto-script-editor.html` (open it in any browser; it works offline). Save them as
-`<name>.alto.json` into `.minecraft/baritone/alto/scripts/` (the editor's Save button can do that), then:
+`#alto settings`, or Mods > Alto (unofficial Baritone fork) > Config. Settings are in groups, with a search box and a reset button
+for each one. The second page lists your homes and storage zones. `#set <setting> <value>` works too.
+
+![The settings screen](../images/settings.png)
+
+## Chat
+
+Quiet chat is on by default: Alto only tells you results, problems and answers to your commands. The steps of a job
+are in the HUD (H) and in the game log. `#set altoQuietChat false` shows every step in chat, which helps when you want
+to see what went wrong.
+
+## Scripts
+
+Make scripts with blocks in the script editor, `alto-script-editor.html`. Open it in any browser; it works offline.
+Save scripts as `<name>.alto.json` in `.minecraft/baritone/alto/scripts/` (the editor's Save button can do that).
+
+![The script editor](../images/editor.png)
 
 ```
 #script list
-#script check <name>          what it may do, warnings
-#script run <name>            asks once for new or changed scripts: #script run <name> confirm
+#script check <name>          what the script may do, and any problems
+#script run <name>            the first time, Alto asks you to confirm: #script run <name> confirm
 #script pause / resume / stop / status
-#script gui                   the script runner screen (also a key under Controls > Baritone (Alto))
+#script gui                   the script runner screen (key under Controls > Alto)
 ```
 
-Scripts never start by themselves. A running script is saved every few seconds; after a restart Alto asks before it
-continues (`#script resume`). Chat triggers in scripts only react to text **you** type. Scripts cannot send chat or
-run Baritone commands unless you allow it (`altoScriptChat`, `altoScriptCommands`). The language is described in
-`SCRIPT_LANGUAGE.md`; `examples/` has example scripts.
+![The script runner](../images/script-runner.png)
 
-## 9. Safety, stopping, and the HUD
+Scripts never start by themselves. A running script is saved every few seconds; after a restart, Alto asks before it
+continues (`#script resume`). Chat triggers only react to text you type. Scripts cannot send chat or run Baritone
+commands unless you allow it (`altoScriptChat`, `altoScriptCommands`). The block language is described in
+[SCRIPT_LANGUAGE.md](SCRIPT_LANGUAGE.md).
 
-* **Stop key (default End):** stops the script, Alto's job and Baritone. `#stop` does the same.
-* **Safety stops (on):** when your health drops to 4 hearts (`altoSafetyHealth`) or a hostile mob is within 6 blocks,
-  everything pauses (Alto has no combat). `#resume` continues.
-* **Progress HUD (key H, `#alto hud`):** what the script, Alto and Baritone are doing.
+## Create
 
-## 10. Settings
+| Command | What it does |
+|---|---|
+| `#train <from> -> <to>` | Walks to the first station, waits for a train, sits on a free seat, rides, gets off at the second station. Never touches controls, conductors or schedules. |
+| `#stations` | Lists the train stations. |
+| `#elevator <floor>` | Picks the floor on the elevator's controls and rides. |
+| `#order <item> <count> [address]` | Orders from the nearest stock keeper (only if the server lets you open it). |
+| `#filter <item\|hand\|clear>` | Sets the filter of the deployer, funnel, tunnel or chute you look at. The item is not used up. |
+| `#useon <item> <x y z> [face]` | Uses an item on a block, for example to put it on a depot. |
 
-`#alto settings`, or Mods > Baritone (Alto fork) > Config: every Alto setting in groups with a search box and a reset
-button, plus homes and storage zones. `#set <setting> <value>` works too. Pacing settings (`altoClicksPerSecond`,
-default 4) keep Alto gentle on servers; there is no "random human-like jitter".
+![Riding a train](../images/create-train.png)
+![Riding an elevator](../images/create-elevator.png)
 
-## 11. Self-tests
+Also:
 
-`#selftest list` / `#selftest <name>` / `#selftest all` run Alto's own scenarios. They build test setups and change
-your inventory, so they only run in singleplayer worlds named `alto_test...` (or with `confirm`).
+- While you stand on a moving contraption (piston, elevator, gantry, bearing), Baritone waits until it stops.
+- Running saws, drills, crushing wheels and fans are walked around. The rules are in `baritone/alto/hazards.json`
+  (`#alto hazards` reloads them).
+- Material lists use Create's own costs (an encased shaft needs a shaft).
 
-## 12. Where Alto keeps its files
+![Standing on a moving piston platform](../images/create-platform.png)
+![Ordering from a stock keeper](../images/create-order.png)
+![Setting a deployer's filter](../images/create-filter.png)
+![Walking around a running drill](../images/create-hazard.png)
+
+## EMI
+
+The pick key (**Y**):
+
+1. Look at a Create deployer, funnel or chute and press Y to mark it.
+2. Open your inventory, hover an item in EMI's list and press Y.
+3. The item becomes the filter of every marked block.
+
+Without marked blocks, Alto offers to filter, fetch, craft, plan or mine the item you picked. `#pick favorites` lists
+your EMI favorites. When Alto cannot make an item, `#plan` names the EMI recipe types that can (for example
+"Pressing").
+
+![Picking an item in EMI](../images/emi.png)
+
+## Other mods
+
+- **Sophisticated Storage and Backpacks**: their chests, barrels and placed backpacks are storage. Upgrades you hold
+  are never applied by accident.
+- **Open Parties and Claims**: Baritone never breaks or places blocks in someone else's claim. Alto sees the claims
+  your server shares with clients (server setting `claimsSynchronization`).
+- **Corpse**: `#corpse` walks back to your corpse and takes your items. Old, already emptied corpses are skipped.
+- **Farmer's Delight**: its crops and rich soil farmland work with `#farm`.
+- **Lootr**: Lootr chests are never used to store your items.
+
+`#alto integrations` shows which of these are active. Alto works without any of them, and with other versions of
+them: if a mod's version does not fit, only that part of Alto switches itself off.
+
+![A Sophisticated Storage chest](../images/sophisticated.png)
+![Going around a claimed wall](../images/claims.png)
+![Taking items back from a corpse](../images/corpse.png)
+![Farming cabbages](../images/farmers-delight.png)
+
+## Self-tests
+
+`#selftest list`, `#selftest <name>` and `#selftest all` run Alto's own test scenarios. They build test setups and
+replace your inventory, so they only run in singleplayer worlds whose name starts with `alto_test` (or with `confirm`).
+
+## Where Alto keeps its files
 
 `.minecraft/baritone/alto/`: `worlds/<world>/` (storage index, zones, portals), `scripts/`, `hazards.json`,
-`shopping-list.txt`, `selftest/`. Deleting the folder resets Alto's memory; your worlds are not touched.
+`shopping-list.txt`, `selftest/`. Deleting the folder resets what Alto remembers. Your worlds are not touched.

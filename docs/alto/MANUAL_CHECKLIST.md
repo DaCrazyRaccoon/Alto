@@ -6,9 +6,9 @@ Tick each line when it behaved as described.
 
 ## First start
 
-- [ ] The game starts with the Alto jar and no other Baritone jar. Mods list shows "Baritone (Alto fork)".
-- [ ] Mods > Baritone (Alto fork) > Config opens the settings screen; search finds `altoClicksPerSecond`.
-- [ ] Controls > Baritone (Alto): pick key (Y), stop key (End), HUD key (H), script runner key (unbound). No clash
+- [ ] The game starts with the Alto jar and no other Baritone jar. Mods list shows "Alto (unofficial Baritone fork)".
+- [ ] Mods > Alto (unofficial Baritone fork) > Config opens the settings screen; search finds `altoClicksPerSecond`.
+- [ ] Controls > Alto: pick key (Y), stop key (End), HUD key (H), script runner key (unbound). No clash
       with keys you use (rebind if needed).
 - [ ] Joining a server shows the one-time reminder about automation rules; joining again does not.
 

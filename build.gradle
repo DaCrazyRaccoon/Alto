@@ -245,7 +245,7 @@ jar {
     from('docs/alto/CHANGELOG.md') { into 'META-INF' rename { 'ALTO-CHANGELOG.md' } }
     manifest {
         attributes(
-                'Implementation-Title': 'Baritone (Alto fork)',
+                'Implementation-Title': 'Alto (unofficial Baritone fork)',
                 'Implementation-Version': project.version,
                 'Specification-Title': 'baritoe',
         )

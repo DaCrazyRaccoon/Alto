@@ -1,45 +1,45 @@
 # Installing, updating and removing Alto
 
-Alto is one jar: `baritone-alto-neoforge-1.21.1-1.11.3-alto.<version>.jar`. It replaces Baritone; never keep another
-Baritone jar next to it (both use the mod id `baritoe`).
+**Alto is a vibecoded modification of Baritone. It is not made by the Baritone team, and the Baritone team does not
+support it.**
 
-## Before you install: back up
+Alto is one jar file, `baritone-alto-neoforge-1.21.1-<version>.jar`, for Minecraft 1.21.1 with NeoForge 21.1. It
+replaces Baritone: never keep another Baritone jar next to it (they use the same mod id, `baritoe`).
 
-1. In Prism Launcher, right-click the instance > **Copy Instance**, or close the game and zip the instance folder.
-2. If you only want to protect your worlds: copy `minecraft/saves/` somewhere safe.
+## Before you install
 
-## Install (Prism Launcher)
+Back up your game. In Prism Launcher: right-click the instance > **Copy Instance**. Or close the game and copy the
+instance folder (at least `saves/`).
+
+## Install
 
 1. Close the game.
-2. Right-click the instance > **Folder**, open `minecraft/mods/`.
+2. Open your `mods` folder (Prism Launcher: right-click the instance > **Folder** > `minecraft/mods/`).
 3. Remove any other Baritone jar.
-4. Copy the Alto jar into `mods/`.
-5. Start the game. The first time you join a server, Alto shows a one-time reminder to check the server's rules on
-   automation.
+4. Copy the Alto jar into `mods`.
+5. Start the game.
 
-Alto is client-only: do not put it on a server (it would not load there, and servers do not need it).
+Alto runs on your client only. Do not put it on a server; servers do not need it. The first time you join a server,
+Alto reminds you to check that server's rules on automation.
 
 ## Update
 
-Replace the old Alto jar with the new one. Your settings (`minecraft/baritone/settings.txt`) and Alto's data
-(`minecraft/baritone/alto/`) are kept.
+Replace the old Alto jar with the new one. Your settings (`baritone/settings.txt`) and Alto's data
+(`baritone/alto/`) are kept.
 
 ## Remove
 
-1. Close the game and delete the Alto jar from `mods/`.
-2. Optional: delete `minecraft/baritone/alto/` (Alto's memory of storage, zones, portals and your scripts) and the
-   `alto...` lines in `minecraft/baritone/settings.txt`.
+1. Close the game and delete the Alto jar from `mods`.
+2. Optional: delete `baritone/alto/` (what Alto remembers about your storage, zones, portals, and your scripts) and the
+   lines starting with `alto` in `baritone/settings.txt`.
 
-Alto never changes your worlds' files beyond what you see it do in the game.
+Alto does not change your world files beyond what you see it do in the game.
 
 ## The script editor
 
-`alto-script-editor.html` is a single file; open it in any browser. It works offline and sends nothing anywhere.
+`alto-script-editor.html` is a single file. Open it in any browser. It works offline and sends nothing anywhere.
 
-## License (please read if you share the jar)
+## License
 
-Baritone, and therefore Alto, is licensed under the **GNU Lesser General Public License v3.0** (LGPL-3.0); see
-`LICENSE` and `LICENSE-NOTE.md`. Using the jar yourself has no conditions. **If you give the jar to anyone else**
-(a friend, a modpack, a download), you must also give them the complete source code of the version you give them
-(the `source` folder, or an archive of the git repository), under the same license, and keep the license and
-copyright notices. Details: `LICENSE-NOTE.md`.
+Alto is licensed under the LGPL-3.0, like Baritone. Using the jar yourself has no conditions. If you give the jar to
+anyone else, you must also give them its complete source code. See [LICENSE-NOTE.md](LICENSE-NOTE.md).
