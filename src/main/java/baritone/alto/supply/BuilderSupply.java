@@ -94,7 +94,12 @@ public final class BuilderSupply {
         if (need.isEmpty()) {
             return false;
         }
-        Plan plan = alto.plan(need, new ItemCounts());
+        // Never mine a block the build itself uses (the miner could take it from the build).
+        java.util.Set<String> buildBlocks = new java.util.HashSet<>();
+        for (BlockState st : missing.keySet()) {
+            buildBlocks.add(net.minecraft.core.registries.BuiltInRegistries.BLOCK.getKey(st.getBlock()).toString());
+        }
+        Plan plan = alto.plan(need, new ItemCounts(), buildBlocks);
         if (!plan.isComplete()) {
             AltoLog.warn("The build needs " + need + " but Alto cannot produce it. Shopping list: " + plan.missing());
             fail();
@@ -112,11 +117,16 @@ public final class BuilderSupply {
         }
         AltoLog.chat("The build is out of " + need + "; getting more: " + plan.steps().size() + " step(s), about "
                 + Plan.formatTicks(plan.estimatedTicks()) + ".");
+        Object[] snapshot = builder.altoSnapshot();
         alto.startJob(new Job(task, true, "builder", (ok, msg) -> {
             if (ok) {
                 failuresInRow = 0;
             } else {
                 fail();
+            }
+            // A mining step lets Baritone's miner take over, which resets the builder: start the same build again.
+            if (!builder.isActive()) {
+                builder.altoResume(snapshot);
             }
         }));
         return true;

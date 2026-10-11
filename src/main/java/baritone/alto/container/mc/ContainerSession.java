@@ -172,6 +172,7 @@ public final class ContainerSession {
         if (r.shouldSwing()) {
             p.swing(InteractionHand.MAIN_HAND);
         }
+        alto.storage().recorder().expect(target);
         AltoLog.debug("use " + label + " at " + target.toShortString() + " -> " + r);
         state = State.OPENING;
         waitTicks = 0;
@@ -307,6 +308,9 @@ public final class ContainerSession {
         if (p == null || state == State.CLOSED || state == State.IDLE) {
             state = State.CLOSED;
             return Status.DONE;
+        }
+        if (state == State.OPEN && menuStillOpen() && target != null) {
+            alto.storage().recorder().recordNow();
         }
         if (state == State.OPEN && menuStillOpen() && !p.containerMenu.getCarried().isEmpty()) {
             Status s = run(new MenuGoal() {

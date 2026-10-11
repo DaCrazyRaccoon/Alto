@@ -22,7 +22,12 @@ import baritone.alto.core.ItemKey;
 import baritone.alto.planner.StationKind;
 import net.minecraft.core.BlockPos;
 
+import baritone.alto.planner.Ingredient;
+import baritone.alto.planner.PlanStep;
+
+import java.util.ArrayList;
 import java.util.EnumMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Predicate;
 
@@ -65,6 +70,55 @@ public final class PlanContext {
     public void forgetStation(StationKind kind) {
         stations.remove(kind);
         placed.remove(kind);
+    }
+
+    /** A furnace that was loaded and is cooking while the plan continues with other steps. */
+    public record PendingSmelt(BlockPos furnace, StationKind kind, ItemKey output, int expected, long cookTicks) {
+    }
+
+    private final List<PendingSmelt> pendingSmelts = new ArrayList<>();
+
+    public void addPendingSmelt(PendingSmelt p) {
+        pendingSmelts.add(p);
+    }
+
+    public void removePendingSmelt(PendingSmelt p) {
+        pendingSmelts.remove(p);
+    }
+
+    public List<PendingSmelt> pendingSmelts() {
+        return List.copyOf(pendingSmelts);
+    }
+
+    /**
+     * A pending smelt whose output {@code step} needs (it crafts or smelts with it, or it picks up that furnace),
+     * or null if the step can run while the furnaces cook.
+     */
+    public PendingSmelt pendingNeededBy(PlanStep step) {
+        for (PendingSmelt p : pendingSmelts) {
+            if (step instanceof PlanStep.Craft c && uses(c.recipe().inputs(), p.output())) {
+                return p;
+            }
+            if (step instanceof PlanStep.Smelt sm && uses(sm.recipe().inputs(), p.output())) {
+                return p;
+            }
+            if (step instanceof PlanStep.Smelt sm && sm.station() == p.kind()) {
+                return p; // the same furnace kind would be reused: free it first
+            }
+            if (step instanceof PlanStep.Station st && st.kind() == p.kind() && st.action() == PlanStep.StationAction.PICK_UP) {
+                return p;
+            }
+        }
+        return null;
+    }
+
+    private static boolean uses(List<Ingredient> inputs, ItemKey item) {
+        for (Ingredient in : inputs) {
+            if (in.accepts(item)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public boolean isReserved(ItemKey item) {

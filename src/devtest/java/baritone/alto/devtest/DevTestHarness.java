@@ -110,12 +110,13 @@ public final class DevTestHarness {
             return;
         }
         logScreenChanges(mc);
-        if (mc.screen != null && mc.screen.getClass().getSimpleName().contains("Welcome")) {
-            // First-launch welcome screens of pack mods (e.g. Create Deep Seas) would sit over the test world.
-            LOG.info("[alto-devtest] closing welcome screen {}", mc.screen.getClass().getName());
-            mc.setScreen(null);
+        if (mc.screen != null && isModNoticeScreen(mc)) {
+            // First-launch welcome screens of pack mods (e.g. Create Deep Seas) reopen until a choice is made, so press
+            // their "later / skip / close" button like a player would (test copy only).
+            dismissWelcome(mc);
             return;
         }
+        periodicScreenshot(mc);
         if (mc.screen instanceof AccessibilityOnboardingScreen) {
             mc.options.onboardingAccessibilityFinished();
             mc.setScreen(new TitleScreen(true));
@@ -201,6 +202,69 @@ public final class DevTestHarness {
         }
     }
 
+    private int welcomeTries;
+    private long lastShotNanos = System.nanoTime();
+
+    /**
+     * Pack mods show their own notice screens (welcome, update, changelog) at startup. A non-vanilla screen that is
+     * not a container or chat screen, seen before the self-tests start, is treated as such a notice.
+     */
+    private boolean isModNoticeScreen(Minecraft mc) {
+        String cls = mc.screen.getClass().getName();
+        if (cls.startsWith("net.minecraft.") || cls.startsWith("net.neoforged.") || cls.startsWith("baritone.")) {
+            return false;
+        }
+        if (mc.screen instanceof net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<?>) {
+            return false;
+        }
+        String simple = mc.screen.getClass().getSimpleName();
+        return simple.contains("Welcome") || simple.contains("Update") || simple.contains("Changelog")
+                || simple.contains("Notice") || simple.contains("News") || commands.size() > 0 && ticksInWorld < 200;
+    }
+
+    private final java.util.Set<String> noticeShots = new java.util.HashSet<>();
+
+    private void dismissWelcome(Minecraft mc) {
+        String name = mc.screen.getClass().getName();
+        if (noticeShots.add(name)) {
+            shot(mc, "notice-" + mc.screen.getClass().getSimpleName());
+        }
+        for (net.minecraft.client.gui.components.events.GuiEventListener child : mc.screen.children()) {
+            if (child instanceof net.minecraft.client.gui.components.Button b) {
+                String text = b.getMessage().getString().toLowerCase(java.util.Locale.ROOT);
+                if (text.contains("later") || text.contains("skip") || text.contains("no thanks") || text.contains("close")
+                        || text.equals("done") || text.equals("ok") || text.contains("continue")) {
+                    LOG.info("[alto-devtest] pressing '{}' on {}", b.getMessage().getString(), name);
+                    b.onPress();
+                    return;
+                }
+            }
+        }
+        if (welcomeTries++ % 100 == 0) {
+            LOG.info("[alto-devtest] closing welcome screen {} (no dismiss button found)", name);
+        }
+        mc.setScreen(null);
+    }
+
+    /** Game-window screenshots (only the game, saved under the run folder's screenshots/) for diagnosing runs. */
+    private void shot(Minecraft mc, String why) {
+        String file = "alto-devtest-" + System.currentTimeMillis() + "-" + why.replaceAll("[^a-zA-Z0-9_-]", "_") + ".png";
+        try {
+            net.minecraft.client.Screenshot.grab(mc.gameDirectory, file, mc.getMainRenderTarget(), msg -> {
+            });
+            LOG.info("[alto-devtest] screenshot {} ({})", file, why);
+        } catch (Throwable t) {
+            LOG.warn("[alto-devtest] screenshot failed", t);
+        }
+    }
+
+    private void periodicScreenshot(Minecraft mc) {
+        if (System.nanoTime() - lastShotNanos > 30_000_000_000L && mc.level != null) {
+            lastShotNanos = System.nanoTime();
+            shot(mc, "periodic");
+        }
+    }
+
     private String lastScreen = "";
     private long lastScreenNanos = System.nanoTime();
     private boolean stuckReported;
@@ -216,6 +280,7 @@ public final class DevTestHarness {
         } else if (!stuckReported && mc.screen != null && mc.getOverlay() == null
                 && System.nanoTime() - lastScreenNanos > 120_000_000_000L && !(mc.screen instanceof TitleScreen)) {
             stuckReported = true;
+            shot(mc, "stuck");
             LOG.warn("[alto-devtest] STUCK on screen {} for 2 minutes", now);
         }
     }
@@ -241,6 +306,7 @@ public final class DevTestHarness {
 
     private void finish(Minecraft mc, String verdict) {
         done = true;
+        shot(mc, "final");
         report.add(verdict);
         Path out = mc.gameDirectory.toPath().resolve("alto-devtest-report.txt");
         try {

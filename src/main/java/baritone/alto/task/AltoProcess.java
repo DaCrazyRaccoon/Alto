@@ -40,10 +40,13 @@ import baritone.utils.BaritoneProcessHelper;
 public final class AltoProcess extends BaritoneProcessHelper {
 
     public static final double SUPPLY_PRIORITY = -0.5;
+    /** While a job lets Baritone's miner work for it, it must rank above the miner or the miner would reset it. */
+    public static final double DEFERRING_PRIORITY = -0.75;
 
     private final Alto alto;
     private Job job;
     private String lastDisplay = "";
+    private boolean deferring;
 
     public AltoProcess(Baritone baritone, Alto alto) {
         super(baritone);
@@ -88,6 +91,7 @@ public final class AltoProcess extends BaritoneProcessHelper {
         if (current == null) {
             return new PathingCommand(null, PathingCommandType.DEFER);
         }
+        deferring = false;
         Step step;
         try {
             step = current.root().tick(calcFailed);
@@ -100,6 +104,7 @@ public final class AltoProcess extends BaritoneProcessHelper {
             case WALK:
                 return new PathingCommand(step.goal(), PathingCommandType.SET_GOAL_AND_PATH);
             case DEFER:
+                deferring = true;
                 return new PathingCommand(null, PathingCommandType.DEFER);
             case SUCCESS:
                 finish(true, step.message());
@@ -147,7 +152,13 @@ public final class AltoProcess extends BaritoneProcessHelper {
 
     @Override
     public double priority() {
-        return job != null && job.temporary() ? SUPPLY_PRIORITY : IBaritoneProcess.DEFAULT_PRIORITY;
+        if (job == null) {
+            return IBaritoneProcess.DEFAULT_PRIORITY;
+        }
+        if (job.temporary()) {
+            return SUPPLY_PRIORITY;
+        }
+        return deferring ? DEFERRING_PRIORITY : IBaritoneProcess.DEFAULT_PRIORITY;
     }
 
     @Override

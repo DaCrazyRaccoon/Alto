@@ -56,6 +56,9 @@ public final class AltoCommands {
         commands.add(new PlanCommand(baritone, alto));
         commands.add(new AltoCommand(baritone, alto));
         commands.add(new SelfTestCommand(baritone, alto));
+        commands.add(new StorageCommands.HomeCommand(baritone, alto));
+        commands.add(new StorageCommands.FetchCommand(baritone, alto));
+        commands.add(new StorageCommands.DepositCommand(baritone, alto));
         commands.forEach(baritone.getCommandManager().getRegistry()::register);
     }
 

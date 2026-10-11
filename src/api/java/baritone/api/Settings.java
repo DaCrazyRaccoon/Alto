@@ -1755,6 +1755,29 @@ public final class Settings {
     )));
 
     /**
+     * Smelting: let Alto use furnaces, blast furnaces and smokers (chosen by recipe type).
+     */
+    public final Setting<Boolean> altoSmelting = new Setting<>(true);
+
+    /**
+     * Smelting: how many furnaces one smelting step may use at once (extra ones must already stand within 16 blocks
+     * of the first and be empty; Alto never places more than one).
+     */
+    public final Setting<Integer> altoMaxFurnaces = new Setting<>(2);
+
+    /**
+     * Planner: natural blocks Alto may mine when an item cannot be obtained any other way. What each block drops is
+     * read from the loot tables. Blocks the current build places are never mined.
+     */
+    public final Setting<List<Block>> altoGatherBlocks = new Setting<>(new ArrayList<>(Arrays.asList(
+            Blocks.OAK_LOG, Blocks.SPRUCE_LOG, Blocks.BIRCH_LOG, Blocks.JUNGLE_LOG, Blocks.ACACIA_LOG,
+            Blocks.DARK_OAK_LOG, Blocks.MANGROVE_LOG, Blocks.CHERRY_LOG,
+            Blocks.STONE, Blocks.DEEPSLATE, Blocks.COBBLESTONE, Blocks.SAND, Blocks.RED_SAND, Blocks.GRAVEL,
+            Blocks.DIRT, Blocks.CLAY, Blocks.COAL_ORE, Blocks.DEEPSLATE_COAL_ORE, Blocks.IRON_ORE,
+            Blocks.DEEPSLATE_IRON_ORE, Blocks.COPPER_ORE, Blocks.DEEPSLATE_COPPER_ORE
+    )));
+
+    /**
      * Stations: find, place and pick up crafting tables and furnaces as needed.
      */
     public final Setting<Boolean> altoStations = new Setting<>(true);
@@ -1795,6 +1818,54 @@ public final class Settings {
      * zones (#home zone). Off by default so Alto never touches someone else's chest on a server.
      */
     public final Setting<Boolean> altoStorageAnywhere = new Setting<>(false);
+
+    /**
+     * Storage: extra block types (besides chests, trapped chests and barrels) that count as storage when Alto looks
+     * for unopened containers inside a storage zone. Integrations add their own blocks automatically.
+     */
+    public final Setting<List<Block>> altoStorageBlocks = new Setting<>(new ArrayList<>());
+
+    /**
+     * Keep-list: items that are never deposited (in addition to tools, food and what the current job needs).
+     */
+    public final Setting<List<Item>> altoKeepItems = new Setting<>(new ArrayList<>(Arrays.asList(
+            net.minecraft.world.item.Items.TORCH,
+            net.minecraft.world.item.Items.ENDER_PEARL,
+            net.minecraft.world.item.Items.TOTEM_OF_UNDYING
+    )));
+
+    /**
+     * Keep-list: never deposit tools, weapons and armor.
+     */
+    public final Setting<Boolean> altoKeepTools = new Setting<>(true);
+
+    /**
+     * Keep-list: never deposit food.
+     */
+    public final Setting<Boolean> altoKeepFood = new Setting<>(true);
+
+    /**
+     * Auto-deposit: when the inventory is full during mining, farming or building, put unneeded items (everything
+     * not on the keep-list) into the nearest storage zone with space, then continue the job. Only active once you
+     * have set a storage zone (#home zone add).
+     */
+    public final Setting<Boolean> altoAutoDeposit = new Setting<>(true);
+
+    /**
+     * Auto-deposit starts when the main inventory has this many free slots or fewer.
+     */
+    public final Setting<Integer> altoAutoDepositFreeSlots = new Setting<>(0);
+
+    /**
+     * Restock: keep these items stocked from storage during jobs, as "item=count" (for example minecraft:torch=32).
+     * Only active once you have set a storage zone. The builder restocks its own blocks automatically.
+     */
+    public final Setting<List<String>> altoRestockItems = new Setting<>(new ArrayList<>());
+
+    /**
+     * Restock: switch restocking from storage on or off.
+     */
+    public final Setting<Boolean> altoRestock = new Setting<>(true);
 
     /**
      * Allow #selftest to change the world (it builds test setups around you). Only works in singleplayer, and only

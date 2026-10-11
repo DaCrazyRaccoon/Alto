@@ -35,6 +35,9 @@ import baritone.alto.planner.mc.VanillaRecipeSource;
 import baritone.alto.planner.mc.WorldModelBuilder;
 import baritone.alto.selftest.SelfTests;
 import baritone.alto.station.StationManager;
+import baritone.alto.storage.ContainerRecord;
+import baritone.alto.storage.FetchTask;
+import baritone.alto.storage.StorageManager;
 import baritone.alto.supply.BuilderSupply;
 import baritone.alto.task.AltoProcess;
 import baritone.alto.task.AltoTask;
@@ -84,6 +87,7 @@ public final class Alto {
     private final ServerNotice notice;
     private final AltoProcess process;
     private final StationManager stations;
+    private final StorageManager storage;
     private final VanillaRecipeSource vanillaRecipes = new VanillaRecipeSource();
     private final BuilderSupply builderSupply;
     private final SelfTests selfTests;
@@ -102,9 +106,14 @@ public final class Alto {
         }
         this.notice = new ServerNotice(directory);
         this.stations = new StationManager(this);
+        this.storage = new StorageManager(this);
         this.process = new AltoProcess(baritone, this);
         this.builderSupply = new BuilderSupply(this);
         this.selfTests = new SelfTests(this);
+        addStepTaskFactory((step, pctx) -> step instanceof PlanStep.Fetch f
+                ? new FetchTask(this, ContainerRecord.Key.parse(f.storageId()), f.item(), f.count()) : null);
+        addStepTaskFactory((step, pctx) -> step instanceof PlanStep.Gather g
+                ? new baritone.alto.task.GatherTask(this, g.item(), g.count(), g.blocks()) : null);
     }
 
     /** Called once from the {@code Baritone} constructor. */
@@ -144,6 +153,10 @@ public final class Alto {
 
     public StationManager stations() {
         return stations;
+    }
+
+    public StorageManager storage() {
+        return storage;
     }
 
     public BuilderSupply builderSupply() {
@@ -203,11 +216,21 @@ public final class Alto {
     }
 
     public WorldModel worldModel(ItemCounts reserved) {
-        return WorldModelBuilder.build(this, reserved);
+        return WorldModelBuilder.build(this, reserved, java.util.Set.of());
     }
 
     public Plan plan(ItemCounts targets, ItemCounts reserved) {
-        return new Planner(recipeBook(), plannerOptions()).plan(targets, worldModel(reserved));
+        return plan(targets, reserved, java.util.Set.of());
+    }
+
+    /** Plans with some blocks excluded from mining (e.g. the blocks a build is placing). */
+    public Plan plan(ItemCounts targets, ItemCounts reserved, java.util.Set<String> neverMineBlocks) {
+        WorldModel model = WorldModelBuilder.build(this, reserved, neverMineBlocks);
+        return new Planner(recipeBook(), plannerOptions()).plan(targets, model);
+    }
+
+    public boolean settingsAllowGather() {
+        return settings().altoPlannerAllowGather.value;
     }
 
     // ------------------------------------------------------------------------------------------ extension hooks

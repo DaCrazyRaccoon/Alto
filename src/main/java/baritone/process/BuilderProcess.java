@@ -1005,6 +1005,20 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
         return name + "@" + origin;
     }
 
+    /** State needed to start the same build again (when another process had to take over for a supply run). */
+    public Object[] altoSnapshot() {
+        if (schematic == null) {
+            return null;
+        }
+        return new Object[]{name, realSchematic != null ? realSchematic : schematic, origin};
+    }
+
+    public void altoResume(Object[] snapshot) {
+        if (snapshot != null && !isActive()) {
+            build((String) snapshot[0], (ISchematic) snapshot[1], (Vec3i) snapshot[2]);
+        }
+    }
+
     @Override
     public void onLostControl() {
         incorrectPositions = null;

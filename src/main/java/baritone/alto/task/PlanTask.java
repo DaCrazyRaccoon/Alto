@@ -47,6 +47,7 @@ public final class PlanTask extends AltoTask {
     private int index;
     private AltoTask current;
     private boolean tailBuilt;
+    private boolean collecting;
 
     public PlanTask(Alto alto, Plan plan, PlanContext pctx, ItemCounts required) {
         super(alto);
@@ -71,10 +72,16 @@ public final class PlanTask extends AltoTask {
         }
         while (index < plan.steps().size()) {
             if (current == null) {
-                current = taskFor(plan.steps().get(index));
-                if (current == null) {
-                    index++;
-                    continue;
+                PlanContext.PendingSmelt needed = pctx.pendingNeededBy(plan.steps().get(index));
+                if (needed != null) {
+                    current = new SmeltCollectTask(alto, needed, pctx);
+                    collecting = true;
+                } else {
+                    current = taskFor(plan.steps().get(index));
+                    if (current == null) {
+                        index++;
+                        continue;
+                    }
                 }
             }
             Step s = current.tick(calcFailed);
@@ -84,11 +91,32 @@ public final class PlanTask extends AltoTask {
             if (s.kind() == Step.Kind.SUCCESS) {
                 current.cancel();
                 current = null;
-                index++;
+                if (collecting) {
+                    collecting = false; // the step that needed the output runs next
+                } else {
+                    index++;
+                }
                 return Step.stay();
             }
             if (s.kind() == Step.Kind.FAILURE) {
                 return Step.failure("step " + (index + 1) + " (" + current.name() + "): " + s.message());
+            }
+            return s;
+        }
+        if (current != null || !pctx.pendingSmelts().isEmpty()) {
+            // Collect whatever is still cooking before finishing.
+            if (current == null) {
+                current = new SmeltCollectTask(alto, pctx.pendingSmelts().get(0), pctx);
+            }
+            Step s = current.tick(calcFailed);
+            detail(current.name() + (current.detail().isEmpty() ? "" : " - " + current.detail()));
+            if (s.kind() == Step.Kind.SUCCESS) {
+                current.cancel();
+                current = null;
+                return Step.stay();
+            }
+            if (s.kind() == Step.Kind.FAILURE) {
+                return Step.failure(current.name() + ": " + s.message());
             }
             return s;
         }
@@ -119,6 +147,9 @@ public final class PlanTask extends AltoTask {
     private AltoTask taskFor(PlanStep step) {
         if (step instanceof PlanStep.Craft c) {
             return new CraftTask(alto, c.recipe(), c.crafts(), c.station(), pctx);
+        }
+        if (step instanceof PlanStep.Smelt sm) {
+            return new SmeltTask(alto, sm.recipe(), sm.operations(), sm.station(), sm.fuel(), sm.fuelCount(), pctx);
         }
         if (step instanceof PlanStep.Station s) {
             switch (s.action()) {

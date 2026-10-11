@@ -42,6 +42,11 @@ public final class WorldModelBuilder {
     }
 
     public static WorldModel build(Alto alto, ItemCounts reserved) {
+        return build(alto, reserved, java.util.Set.of());
+    }
+
+    /** @param neverMine block ids that must not be mined for materials (e.g. blocks the current build places) */
+    public static WorldModel build(Alto alto, ItemCounts reserved, java.util.Set<String> neverMine) {
         IPlayerContext ctx = alto.ctx();
         Inventory inv = ctx.player().getInventory();
         WorldModel.Builder b = WorldModel.builder()
@@ -59,6 +64,14 @@ public final class WorldModelBuilder {
                 Optional<BlockPos> pos = alto.stations().findNearest(kind, radius, p -> true);
                 pos.ifPresent(p -> b.station(kind, p.toShortString(), Math.sqrt(p.distSqr(feet))));
             }
+        }
+        if (Baritone.settings().altoPlannerAllowGather.value) {
+            GatherTable.sources().forEach((item, src) -> {
+                java.util.List<String> blocks = src.blocks().stream().filter(id -> !neverMine.contains(id)).toList();
+                if (!blocks.isEmpty()) {
+                    b.gatherable(item.id(), src.ticksPerItem(), blocks.toArray(new String[0]));
+                }
+            });
         }
         alto.contributeToWorldModel(b);
         for (Map.Entry<String, Integer> fuel : alto.fuels().entrySet()) {

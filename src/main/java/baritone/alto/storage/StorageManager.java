@@ -54,6 +54,23 @@ public final class StorageManager {
         alto.addWorldModelContributor(this::contribute);
     }
 
+    private final java.util.List<net.minecraft.world.level.block.Block> extraStorageBlocks = new java.util.concurrent.CopyOnWriteArrayList<>();
+
+    /** Integrations register their storage blocks here (scanned when looking for unopened containers in zones). */
+    public void addStorageBlocks(java.util.Collection<net.minecraft.world.level.block.Block> blocks) {
+        extraStorageBlocks.addAll(blocks);
+    }
+
+    /** Block types that count as storage when scanning zones. */
+    public java.util.List<net.minecraft.world.level.block.Block> storageBlocks() {
+        java.util.List<net.minecraft.world.level.block.Block> list = new java.util.ArrayList<>(java.util.List.of(
+                net.minecraft.world.level.block.Blocks.CHEST, net.minecraft.world.level.block.Blocks.TRAPPED_CHEST,
+                net.minecraft.world.level.block.Blocks.BARREL));
+        list.addAll(extraStorageBlocks);
+        list.addAll(Baritone.settings().altoStorageBlocks.value);
+        return list;
+    }
+
     public StorageRecorder recorder() {
         return recorder;
     }
