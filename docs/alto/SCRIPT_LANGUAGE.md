@@ -739,7 +739,7 @@ Package `baritone.alto.script` and below; pure Java (no Minecraft classes), no f
 | `codec.ScriptCodec`                | `parse(String)`, `parse(Reader)`, `parseOrThrow`, `toCanonicalJson`, `toPrettyJson`, `hash`. |
 | `check.ScriptValidator`            | `validate(Script)`: list of `lang.Diagnostic`.                              |
 | `check.CapabilitySummary`          | `of(Script)`, `sentences()`, `commands()`, `chatTexts()`, `chatTriggers()`.  |
-| `runtime.ScriptRun`                | `new ScriptRun(script, host, options)`, `tick()`, `fire(EventType, payload)`, `pause()`, `resume()`, `stop()`, `snapshot()`, `restore(...)`, state getters. |
+| `runtime.ScriptRun`                | `new ScriptRun(script, host, options)`, `tick()`, `fire(EventType, payload)`, `isChatTrigger(typed)`, `pause()`, `resume()`, `stop()`, `snapshot()`, `restore(...)`, state getters (`status`, `current`, `activations`, `variables`, `lastError`, step counters). |
 | `runtime.ScriptHost`               | Implemented by the binding: `start(ActionCall)`, `query(QueryCall)`, `safetyStopsEnabled()`, `chatAllowed()`, `commandAllowed(String)`, `showMessage(String)`, `nowMillis()`. |
 | `runtime.ActionHandle`             | Returned by `start`: `poll()`, `failureReason()`, `cancel()`.               |
 | `runtime.ActionCall` / `ActionRequest` | The action to perform, with evaluated, checked, normalized arguments (one record per action). |
