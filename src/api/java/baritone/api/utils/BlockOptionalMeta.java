@@ -231,33 +231,44 @@ public final class BlockOptionalMeta {
     }
 
     private static synchronized List<Item> drops(Block b) {
-        return drops.computeIfAbsent(b, block -> {
-            ResourceLocation lootTableLocation = block.getLootTable().location();
-            if (lootTableLocation.equals(BuiltInLootTables.EMPTY.location())) {
-                return Collections.emptyList();
-            } else {
-                List<Item> items = new ArrayList<>();
-                try {
-                    ServerLevel lv2 = ServerLevelStub.fastCreate();
+        // ALTO FORK: no computeIfAbsent here. The fallback below (Alto's drop table) builds BlockOptionalMetas, which
+        // ask for the drops of other blocks: changing the map inside computeIfAbsent threw
+        // ConcurrentModificationException. A placeholder also stops a block from asking for itself.
+        List<Item> known = drops.get(b);
+        if (known != null) {
+            return known;
+        }
+        drops.put(b, Collections.emptyList());
+        List<Item> computed = computeDrops(b);
+        drops.put(b, computed);
+        return computed;
+    }
 
-                    LootParams.Builder lv5 = new LootParams.Builder(lv2)
-                        .withParameter(LootContextParams.ORIGIN, Vec3.ZERO)
-                        .withParameter(LootContextParams.BLOCK_STATE, b.defaultBlockState())
-                        .withParameter(LootContextParams.TOOL, new ItemStack(Items.NETHERITE_PICKAXE, 1));
-                    getDrops(block, lv5).stream().map(ItemStack::getItem).forEach(items::add);
-                } catch (Throwable e) {
-                    // ALTO FORK: in some modpacks the loot-table stub cannot load its registries, so no drop is ever
-                    // known and "#mine <count>" never stops. Fall back to the block's item and Alto's drop table,
-                    // and report the problem once instead of once per block.
-                    if (!dropsFailureLogged) {
-                        dropsFailureLogged = true;
-                        System.err.println("[Baritone/Alto] block drops unavailable (" + e + "); using the block's item and Alto's drop table");
-                    }
-                    items.addAll(baritone.alto.AltoHooks.fallbackDrops(block));
-                }
-                return items;
+    private static List<Item> computeDrops(Block block) {
+        ResourceLocation lootTableLocation = block.getLootTable().location();
+        if (lootTableLocation.equals(BuiltInLootTables.EMPTY.location())) {
+            return Collections.emptyList();
+        }
+        List<Item> items = new ArrayList<>();
+        try {
+            ServerLevel lv2 = ServerLevelStub.fastCreate();
+
+            LootParams.Builder lv5 = new LootParams.Builder(lv2)
+                .withParameter(LootContextParams.ORIGIN, Vec3.ZERO)
+                .withParameter(LootContextParams.BLOCK_STATE, block.defaultBlockState())
+                .withParameter(LootContextParams.TOOL, new ItemStack(Items.NETHERITE_PICKAXE, 1));
+            getDrops(block, lv5).stream().map(ItemStack::getItem).forEach(items::add);
+        } catch (Throwable e) {
+            // ALTO FORK: in some modpacks the loot-table stub cannot load its registries, so no drop is ever
+            // known and "#mine <count>" never stops. Fall back to the block's item and Alto's drop table,
+            // and report the problem once instead of once per block.
+            if (!dropsFailureLogged) {
+                dropsFailureLogged = true;
+                System.err.println("[Baritone/Alto] block drops unavailable (" + e + "); using the block's item and Alto's drop table");
             }
-        });
+            items.addAll(baritone.alto.AltoHooks.fallbackDrops(block));
+        }
+        return items;
     }
 
     private static List<ItemStack> getDrops(Block state, LootParams.Builder params) {

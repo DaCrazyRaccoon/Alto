@@ -36,6 +36,8 @@ Alto is a modified version of Baritone 1.11.3 (branch `1.21.1`, commit `10e65932
 * Chat: Alto's messages start with `[Alto]` instead of `[Baritone] [Alto]` (same colours and the same chat/toast
   settings as Baritone's).
 * `#deposit` reports how many items it stored (it said "nothing to store" after storing).
+* Fixed: "Alto tick listener failed: ConcurrentModificationException" at world start in the pack (the block-drops
+  cache was changed while it was being filled, through Alto's drop-table fallback).
 * New in-game tests, built with real mod blocks in the pack copy: `machines-safe`, `create-materials`,
   `create-protect`, `create-hazard`, `create-platform`, `create-elevator`, `create-order`, `create-train`,
   `claims-protect`, `corpse`, `emi-pick`, `farm-modded`, `lootr-skip`.
