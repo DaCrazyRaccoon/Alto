@@ -469,6 +469,12 @@ public final class VehicleTasks {
                         dismountKey(alto, false);
                         return Step.failure("could not get off the boat");
                     }
+                    // The game sets a boat's passenger down ahead of where they look, on land when there is land there.
+                    // Face the shore first, so the bot steps out onto land instead of into the water.
+                    if (ticks <= 4) {
+                        alto.baritone().getLookBehavior().updateTarget(new baritone.api.utils.Rotation(landYaw(), 10f), true);
+                        return Step.stay();
+                    }
                     dismountKey(alto, true);
                     return Step.stay();
                 }
@@ -517,7 +523,9 @@ public final class VehicleTasks {
                     if (drop.isEmpty() || drop.get().distanceToSqr(p) < 1.0) {
                         return Step.stay(); // the server hands it over when we touch it
                     }
-                    return Step.walk(new baritone.api.pathing.goals.GoalBlock(drop.get().blockPosition()));
+                    // From the shore the item is usually within reach of a step; only go into the water if needed.
+                    return Step.walk(ticks < 60 ? new GoalNear(drop.get().blockPosition(), 1)
+                            : new baritone.api.pathing.goals.GoalBlock(drop.get().blockPosition()));
                 }
                 case WALK: {
                     GoalXZ goal = new GoalXZ(x, z);
@@ -532,6 +540,32 @@ public final class VehicleTasks {
                 default:
                     return Step.failure("unknown phase");
             }
+        }
+
+        /** The look direction (yaw) that sets the passenger down on land, closest to the way to the target. */
+        private float landYaw() {
+            float want = (float) (Mth.atan2(z + 0.5 - boat.getZ(), x + 0.5 - boat.getX()) * (180 / Math.PI)) - 90f;
+            double reach = (boat.getBbWidth() * Mth.SQRT_OF_TWO + ctx.player().getBbWidth() + 1.0E-5) / 2.0;
+            float best = want;
+            double bestDiff = Double.MAX_VALUE;
+            for (int k = 0; k < 16; k++) {
+                float yaw = k * 22.5f;
+                double fx = -Mth.sin(yaw * Mth.DEG_TO_RAD);
+                double fz = Mth.cos(yaw * Mth.DEG_TO_RAD);
+                double m = Math.max(Math.abs(fx), Math.abs(fz));
+                BlockPos spot = BlockPos.containing(boat.getX() + fx * reach / m, boat.getBoundingBox().maxY, boat.getZ() + fz * reach / m);
+                var below = ctx.world().getBlockState(spot.below());
+                if (ctx.world().isWaterAt(spot.below()) || !below.isSolidRender(ctx.world(), spot.below())
+                        || !ctx.world().getBlockState(spot).getCollisionShape(ctx.world(), spot).isEmpty()) {
+                    continue;
+                }
+                double diff = Math.abs(Mth.wrapDegrees(yaw - want));
+                if (diff < bestDiff) {
+                    bestDiff = diff;
+                    best = yaw;
+                }
+            }
+            return best;
         }
 
         private boolean openWater(BlockPos b) {

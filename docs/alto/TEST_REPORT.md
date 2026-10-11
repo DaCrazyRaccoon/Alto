@@ -48,6 +48,14 @@ trigger (typed by the test) and its item-below handler (which crafts torches). I
   walked to a chest that was gone and waited there → Alto now forgets vanished containers every 2 s, and an approach
   that cannot reach its block gives up after 5 s and tries the next container.
 * The build's up-front supply run and the builder's own supply could both start → the supply run goes first.
+* Found only in the pack (first real-terrain final run, 20/22): a 2x2 craft finished in one click but its result was
+  counted before the server's update arrived, so the craft step reported "missing ingredients" after succeeding, and
+  that false failure put the builder's supply on cooldown for the next build → crafting now counts the real output;
+  a new build resets the supply's failure counter.
+* Found only in the pack: shift-clicked items land in the main inventory, but Baritone's farm (and the boat) only use
+  the hotbar → seeds and boats are moved to the hotbar first.
+* Found only in the pack: Baritone's loot-table lookup fails here, so `#mine <count>` never stopped (it mined 31 of
+  8) → drops fall back to the block's item and Alto's drop table; the script `mine` block stops at its own count.
 
 ## 4. Not verified (and why)
 
