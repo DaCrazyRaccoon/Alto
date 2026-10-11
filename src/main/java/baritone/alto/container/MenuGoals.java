@@ -221,6 +221,15 @@ public final class MenuGoals {
      * With {@code allowOvershoot}, a final partial amount above {@link #EXACT_CLICK_LIMIT} places a whole stack instead.
      */
     public static MenuGoal fillSlot(int slot, ItemKey item, int target, boolean allowOvershoot) {
+        return fillSlot(slot, item, target, allowOvershoot, false);
+    }
+
+    /**
+     * Like {@link #fillSlot(int, ItemKey, int, boolean)}; with {@code keepCarried} the rest of the stack stays on the
+     * cursor when the slot is full, so the next slot of the same item needs only one more click (end the sequence
+     * with {@link #putBackCarried()}). A crafting grid of 8 planks: 1 pick-up + 8 right clicks + 1 put-back.
+     */
+    public static MenuGoal fillSlot(int slot, ItemKey item, int target, boolean allowOvershoot, boolean keepCarried) {
         return new MenuGoal() {
             @Override
             public MenuGoal.Decision decide(MenuView v) {
@@ -231,6 +240,9 @@ public final class MenuGoals {
                 int have = dest.isEmpty() ? 0 : dest.count();
                 int need = target - have;
                 if (v.carrying()) {
+                    if (need <= 0 && keepCarried && v.carriedItem().equals(item)) {
+                        return done("slot " + slot + " has " + have + "x " + item.shortName() + " (still holding the rest)");
+                    }
                     if (!v.carriedItem().equals(item) || need <= 0) {
                         return returnCarried(v);
                     }
@@ -434,6 +446,22 @@ public final class MenuGoals {
     }
 
     /** Runs goals one after another; fails as soon as one fails. */
+    /** Puts whatever is on the cursor back into the inventory (the end of a sequence of keep-carried fills). */
+    public static MenuGoal putBackCarried() {
+        return new MenuGoal() {
+            @Override
+            public MenuGoal.Decision decide(MenuView v) {
+                MenuGoal.Decision ret = returnCarried(v);
+                return ret != null ? ret : done("nothing in hand");
+            }
+
+            @Override
+            public String describe() {
+                return "put the carried items back";
+            }
+        };
+    }
+
     public static MenuGoal sequence(MenuGoal... goals) {
         return new MenuGoal() {
             int index;

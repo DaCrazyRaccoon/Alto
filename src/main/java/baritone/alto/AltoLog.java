@@ -18,14 +18,17 @@
 package baritone.alto;
 
 import baritone.Baritone;
-import baritone.api.utils.Helper;
 import net.minecraft.ChatFormatting;
+import net.minecraft.client.Minecraft;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Alto's logging: chat messages go through Baritone's own chat helper (so they get the Baritone prefix and
- * respect its toast settings); debug lines only go to the game log, and only with {@code altoDebug}.
+ * Alto's logging: chat messages carry an {@code [Alto]} prefix in Baritone's style (instead of Baritone's own
+ * prefix) and go through Baritone's chat settings ({@code logger}, {@code logAsToast}, {@code useMessageTag});
+ * debug lines only go to the game log, and only with {@code altoDebug}.
  * All chat output is local to the player; Alto never sends chat to the server.
  */
 public final class AltoLog {
@@ -35,18 +38,58 @@ public final class AltoLog {
     private AltoLog() {
     }
 
+    /** "[Alto]", coloured like Baritone's "[Baritone]". */
+    public static Component prefix() {
+        MutableComponent name = Component.literal("Alto");
+        name.setStyle(name.getStyle().withColor(ChatFormatting.LIGHT_PURPLE));
+        MutableComponent prefix = Component.literal("");
+        prefix.setStyle(name.getStyle().withColor(ChatFormatting.DARK_PURPLE));
+        prefix.append("[");
+        prefix.append(name);
+        prefix.append("]");
+        return prefix;
+    }
+
+    /** Components to chat with the [Alto] prefix (or as a toast when Baritone's logAsToast is on). */
+    public static void chat(Component... components) {
+        MutableComponent body = Component.literal("");
+        for (Component c : components) {
+            body.append(c);
+        }
+        if (Baritone.settings().logAsToast.value) {
+            Minecraft.getInstance().execute(() -> Baritone.settings().toaster.value.accept(prefix(), body));
+            return;
+        }
+        MutableComponent line = Component.literal("");
+        if (!Baritone.settings().useMessageTag.value) {
+            line.append(prefix());
+            line.append(Component.literal(" "));
+        }
+        line.append(body);
+        Minecraft.getInstance().execute(() -> Baritone.settings().logger.value.accept(line));
+    }
+
+    /** A message to chat with the [Alto] prefix, one chat line per text line. */
+    public static void chat(String message, ChatFormatting color) {
+        for (String text : message.split("\n")) {
+            MutableComponent c = Component.literal(text.replace("\t", "    "));
+            c.setStyle(c.getStyle().withColor(color));
+            chat(c);
+        }
+    }
+
     public static void chat(String message) {
-        Helper.HELPER.logDirect("[Alto] " + message);
+        chat(message, ChatFormatting.GRAY);
         LOG.info(message);
     }
 
     public static void warn(String message) {
-        Helper.HELPER.logDirect("[Alto] " + message, ChatFormatting.GOLD);
+        chat(message, ChatFormatting.GOLD);
         LOG.warn(message);
     }
 
     public static void error(String message) {
-        Helper.HELPER.logDirect("[Alto] " + message, ChatFormatting.RED);
+        chat(message, ChatFormatting.RED);
         LOG.warn(message);
     }
 
@@ -62,6 +105,6 @@ public final class AltoLog {
 
     public static void exception(String what, Throwable t) {
         LOG.error(what, t);
-        Helper.HELPER.logDirect("[Alto] " + what + ": " + t, ChatFormatting.RED);
+        chat(what + ": " + t, ChatFormatting.RED);
     }
 }

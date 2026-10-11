@@ -368,7 +368,8 @@ public final class CraftTask extends AltoTask {
         List<SlotView> grid = v.withRole(SlotRole.CRAFT_GRID);
         int width = grid.size() == 4 ? 2 : 3;
         Map<ItemKey, Integer> left = new HashMap<>();
-        List<MenuGoal> goals = new ArrayList<>();
+        // slot -> item, filled item by item so one picked-up stack serves every slot that needs it
+        Map<ItemKey, List<Integer>> slotsByItem = new java.util.LinkedHashMap<>();
         for (int i = 0; i < recipe.inputs().size(); i++) {
             Ingredient ing = recipe.inputs().get(i);
             int gridIndex;
@@ -399,8 +400,11 @@ public final class CraftTask extends AltoTask {
                 return null;
             }
             left.put(best, bestLeft - sets);
-            goals.add(MenuGoals.fillSlot(grid.get(gridIndex).index(), best, sets, false));
+            slotsByItem.computeIfAbsent(best, k -> new ArrayList<>()).add(grid.get(gridIndex).index());
         }
+        List<MenuGoal> goals = new ArrayList<>();
+        slotsByItem.forEach((item, slots) -> slots.forEach(slot -> goals.add(MenuGoals.fillSlot(slot, item, sets, false, true))));
+        goals.add(MenuGoals.putBackCarried());
         return MenuGoals.sequence(goals.toArray(new MenuGoal[0]));
     }
 }

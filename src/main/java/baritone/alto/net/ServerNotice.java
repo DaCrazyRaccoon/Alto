@@ -63,7 +63,7 @@ public final class ServerNotice {
             return;
         }
         save();
-        baritone.api.utils.Helper.HELPER.logDirect("[Alto] First time on " + address
+        baritone.alto.AltoLog.chat("First time on " + address
                 + ": Baritone's Alto features click containers, craft and move items automatically. "
                 + "Please check this server's rules about automation/bots before using them. "
                 + "(Shown once per server; turn off with #set altoServerNotice false.)", ChatFormatting.YELLOW);

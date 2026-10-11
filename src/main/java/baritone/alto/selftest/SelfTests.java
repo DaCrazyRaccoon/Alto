@@ -199,7 +199,7 @@ public final class SelfTests {
         }
         double seconds = (System.nanoTime() - startNanos) / 1e9;
         results.add(new Result(s.name(), v.outcome().name(), v.message(), Math.round(seconds * 10) / 10.0));
-        baritone.api.utils.Helper.HELPER.logDirect("[Alto] SELFTEST " + s.name() + ": " + v.outcome() + " - " + v.message(),
+        AltoLog.chat("SELFTEST " + s.name() + ": " + v.outcome() + " - " + v.message(),
                 v.outcome() == Scenario.Outcome.PASS ? ChatFormatting.GREEN : ChatFormatting.RED);
         AltoLog.info("SELFTEST " + s.name() + ": " + v.outcome() + " - " + v.message());
         if (queue.isEmpty()) {

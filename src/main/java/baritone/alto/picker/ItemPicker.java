@@ -27,7 +27,6 @@ import baritone.alto.task.Job;
 import baritone.alto.task.SequenceTask;
 import baritone.alto.task.SetFilterTask;
 import baritone.api.command.IBaritoneChatControl;
-import baritone.api.utils.Helper;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
@@ -146,7 +145,7 @@ public final class ItemPicker {
 
     private void offerActions(ItemKey item) {
         String id = item.id();
-        MutableComponent line = Component.literal("[Alto] Picked " + McItems.displayName(item) + ": ");
+        MutableComponent line = Component.literal("Picked " + McItems.displayName(item) + ": ").withStyle(ChatFormatting.GRAY);
         line.append(action("[filter marked]", "filter " + id, "Set this as the filter of the marked blocks"));
         line.append(Component.literal(" "));
         line.append(action("[fetch 64]", "fetch " + id + " 64", "Fetch 64 from your storage zones"));
@@ -158,7 +157,7 @@ public final class ItemPicker {
             line.append(Component.literal(" "));
             line.append(action("[mine 16]", "mine 16 " + id, "Mine 16 of this block"));
         }
-        Helper.HELPER.logDirect(line);
+        AltoLog.chat(line);
     }
 
     private static MutableComponent action(String label, String command, String hover) {

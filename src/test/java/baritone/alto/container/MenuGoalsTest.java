@@ -139,6 +139,41 @@ class MenuGoalsTest {
     }
 
     @Test
+    void chestGridTakesOnePickUpEightRightClicksAndOnePutBack() {
+        // The 8 planks of a chest: keep the stack in hand from slot to slot (was 3 clicks per slot).
+        ItemKey planks = ItemKey.of("oak_planks");
+        MenuSim sim = MenuSim.craftingTable().put(10, "oak_planks", 64);
+        java.util.List<MenuGoal> goals = new java.util.ArrayList<>();
+        for (int slot : new int[]{1, 2, 3, 4, 6, 7, 8, 9}) {
+            goals.add(MenuGoals.fillSlot(slot, planks, 1, false, true));
+        }
+        goals.add(MenuGoals.putBackCarried());
+        MenuGoal.Decision d = sim.run(MenuGoals.sequence(goals.toArray(new MenuGoal[0])), 40);
+        assertInstanceOf(MenuGoal.Done.class, d);
+        for (int slot : new int[]{1, 2, 3, 4, 6, 7, 8, 9}) {
+            assertEquals(1, sim.view().slot(slot).count());
+        }
+        assertTrue(sim.view().slot(5).isEmpty());
+        assertEquals(56, sim.view().count(planks, MenuView.PLAYER_STORAGE));
+        assertFalse(sim.view().carrying());
+        assertEquals(10, sim.clicks);
+    }
+
+    @Test
+    void keptStackIsPutBackBeforeADifferentItem() {
+        // torches: coal on top, stick below; the coal stack goes back before the sticks are picked up
+        MenuSim sim = MenuSim.craftingTable().put(10, "coal", 10).put(11, "stick", 10);
+        MenuGoal goal = MenuGoals.sequence(MenuGoals.fillSlot(2, ItemKey.of("coal"), 1, false, true),
+                MenuGoals.fillSlot(5, ItemKey.of("stick"), 1, false, true), MenuGoals.putBackCarried());
+        assertInstanceOf(MenuGoal.Done.class, sim.run(goal, 20));
+        assertEquals(1, sim.view().slot(2).count());
+        assertEquals(1, sim.view().slot(5).count());
+        assertEquals(9, sim.view().count(ItemKey.of("coal"), MenuView.PLAYER_STORAGE));
+        assertEquals(9, sim.view().count(ItemKey.of("stick"), MenuView.PLAYER_STORAGE));
+        assertFalse(sim.view().carrying());
+    }
+
+    @Test
     void fillSlotRefusesForeignItems() {
         MenuSim sim = MenuSim.craftingTable().put(1, "dirt", 1).put(10, "oak_log", 5);
         assertInstanceOf(MenuGoal.Fail.class, sim.run(MenuGoals.fillSlot(1, LOG, 2, false), 5));
