@@ -73,12 +73,17 @@ final class M4Scenarios {
         public void setup(ServerLevel level, ServerPlayer player, BlockPos o) {
             TestRig.clearArea(level, o);
             // 4x5 frame along X at z+10: portal blocks x 0..1, y 1..3
-            for (int x = -1; x <= 2; x++) {
-                for (int y = 0; y <= 4; y++) {
-                    boolean frame = x == -1 || x == 2 || y == 0 || y == 4;
-                    BlockPos p = o.offset(x, y, 10);
-                    level.setBlock(p, frame ? Blocks.OBSIDIAN.defaultBlockState()
-                            : Blocks.NETHER_PORTAL.defaultBlockState().setValue(NetherPortalBlock.AXIS, Direction.Axis.X), Block.UPDATE_CLIENTS);
+            // Frame first, then the portal blocks, without shape updates (a half-built frame would break them).
+            for (int pass = 0; pass < 2; pass++) {
+                for (int x = -1; x <= 2; x++) {
+                    for (int y = 0; y <= 4; y++) {
+                        boolean frame = x == -1 || x == 2 || y == 0 || y == 4;
+                        if (frame == (pass == 0)) {
+                            level.setBlock(o.offset(x, y, 10), frame ? Blocks.OBSIDIAN.defaultBlockState()
+                                    : Blocks.NETHER_PORTAL.defaultBlockState().setValue(NetherPortalBlock.AXIS, Direction.Axis.X),
+                                    Block.UPDATE_CLIENTS | Block.UPDATE_KNOWN_SHAPE);
+                        }
+                    }
                 }
             }
             TestRig.resetPlayer(level, player, o, new ItemStack(Items.DIRT, 32));
@@ -198,7 +203,7 @@ final class M4Scenarios {
                     return Verdict.RUNNING;
                 }
                 alto.selfTests().allowUpkeep(true);
-                alto.baritone().getCommandManager().execute("farm 6");
+                alto.baritone().getCommandManager().execute("farm 12");
                 phase = 1;
                 return Verdict.RUNNING;
             }
